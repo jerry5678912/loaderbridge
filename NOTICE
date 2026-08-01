@@ -1,0 +1,11 @@
+LoaderBridge
+Copyright 2026 LoaderBridge contributors
+
+This product implements compatibility with public contracts documented by
+FabricMC. Fabric Loader and Fabric API are Apache License 2.0 projects.
+
+Minecraft Forge and ForgeSPI are separate LGPL-2.1-only projects and are used
+as linked build/runtime dependencies. ModLauncher is LGPL-3.0-or-later.
+
+Minecraft is a trademark of Microsoft Corporation. LoaderBridge is not
+affiliated with or endorsed by Microsoft, Mojang, FabricMC, or MinecraftForge.
