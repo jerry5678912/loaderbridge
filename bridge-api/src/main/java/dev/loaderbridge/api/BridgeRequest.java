@@ -3,6 +3,7 @@ package dev.loaderbridge.api;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public record BridgeRequest(
         String minecraftVersion,
@@ -11,7 +12,8 @@ public record BridgeRequest(
         BridgeEnvironment environment,
         List<Path> inputArtifacts,
         Path outputDirectory,
-        Path cacheDirectory) {
+        Path cacheDirectory,
+        Optional<String> sourceNamespaceOverride) {
     public BridgeRequest {
         Objects.requireNonNull(minecraftVersion, "minecraftVersion");
         Objects.requireNonNull(hostLoader, "hostLoader");
@@ -20,5 +22,12 @@ public record BridgeRequest(
         inputArtifacts = List.copyOf(inputArtifacts);
         Objects.requireNonNull(outputDirectory, "outputDirectory");
         Objects.requireNonNull(cacheDirectory, "cacheDirectory");
+        Objects.requireNonNull(sourceNamespaceOverride, "sourceNamespaceOverride");
+    }
+
+    public BridgeRequest(String minecraftVersion, LoaderId hostLoader, String hostVersion,
+            BridgeEnvironment environment, List<Path> inputArtifacts, Path outputDirectory, Path cacheDirectory) {
+        this(minecraftVersion, hostLoader, hostVersion, environment, inputArtifacts, outputDirectory,
+                cacheDirectory, Optional.empty());
     }
 }

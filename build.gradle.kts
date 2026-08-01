@@ -34,4 +34,8 @@ subprojects {
         "testImplementation"("org.assertj:assertj-core:3.27.3")
         "testRuntimeOnly"("org.junit.platform:junit-platform-launcher")
     }
+
+    dependencyLocking {
+        lockAllConfigurations()
+    }
 }
