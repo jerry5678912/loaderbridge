@@ -13,6 +13,7 @@ import java.util.Locale;
 import java.util.Set;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.EntrypointException;
 import net.fabricmc.loader.api.MappingResolver;
 import net.fabricmc.loader.api.ModContainer;
 import net.fabricmc.loader.api.ObjectShare;
@@ -76,10 +77,18 @@ public final class BridgeFabricLoader implements FabricLoader {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public <T> List<EntrypointContainer<T>> getEntrypointContainers(String key, Class<T> type) {
-        return entrypoints.getOrDefault(key, List.of()).stream()
-                .map(entrypoint -> entrypoint.container(type))
-                .toList();
+        List<EntrypointContainer<T>> containers = new ArrayList<>();
+        for (RegisteredEntrypoint entrypoint : entrypoints.getOrDefault(key, List.of())) {
+            try {
+                containers.add(entrypoint.container(type));
+            } catch (Throwable cause) {
+                throw new EntrypointException(key,
+                        entrypoint.provider().getMetadata().getId(), cause);
+            }
+        }
+        return List.copyOf(containers);
     }
 
     @Override

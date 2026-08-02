@@ -17,6 +17,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
@@ -96,7 +100,7 @@ public final class DeterministicJarPreparer {
     }
 
     private static byte[] forgeMetadata(FabricModMetadata metadata) {
-        String escapedId = toml(metadata.id());
+        String escapedId = toml(hostModId(metadata.id()));
         String escapedVersion = toml(metadata.version());
         String escapedName = toml(metadata.name());
         String text = "modLoader=\"fabricbridge\"\n"
@@ -106,7 +110,50 @@ public final class DeterministicJarPreparer {
                 + "modId=\"" + escapedId + "\"\n"
                 + "version=\"" + escapedVersion + "\"\n"
                 + "displayName=\"" + escapedName + "\"\n";
-        return text.getBytes(StandardCharsets.UTF_8);
+        StringBuilder result = new StringBuilder(text);
+        appendDependencies(result, escapedId, metadata.dependencies().depends(), true);
+        appendDependencies(result, escapedId, metadata.dependencies().recommends(), false);
+        appendDependencies(result, escapedId, metadata.dependencies().suggests(), false);
+        return result.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static void appendDependencies(StringBuilder target, String owner,
+            Map<String, List<String>> dependencies, boolean mandatory) {
+        dependencies.keySet().stream()
+                .filter(id -> !Set.of("minecraft", "java", "fabricloader").contains(id))
+                .sorted()
+                .forEach(id -> target.append("\n[[dependencies.").append(owner).append("]]\n")
+                        .append("modId=\"").append(toml(hostModId(id))).append("\"\n")
+                        .append("mandatory=").append(mandatory).append("\n")
+                        .append("versionRange=\"[0,)\"\n")
+                        .append("ordering=\"AFTER\"\n")
+                        .append("side=\"BOTH\"\n"));
+    }
+
+    static String hostModId(String fabricId) {
+        if (fabricId.matches("^[a-z][a-z0-9_]{1,63}$")) {
+            return fabricId;
+        }
+        String sanitized = fabricId.replaceAll("[^a-z0-9_]", "_");
+        if (sanitized.isEmpty() || !Character.isLowerCase(sanitized.charAt(0))) {
+            sanitized = "m_" + sanitized;
+        }
+        String suffix = "_" + shortHash(fabricId);
+        int maxBaseLength = 64 - suffix.length();
+        if (sanitized.length() > maxBaseLength) {
+            sanitized = sanitized.substring(0, maxBaseLength);
+        }
+        return sanitized + suffix;
+    }
+
+    private static String shortHash(String value) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(value.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest, 0, 4);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is required by Java", exception);
+        }
     }
 
     private static String toml(String value) {

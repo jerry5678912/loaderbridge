@@ -10,6 +10,14 @@ dependencyResolutionManagement {
         mavenCentral()
         maven("https://maven.fabricmc.net/")
         maven("https://maven.minecraftforge.net/")
+        exclusiveContent {
+            forRepository {
+                maven("https://libraries.minecraft.net/")
+            }
+            filter {
+                includeModule("com.mojang", "logging")
+            }
+        }
     }
 }
 

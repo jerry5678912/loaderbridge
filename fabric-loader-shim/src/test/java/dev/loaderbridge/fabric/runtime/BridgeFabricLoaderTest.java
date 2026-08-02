@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.EntrypointException;
 import net.fabricmc.loader.api.ModContainer;
 import dev.loaderbridge.fabric.metadata.FabricMetadataParser;
 import net.fabricmc.loader.api.metadata.ModDependency;
@@ -57,6 +58,32 @@ class BridgeFabricLoaderTest {
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("provided by 'first'")
                 .satisfies(error -> assertThat(error.getSuppressed()).hasSize(1));
+    }
+
+    @Test
+    void reportsFabricCompatibleEntrypointResolutionFailures() {
+        BridgeFabricLoader loader = BridgeFabricLoader.getInstance();
+        loader.resetForTests();
+        ModContainer provider = BridgeModContainer.create(
+                "provider", "1", "Provider", List.of(), Path.of("provider"));
+        loader.registerMod(provider);
+        loader.registerEntrypoint("client", provider, "example.NotRunnable", new Object());
+
+        assertThatThrownBy(() -> loader.getEntrypointContainers("client", Runnable.class))
+                .isInstanceOf(EntrypointException.class)
+                .hasMessageContaining("provided by 'provider'")
+                .satisfies(error -> assertThat(((EntrypointException) error).getKey())
+                        .isEqualTo("client"));
+    }
+
+    @Test
+    void matchesFabricEnvironmentsExactly() {
+        assertThat(ModEnvironment.CLIENT.matches(EnvType.CLIENT)).isTrue();
+        assertThat(ModEnvironment.CLIENT.matches(EnvType.SERVER)).isFalse();
+        assertThat(ModEnvironment.SERVER.matches(EnvType.SERVER)).isTrue();
+        assertThat(ModEnvironment.SERVER.matches(EnvType.CLIENT)).isFalse();
+        assertThat(ModEnvironment.UNIVERSAL.matches(EnvType.CLIENT)).isTrue();
+        assertThat(ModEnvironment.UNIVERSAL.matches(EnvType.SERVER)).isTrue();
     }
 
     @Test

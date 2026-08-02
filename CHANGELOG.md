@@ -74,3 +74,6 @@ All notable user-facing changes will be recorded here.
 - Preserved nested parent ID and sub-location in transformed manifests and
   exposed order-independent containing/contained mod relationships with
   Fabric-compatible nested origin behavior at runtime.
+- Added deterministic Forge-safe host IDs, translated Fabric dependency-order
+  edges, runtime side filtering, and Fabric-compatible entrypoint resolution
+  exceptions.

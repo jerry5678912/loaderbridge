@@ -22,12 +22,15 @@ import net.fabricmc.loader.api.LanguageAdapterException;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.fml.ModContainer;
 import net.minecraftforge.fml.event.IModBusEvent;
+import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.forgespi.language.IModInfo;
 import net.minecraftforge.forgespi.language.ModFileScanData;
 
 public final class FabricModContainer extends ModContainer {
     private final List<Object> modInstances = new ArrayList<>();
     private final BridgeModContainer bridgeModContainer;
+    private final boolean active;
     private final AtomicBoolean clientEntrypointsInvoked = new AtomicBoolean();
     private final AtomicBoolean serverEntrypointsInvoked = new AtomicBoolean();
 
@@ -49,6 +52,13 @@ public final class FabricModContainer extends ModContainer {
         } catch (IOException exception) {
             throw new IllegalStateException("LB-META-010: failed to register runtime metadata for "
                     + info.getModId(), exception);
+        }
+        net.fabricmc.api.EnvType environment = FMLEnvironment.dist.isClient()
+                ? net.fabricmc.api.EnvType.CLIENT : net.fabricmc.api.EnvType.SERVER;
+        BridgeFabricLoader.getInstance().configure(environment, FMLPaths.GAMEDIR.get());
+        active = bridgeModContainer.getMetadata().getEnvironment().matches(environment);
+        if (!active) {
+            return;
         }
         BridgeFabricLoader.getInstance().registerMod(bridgeModContainer);
         invokeEntrypoints(metadataPath, "main", ModInitializer.class,
@@ -92,6 +102,9 @@ public final class FabricModContainer extends ModContainer {
 
     @Override
     protected <T extends Event & IModBusEvent> void acceptEvent(T event) {
+        if (!active) {
+            return;
+        }
         String eventName = event.getClass().getName();
         Path metadataPath = modInfo.getOwningFile().getFile().findResource("fabric.mod.json");
         if (eventName.equals("net.minecraftforge.fml.event.lifecycle.FMLDedicatedServerSetupEvent")

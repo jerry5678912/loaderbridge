@@ -50,6 +50,41 @@ class DeterministicJarPreparerTest {
         }
     }
 
+    @Test
+    void mapsFabricOnlyIdsAndEmitsDeterministicDependencyOrder() throws Exception {
+        Path source = temporaryDirectory.resolve("fabric-id.jar");
+        writeJar(source, Map.of("fabric.mod.json", """
+                {
+                  "schemaVersion": 1,
+                  "id": "fabric-example",
+                  "version": "1.0.0",
+                  "depends": {
+                    "z-library": "*",
+                    "a_library": ">=1",
+                    "fabricloader": ">=0.16"
+                  }
+                }
+                """));
+        var metadata = new FabricModInspector().inspect(source).root();
+        Path output = temporaryDirectory.resolve("fabric-id-output.jar");
+
+        new DeterministicJarPreparer().prepare(
+                source, output, metadata, PreparationManifest.pinned("1.21.1", "52.1.0"));
+
+        try (JarFile jar = new JarFile(output.toFile())) {
+            String toml = read(jar, "META-INF/mods.toml");
+            String hostId = DeterministicJarPreparer.hostModId("fabric-example");
+            assertThat(hostId).matches("^[a-z][a-z0-9_]{1,63}$");
+            assertThat(toml).contains("modId=\"" + hostId + "\"")
+                    .contains("modId=\"a_library\"")
+                    .contains("modId=\"" + DeterministicJarPreparer.hostModId("z-library") + "\"")
+                    .doesNotContain("modId=\"fabricloader\"");
+            assertThat(toml.indexOf("modId=\"a_library\""))
+                    .isLessThan(toml.indexOf("modId=\""
+                            + DeterministicJarPreparer.hostModId("z-library") + "\""));
+        }
+    }
+
     private static String read(JarFile jar, String name) throws IOException {
         try (var input = jar.getInputStream(jar.getJarEntry(name))) {
             return new String(input.readAllBytes(), StandardCharsets.UTF_8);
