@@ -5,6 +5,7 @@ plugins {
 dependencies {
     implementation(project(":bridge-api"))
     implementation(project(":fabric-loader-shim"))
+    implementation(project(":fabric-metadata"))
     implementation("com.google.code.gson:gson:2.10.1")
     compileOnly("net.minecraftforge:forgespi:7.1.5")
     compileOnly("net.minecraftforge:fmlcore:1.21.1-52.1.0")

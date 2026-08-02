@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-final class FabricMetadataParser {
-    FabricModMetadata parse(byte[] bytes) throws UnsafeJarException {
+public final class FabricMetadataParser {
+    public FabricModMetadata parse(byte[] bytes) throws UnsafeJarException {
         final JsonObject root;
         try {
             root = JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8)).getAsJsonObject();

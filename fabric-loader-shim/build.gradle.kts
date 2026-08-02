@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     implementation(project(":bridge-api"))
+    implementation(project(":fabric-metadata"))
 }
 
 tasks.jar {

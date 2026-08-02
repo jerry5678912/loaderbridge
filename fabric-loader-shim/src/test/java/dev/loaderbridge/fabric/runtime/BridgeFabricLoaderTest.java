@@ -6,11 +6,16 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
+import dev.loaderbridge.fabric.metadata.FabricMetadataParser;
+import net.fabricmc.loader.api.metadata.ModDependency;
+import net.fabricmc.loader.api.metadata.ModEnvironment;
+import net.fabricmc.loader.api.Version;
 import org.junit.jupiter.api.Test;
 
 class BridgeFabricLoaderTest {
@@ -86,5 +91,32 @@ class BridgeFabricLoaderTest {
         assertThat(loader.getLaunchArguments(false)).containsExactly(
                 "--username", "Jerry", "--demo", "--accessToken", "secret");
         assertThat(loader.getLaunchArguments(true)).containsExactly("--demo");
+    }
+
+    @Test
+    void exposesParsedAliasesEnvironmentAndDependencyKindsAtRuntime() throws Exception {
+        var parsed = new FabricMetadataParser().parse("""
+                {
+                  "schemaVersion": 1,
+                  "id": "rich_fixture",
+                  "version": "2.0.0",
+                  "name": "Rich Fixture",
+                  "environment": "client",
+                  "provides": ["rich_alias"],
+                  "depends": {"minecraft": ">=1.21.1"},
+                  "breaks": {"broken_mod": "*"}
+                }
+                """.getBytes(StandardCharsets.UTF_8));
+        ModContainer container = BridgeModContainer.create(parsed, Path.of("build/rich-fixture"));
+
+        assertThat(container.getMetadata().getEnvironment()).isEqualTo(ModEnvironment.CLIENT);
+        assertThat(container.getMetadata().getProvides()).containsExactly("rich_alias");
+        assertThat(container.getMetadata().getDependencies())
+                .extracting(ModDependency::getKind, ModDependency::getModId)
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple(ModDependency.Kind.DEPENDS, "minecraft"),
+                        org.assertj.core.groups.Tuple.tuple(ModDependency.Kind.BREAKS, "broken_mod"));
+        assertThat(container.getMetadata().getDepends().iterator().next().matches(Version.parse("1.21.1")))
+                .isTrue();
     }
 }

@@ -62,3 +62,6 @@ All notable user-facing changes will be recorded here.
 - Added Fabric-compatible default language-adapter handling for class,
   static-field, static-method, and instance-method entrypoint declarations with
   exact provider and definition attribution.
+- Wired parsed Fabric metadata into runtime mod containers so aliases,
+  environment scope, dependency kinds, and version matching remain available
+  through `FabricLoader` after Forge construction.

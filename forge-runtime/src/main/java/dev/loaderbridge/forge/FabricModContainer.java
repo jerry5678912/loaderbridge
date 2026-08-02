@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dev.loaderbridge.fabric.runtime.BridgeFabricLoader;
 import dev.loaderbridge.fabric.runtime.BridgeModContainer;
+import dev.loaderbridge.fabric.metadata.FabricMetadataParser;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
@@ -34,8 +35,13 @@ public final class FabricModContainer extends ModContainer {
         this.contextExtension = () -> null;
         Path metadataPath = info.getOwningFile().getFile().findResource("fabric.mod.json");
         Path root = metadataPath.getParent();
-        bridgeModContainer = BridgeModContainer.create(info.getModId(), info.getVersion().toString(),
-                info.getDisplayName(), List.of(), root);
+        try {
+            bridgeModContainer = BridgeModContainer.create(
+                    new FabricMetadataParser().parse(Files.readAllBytes(metadataPath)), root);
+        } catch (IOException exception) {
+            throw new IllegalStateException("LB-META-010: failed to register runtime metadata for "
+                    + info.getModId(), exception);
+        }
         BridgeFabricLoader.getInstance().registerMod(bridgeModContainer);
         invokeEntrypoints(metadataPath, "main", ModInitializer.class,
                 initializer -> initializer.onInitialize());
