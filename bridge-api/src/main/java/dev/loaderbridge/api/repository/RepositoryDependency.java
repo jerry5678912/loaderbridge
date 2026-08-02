@@ -4,9 +4,14 @@ import java.util.Objects;
 
 public record RepositoryDependency(String projectId, String versionId, DependencyKind kind) {
     public RepositoryDependency {
-        projectId = requireIdentifier(projectId, "projectId");
+        if (projectId != null) {
+            projectId = requireIdentifier(projectId, "projectId");
+        }
         if (versionId != null) {
             versionId = requireIdentifier(versionId, "versionId");
+        }
+        if (projectId == null && versionId == null) {
+            throw new IllegalArgumentException("A dependency requires a project ID or version ID");
         }
         Objects.requireNonNull(kind, "kind");
     }

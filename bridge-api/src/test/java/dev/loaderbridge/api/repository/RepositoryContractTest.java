@@ -56,4 +56,14 @@ class RepositoryContractTest {
         assertThatThrownBy(() -> new RepositoryPage(List.of(project), 10, 10))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void allowsVersionPinnedDependenciesWithoutAProjectId() {
+        RepositoryDependency dependency = new RepositoryDependency(null, "version-only", DependencyKind.REQUIRED);
+
+        assertThat(dependency.projectId()).isNull();
+        assertThat(dependency.versionId()).isEqualTo("version-only");
+        assertThatThrownBy(() -> new RepositoryDependency(null, null, DependencyKind.REQUIRED))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }
