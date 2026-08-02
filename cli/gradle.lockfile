@@ -23,4 +23,5 @@ org.ow2.asm:asm-commons:9.6=runtimeClasspath,testRuntimeClasspath
 org.ow2.asm:asm-tree:9.7.1=runtimeClasspath,testRuntimeClasspath
 org.ow2.asm:asm-util:9.6=runtimeClasspath,testRuntimeClasspath
 org.ow2.asm:asm:9.7.1=runtimeClasspath,testRuntimeClasspath
+org.snakeyaml:snakeyaml-engine:3.0.1=runtimeClasspath,testRuntimeClasspath
 empty=annotationProcessor,testAnnotationProcessor

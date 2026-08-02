@@ -39,3 +39,5 @@ All notable user-facing changes will be recorded here.
   reload, shutdown, and dynamically provided plugin actions.
 - Added process-backed Forge scenario sessions with clean reloads, bounded
   console commands, transcripts, latest-log discovery, and crash collection.
+- Added the machine-readable `test --scenario` command and an initial controlled
+  server lifecycle/save/reload scenario.

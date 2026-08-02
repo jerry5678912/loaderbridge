@@ -14,6 +14,12 @@ import dev.loaderbridge.catalog.CatalogSnapshotCodec;
 import dev.loaderbridge.catalog.RepositoryDependencyResolver;
 import dev.loaderbridge.catalog.RepositoryResolutionLockCodec;
 import dev.loaderbridge.integration.ForgeServerVerifier;
+import dev.loaderbridge.integration.ForgeProcessScenarioSession;
+import dev.loaderbridge.integration.ScenarioRunner;
+import dev.loaderbridge.scenario.ScenarioExecutionContext;
+import dev.loaderbridge.scenario.ScenarioPlugin;
+import dev.loaderbridge.scenario.ScenarioRunResult;
+import dev.loaderbridge.scenario.yaml.ScenarioYamlParser;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
@@ -22,6 +28,8 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.concurrent.Callable;
@@ -34,7 +42,7 @@ import picocli.CommandLine.Parameters;
         description = "Experimental Fabric-to-Forge compatibility scaffold.",
         subcommands = {LoaderBridgeCli.Inspect.class, LoaderBridgeCli.Prepare.class,
                 LoaderBridgeCli.Verify.class, LoaderBridgeCli.Catalog.class,
-                LoaderBridgeCli.Resolve.class})
+                LoaderBridgeCli.Resolve.class, LoaderBridgeCli.TestScenario.class})
 public final class LoaderBridgeCli implements Runnable {
     static final int INVALID_INPUT = 2;
     static final int UNSUPPORTED = 3;
@@ -326,6 +334,87 @@ public final class LoaderBridgeCli implements Runnable {
                 System.err.println("Repository resolution failed: " + exception.getMessage());
                 return UNSUPPORTED;
             }
+        }
+    }
+
+    @Command(name = "test", description = "Run a behavioral compatibility scenario against a Forge instance.")
+    static final class TestScenario implements Callable<Integer> {
+        @Option(names = "--scenario", required = true)
+        Path scenarioFile;
+
+        @Option(names = "--instance", required = true)
+        Path instance;
+
+        @Option(names = "--artifacts", required = true)
+        Path artifacts;
+
+        @Option(names = "--json", description = "Emit the result as JSON.")
+        boolean json;
+
+        @Override
+        public Integer call() {
+            if (!Files.isDirectory(instance)) {
+                System.err.println("Instance is not a directory: " + instance);
+                return INVALID_INPUT;
+            }
+            try {
+                var scenario = new ScenarioYamlParser().parse(scenarioFile);
+                if (scenario.side() != BridgeEnvironment.SERVER) {
+                    System.err.println("LB-SCENARIO-CLIENT-001: client scenario execution is not implemented");
+                    return LAUNCH_FAILURE;
+                }
+                Files.createDirectories(artifacts);
+                if (!Files.isDirectory(artifacts)) {
+                    System.err.println("Artifacts path is not a directory: " + artifacts);
+                    return INVALID_INPUT;
+                }
+                var context = new ScenarioExecutionContext(instance, artifacts, scenario.side(), Map.of());
+                List<ScenarioPlugin> plugins = ServiceLoader.load(ScenarioPlugin.class).stream()
+                        .map(ServiceLoader.Provider::get).toList();
+                ScenarioRunResult result;
+                try (var session = new ForgeProcessScenarioSession(instance, artifacts)) {
+                    result = new ScenarioRunner(plugins).run(scenario, context, session);
+                }
+                String encoded = JSON.toJson(report(result));
+                Path report = artifacts.resolve("scenario-report.json");
+                Files.writeString(report, encoded + System.lineSeparator(),
+                        java.nio.charset.StandardCharsets.UTF_8);
+                if (json) {
+                    System.out.println(encoded);
+                } else {
+                    result.steps().forEach(step -> System.out.printf("%s %s: %s%n",
+                            step.status(), step.code(), step.message()));
+                    System.out.println("Report: " + report);
+                }
+                if (result.succeeded()) {
+                    return 0;
+                }
+                boolean unsupportedAction = result.steps().stream()
+                        .anyMatch(step -> step.code().equals("LB-SCENARIO-ACTION-001"));
+                return unsupportedAction ? UNSUPPORTED : LAUNCH_FAILURE;
+            } catch (IOException | IllegalArgumentException exception) {
+                System.err.println("Invalid scenario input: " + exception.getMessage());
+                return INVALID_INPUT;
+            }
+        }
+
+        private static Map<String, Object> report(ScenarioRunResult result) {
+            Map<String, Object> report = new LinkedHashMap<>();
+            report.put("schemaVersion", 1);
+            report.put("scenarioId", result.scenarioId());
+            report.put("succeeded", result.succeeded());
+            report.put("failurePhase", result.failurePhase().map(Enum::name).orElse(null));
+            report.put("steps", result.steps().stream().map(step -> {
+                Map<String, Object> value = new LinkedHashMap<>();
+                value.put("status", step.status().name());
+                value.put("failurePhase", step.failurePhase().map(Enum::name).orElse(null));
+                value.put("code", step.code());
+                value.put("message", step.message());
+                value.put("elapsedMillis", step.elapsed().toMillis());
+                value.put("artifacts", step.artifacts().stream().map(Path::toString).toList());
+                return value;
+            }).toList());
+            return report;
         }
     }
 

@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
@@ -68,5 +69,67 @@ class LoaderBridgeCliTest {
                 "--instance", instance.toString(), "--side", "server", "--timeout-seconds", "0");
 
         assertThat(exitCode).isEqualTo(LoaderBridgeCli.INVALID_INPUT);
+    }
+
+    @Test
+    void runsADeepServerScenarioAndWritesMachineReadableResults() throws Exception {
+        Path instance = Files.createDirectories(temporaryDirectory.resolve("scenario-instance"));
+        writeScenarioLaunchScript(instance);
+        Path scenario = temporaryDirectory.resolve("server-scenario.yaml");
+        Files.writeString(scenario, """
+                schemaVersion: 1
+                id: fixture_server_cycle
+                description: Exercises server readiness, save, reload, and shutdown.
+                side: server
+                mods:
+                  - fixture
+                steps:
+                  - id: start
+                    action: start_instance
+                    timeout: PT5S
+                  - id: ready
+                    action: wait_for_log
+                    timeout: PT5S
+                    parameters:
+                      contains: FIXTURE_READY
+                  - id: save
+                    action: save
+                    timeout: PT5S
+                    parameters:
+                      marker: WORLD_SAVED
+                  - id: reload
+                    action: reload
+                    timeout: PT5S
+                    parameters:
+                      marker: FIXTURE_READY
+                  - id: stop
+                    action: shutdown
+                    timeout: PT5S
+                    parameters:
+                      marker: CLEAN_STOP
+                """, StandardCharsets.UTF_8);
+        Path artifacts = temporaryDirectory.resolve("scenario-artifacts");
+
+        int exitCode = new CommandLine(new LoaderBridgeCli()).execute("test",
+                "--scenario", scenario.toString(), "--instance", instance.toString(),
+                "--artifacts", artifacts.toString(), "--json");
+
+        assertThat(exitCode).isZero();
+        assertThat(artifacts.resolve("scenario-report.json")).content(StandardCharsets.UTF_8)
+                .contains("\"succeeded\": true", "LB-SCENARIO-STEP-PASS");
+    }
+
+    private static void writeScenarioLaunchScript(Path instance) throws Exception {
+        boolean windows = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+        Path script = instance.resolve(windows ? "run.bat" : "run.sh");
+        String contents = windows
+                ? "@echo off\r\necho FIXTURE_READY\r\n:loop\r\nset /p command=\r\n"
+                        + "if \"%command%\"==\"save-all flush\" echo WORLD_SAVED\r\n"
+                        + "if \"%command%\"==\"stop\" echo CLEAN_STOP& exit /b 0\r\ngoto loop\r\n"
+                : "#!/usr/bin/env sh\nprintf '%s\\n' FIXTURE_READY\nwhile read command; do\n"
+                        + "  if [ \"$command\" = 'save-all flush' ]; then printf '%s\\n' WORLD_SAVED; fi\n"
+                        + "  if [ \"$command\" = stop ]; then printf '%s\\n' CLEAN_STOP; exit 0; fi\n"
+                        + "done\n";
+        Files.writeString(script, contents, StandardCharsets.UTF_8);
     }
 }

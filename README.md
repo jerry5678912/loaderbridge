@@ -83,6 +83,12 @@ CURSEFORGE_API_KEY=... cli/build/install/cli/bin/cli catalog freeze \
 cli/build/install/cli/bin/cli resolve \
   --project modrinth:AABBCCDD \
   --output path/to/resolved-instance
+
+cli/build/install/cli/bin/cli test \
+  --scenario scenarios/controlled/server-lifecycle.yaml \
+  --instance path/to/installed-forge-server \
+  --artifacts build/scenario-artifacts \
+  --json
 ```
 
 `catalog freeze` queries both official repositories. The CurseForge key is read
@@ -91,6 +97,8 @@ endpoints, and is never written to snapshots or sent to artifact CDNs.
 `resolve` installs the selected release and its recursively required
 dependencies under `mods/`, retaining verified downloads in `.cache/` and
 writing `bridge.repository.lock.json`.
+`test` runs bounded lifecycle/save/reload behavior and writes a structured
+`scenario-report.json` plus per-launch Forge transcripts and discovered logs.
 
 For verification, install the generated mod JAR, `forge-runtime`,
 `forge-transform-service`, and `fabric-loader-shim` in the Forge instance's

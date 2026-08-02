@@ -6,6 +6,7 @@ dependencies {
     implementation(project(":bridge-api"))
     implementation(project(":fabric-metadata"))
     implementation(project(":integration-harness"))
+    implementation(project(":scenario-yaml"))
     implementation(project(":compatibility-catalog"))
     runtimeOnly(project(":fabric-remap"))
     runtimeOnly(project(":repository-modrinth"))
