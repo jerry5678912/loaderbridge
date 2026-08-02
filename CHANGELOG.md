@@ -55,3 +55,7 @@ All notable user-facing changes will be recorded here.
 - Added a standalone Forge 52.1.0 graphical client laboratory with a guarded
   development-mod layout and automated title, world, save, clean disconnect,
   reload, and shutdown readiness markers.
+- Expanded the independently implemented Fabric Loader 0.16 API shim with
+  entrypoint containers and aggregated failures, validated ObjectShare
+  callbacks, sanitized launch arguments, runtime context, corrected Version
+  package/signatures, mod origins, containment, and the public metadata types.

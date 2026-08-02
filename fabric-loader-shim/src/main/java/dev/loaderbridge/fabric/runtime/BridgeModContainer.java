@@ -4,8 +4,9 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import net.fabricmc.loader.api.ModContainer;
+import net.fabricmc.loader.api.Version;
 import net.fabricmc.loader.api.metadata.ModMetadata;
-import net.fabricmc.loader.api.metadata.Version;
+import net.fabricmc.loader.api.metadata.ModOrigin;
 
 public record BridgeModContainer(ModMetadata metadata, List<Path> rootPaths) implements ModContainer {
     public BridgeModContainer {
@@ -21,6 +22,18 @@ public record BridgeModContainer(ModMetadata metadata, List<Path> rootPaths) imp
 
     @Override public ModMetadata getMetadata() { return metadata; }
     @Override public List<Path> getRootPaths() { return rootPaths; }
+    @Override public ModOrigin getOrigin() {
+        return new ModOrigin() {
+            @Override public Kind getKind() { return Kind.PATH; }
+            @Override public List<Path> getPaths() { return rootPaths; }
+            @Override public String getParentModId() { return null; }
+            @Override public String getParentSubLocation() { return null; }
+        };
+    }
+    @Override public java.util.Optional<ModContainer> getContainingMod() { return java.util.Optional.empty(); }
+    @Override public Collection<ModContainer> getContainedMods() { return List.of(); }
+    @Override @Deprecated public Path getRootPath() { return rootPaths.getFirst(); }
+    @Override @Deprecated public Path getPath(String file) { return getRootPath().resolve(file); }
 
     private record SimpleMetadata(String id, Collection<String> provides, Version version, String name)
             implements ModMetadata {
