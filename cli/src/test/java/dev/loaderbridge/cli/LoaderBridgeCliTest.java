@@ -20,6 +20,14 @@ class LoaderBridgeCliTest {
 
         assertThat(exitCode).isEqualTo(LoaderBridgeCli.INVALID_INPUT);
     }
+
+    @Test
+    void rejectsUnqualifiedRepositoryProjectIds() {
+        int exitCode = new CommandLine(new LoaderBridgeCli()).execute("resolve",
+                "--project", "missing-prefix", "--output", "resolved");
+
+        assertThat(exitCode).isEqualTo(LoaderBridgeCli.INVALID_INPUT);
+    }
     @TempDir
     Path temporaryDirectory;
 

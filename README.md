@@ -77,11 +77,18 @@ CURSEFORGE_API_KEY=... cli/build/install/cli/bin/cli catalog freeze \
   --snapshot-id 2026-08 \
   --frozen-at 2026-08-01T00:00:00Z \
   --output catalog-2026-08.json
+
+cli/build/install/cli/bin/cli resolve \
+  --project modrinth:AABBCCDD \
+  --output path/to/resolved-instance
 ```
 
 `catalog freeze` queries both official repositories. The CurseForge key is read
 only from the process environment, is sent only to CurseForge API metadata
 endpoints, and is never written to snapshots or sent to artifact CDNs.
+`resolve` installs the selected release and its recursively required
+dependencies under `mods/`, retaining verified downloads in `.cache/` and
+writing `bridge.repository.lock.json`.
 
 For verification, install the generated mod JAR, `forge-runtime`,
 `forge-transform-service`, and `fabric-loader-shim` in the Forge instance's

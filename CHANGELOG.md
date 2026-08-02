@@ -29,3 +29,5 @@ All notable user-facing changes will be recorded here.
   `catalog freeze` CLI command.
 - Added immutable version-ID lookup plus recursive required-dependency
   resolution with deduplication, installation ordering, and cycle diagnostics.
+- Added canonical repository dependency locks and a repository-qualified
+  `resolve` CLI that installs verified root and dependency artifacts.

@@ -11,6 +11,8 @@ import dev.loaderbridge.api.LoaderId;
 import dev.loaderbridge.api.repository.RepositoryProvider;
 import dev.loaderbridge.catalog.CatalogCollector;
 import dev.loaderbridge.catalog.CatalogSnapshotCodec;
+import dev.loaderbridge.catalog.RepositoryDependencyResolver;
+import dev.loaderbridge.catalog.RepositoryResolutionLockCodec;
 import dev.loaderbridge.integration.ForgeServerVerifier;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -31,7 +33,8 @@ import picocli.CommandLine.Parameters;
 @Command(name = "loaderbridge", mixinStandardHelpOptions = true,
         description = "Experimental Fabric-to-Forge compatibility scaffold.",
         subcommands = {LoaderBridgeCli.Inspect.class, LoaderBridgeCli.Prepare.class,
-                LoaderBridgeCli.Verify.class, LoaderBridgeCli.Catalog.class})
+                LoaderBridgeCli.Verify.class, LoaderBridgeCli.Catalog.class,
+                LoaderBridgeCli.Resolve.class})
 public final class LoaderBridgeCli implements Runnable {
     static final int INVALID_INPUT = 2;
     static final int UNSUPPORTED = 3;
@@ -263,6 +266,65 @@ public final class LoaderBridgeCli implements Runnable {
                     System.err.println("Catalog freeze failed: " + exception.getMessage());
                     return UNSUPPORTED;
                 }
+            }
+        }
+    }
+
+    @Command(name = "resolve", description = "Resolve and install a project plus required dependencies.")
+    static final class Resolve implements Callable<Integer> {
+        @Option(names = "--project", required = true,
+                description = "Repository-qualified project ID, such as modrinth:AABBCCDD.")
+        String project;
+
+        @Option(names = "--output", required = true)
+        Path output;
+
+        @Override
+        public Integer call() {
+            String[] identity = project.split(":", -1);
+            if (identity.length != 2 || identity[0].isBlank() || identity[1].isBlank()) {
+                System.err.println("Project must be repository-qualified, for example modrinth:AABBCCDD");
+                return INVALID_INPUT;
+            }
+            List<RepositoryProvider> providers = ServiceLoader.load(RepositoryProvider.class).stream()
+                    .map(ServiceLoader.Provider::get).toList();
+            RepositoryProvider provider = providers.stream()
+                    .filter(candidate -> candidate.id().value().equals(identity[0])).findFirst().orElse(null);
+            if (provider == null) {
+                System.err.println("No repository provider is installed for " + identity[0]);
+                return UNSUPPORTED;
+            }
+            try {
+                var root = provider.versions(identity[1], "1.21.1", "fabric").stream()
+                        .filter(dev.loaderbridge.api.repository.RepositoryArtifact::isEligibleFabric1211)
+                        .max(Comparator.comparing(
+                                dev.loaderbridge.api.repository.RepositoryArtifact::publishedAt)
+                                .thenComparing(
+                                        dev.loaderbridge.api.repository.RepositoryArtifact::versionId))
+                        .orElseThrow(() -> new IOException("No eligible Fabric 1.21.1 release found"));
+                RepositoryDependencyResolver resolver = new RepositoryDependencyResolver(providers);
+                var graph = resolver.resolveRequired(List.of(root));
+                var cached = resolver.downloadAll(graph, output.resolve(".cache"));
+                Path mods = Files.createDirectories(output.resolve("mods")).toAbsolutePath().normalize();
+                for (var artifact : graph.installationOrder()) {
+                    Path source = cached.get(artifact);
+                    Path destination = mods.resolve(artifact.fileName()).normalize();
+                    if (!destination.startsWith(mods)) {
+                        throw new IOException("Unsafe resolved artifact path");
+                    }
+                    if (Files.exists(destination) && Files.mismatch(source, destination) != -1) {
+                        throw new IOException("Resolved artifacts collide at " + artifact.fileName());
+                    }
+                    Files.copy(source, destination, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                }
+                Path lock = output.resolve("bridge.repository.lock.json");
+                new RepositoryResolutionLockCodec().write(root, graph, lock);
+                System.out.println("Resolved " + graph.installationOrder().size() + " artifact(s) to " + mods);
+                System.out.println("Lock: " + lock);
+                return 0;
+            } catch (IOException exception) {
+                System.err.println("Repository resolution failed: " + exception.getMessage());
+                return UNSUPPORTED;
             }
         }
     }
