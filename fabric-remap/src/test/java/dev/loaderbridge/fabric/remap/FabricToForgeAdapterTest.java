@@ -74,6 +74,51 @@ class FabricToForgeAdapterTest {
 
         assertThat(plan.canPrepare()).isFalse();
         assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
-                .contains("LB-MIXIN-001", "LB-AW-001", "LB-NESTED-001");
+                .contains("LB-MIXIN-001", "LB-AW-001")
+                .doesNotContain("LB-NESTED-001");
+    }
+
+    @Test
+    void recursivelyPreparesAndDeduplicatesNestedMods() throws Exception {
+        byte[] child = jarBytes("""
+                {"schemaVersion":1,"id":"nested_child","version":"1.0.0"}
+                """);
+        Path source = temporaryDirectory.resolve("nested-parent.jar");
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(source))) {
+            jar.putNextEntry(new JarEntry("fabric.mod.json"));
+            jar.write(("{\"schemaVersion\":1,\"id\":\"nested_parent\",\"version\":\"1.0.0\","
+                    + "\"jars\":[{\"file\":\"META-INF/jars/child.jar\"},"
+                    + "{\"file\":\"META-INF/jars/child-copy.jar\"}]}")
+                    .getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+            for (String location : List.of("META-INF/jars/child.jar", "META-INF/jars/child-copy.jar")) {
+                jar.putNextEntry(new JarEntry(location));
+                jar.write(child);
+                jar.closeEntry();
+            }
+        }
+        BridgeRequest request = new BridgeRequest("1.21.1", new LoaderId("forge"), "52.1.0",
+                BridgeEnvironment.CLIENT, List.of(source), temporaryDirectory.resolve("output-nested"),
+                temporaryDirectory.resolve("cache-nested"));
+        BridgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .containsExactlyInAnyOrder(
+                        "nested_parent-1.0.0-loaderbridge.jar",
+                        "nested_child-1.0.0-loaderbridge.jar");
+    }
+
+    private static byte[] jarBytes(String metadata) throws Exception {
+        var output = new java.io.ByteArrayOutputStream();
+        try (JarOutputStream jar = new JarOutputStream(output)) {
+            jar.putNextEntry(new JarEntry("fabric.mod.json"));
+            jar.write(metadata.getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+        }
+        return output.toByteArray();
     }
 }

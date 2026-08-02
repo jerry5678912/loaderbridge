@@ -18,6 +18,7 @@ import dev.loaderbridge.fabric.metadata.FabricEntrypoint;
 import dev.loaderbridge.fabric.metadata.FabricModInspector;
 import dev.loaderbridge.fabric.metadata.FabricModMetadata;
 import dev.loaderbridge.fabric.metadata.FabricModTree;
+import dev.loaderbridge.fabric.metadata.JarReadLimits;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -31,6 +32,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.LinkedHashSet;
+import java.util.zip.ZipFile;
 
 /** First directional adapter for Fabric intermediary bytecode targeting Forge's official-name runtime. */
 public final class FabricToForgeAdapter implements BridgeAdapter {
@@ -109,8 +112,14 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         DeterministicJarPreparer preparer = new DeterministicJarPreparer();
         ResolvedMinecraftArtifacts resolvedMinecraft = null;
         Path resolvedIntermediaryMappings = null;
+        List<PreparationInput> inputs = new ArrayList<>();
+        Set<String> seenArtifacts = new LinkedHashSet<>();
         for (Path source : request.inputArtifacts()) {
-            FabricModMetadata metadata = inspector.inspect(source).root();
+            collectPreparationInputs(source, source.toString(), request.cacheDirectory(), inputs, seenArtifacts);
+        }
+        for (PreparationInput input : inputs) {
+            Path source = input.path();
+            FabricModMetadata metadata = input.metadata();
             ReferenceInventory inventory = analyzer.analyze(source);
             SourceNamespace namespace = sourceNamespace(request, inventory, null, metadata.id(), source);
             String sourceHash = sha256(source);
@@ -144,7 +153,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                     + "-loaderbridge.jar");
             Files.copy(cached, output, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             outputs.add(output);
-            prepared.add(new PreparedArtifact(metadata.id(), source.toString(), sourceHash,
+            prepared.add(new PreparedArtifact(metadata.id(), input.source(), sourceHash,
                     output.toString(), sha256(output), cacheKey, namespace.name().toLowerCase(
                             java.util.Locale.ROOT)));
         }
@@ -167,13 +176,15 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         }
         if (!metadata.nestedJars().isEmpty()) {
             required.add(BridgeCapability.NESTED_JARS);
-            diagnostics.add(unsupported("LB-NESTED-001", metadata.id(), artifact,
-                    "Nested JARs are inspected but recursive transformation/loading is not implemented"));
         }
-        if (!metadata.languageAdapters().isEmpty() || metadata.entrypoints().values().stream()
-                .flatMap(List::stream).map(FabricEntrypoint::adapter).anyMatch(adapter -> !adapter.equals("default"))) {
+        Set<String> adapters = new LinkedHashSet<>(metadata.languageAdapters().keySet());
+        metadata.entrypoints().values().stream().flatMap(List::stream)
+                .map(FabricEntrypoint::adapter).forEach(adapters::add);
+        adapters.remove("default");
+        adapters.remove("kotlin");
+        if (!adapters.isEmpty()) {
             diagnostics.add(unsupported("LB-LANG-001", metadata.id(), artifact,
-                    "Custom Fabric language adapters are not supported"));
+                    "Unsupported Fabric language adapters: " + adapters));
         }
         if (!inventory.fabricApiClasses().isEmpty()) {
             required.add(BridgeCapability.FABRIC_API);
@@ -182,9 +193,6 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         }
         if (!inventory.loaderApiClasses().isEmpty()) {
             required.add(BridgeCapability.LOADER_API);
-            diagnostics.add(unsupported("LB-LOADER-001", metadata.id(), artifact,
-                    "Loader API references require compatibility verification against the current shim subset: "
-                            + inventory.loaderApiClasses().stream().limit(5).toList()));
         }
         if (!inventory.nativeLibraries().isEmpty()) {
             diagnostics.add(unsupported("LB-NATIVE-001", metadata.id(), artifact,
@@ -255,6 +263,48 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         tree.nested().forEach(child -> collectMetadata(child, destination));
     }
 
+    private void collectPreparationInputs(Path artifact, String source, Path cacheDirectory,
+            List<PreparationInput> destination, Set<String> seenArtifacts) throws IOException {
+        String hash = sha256(artifact);
+        if (!seenArtifacts.add(hash)) {
+            return;
+        }
+        FabricModMetadata metadata = inspector.inspect(artifact).root();
+        destination.add(new PreparationInput(artifact, source, metadata));
+        if (metadata.nestedJars().isEmpty()) {
+            return;
+        }
+        Path nestedDirectory = cacheDirectory.resolve("nested-inputs");
+        Files.createDirectories(nestedDirectory);
+        try (ZipFile archive = new ZipFile(artifact.toFile())) {
+            for (int index = 0; index < metadata.nestedJars().size(); index++) {
+                String nestedLocation = metadata.nestedJars().get(index);
+                var entry = archive.getEntry(nestedLocation);
+                if (entry == null || entry.isDirectory()) {
+                    throw new IOException("Declared nested JAR is missing: " + nestedLocation);
+                }
+                byte[] bytes;
+                long maxBytes = JarReadLimits.DEFAULT.maxEntryBytes();
+                if (entry.getSize() > maxBytes) {
+                    throw new IOException("Nested JAR exceeds entry limit: " + nestedLocation);
+                }
+                try (var input = archive.getInputStream(entry)) {
+                    bytes = input.readNBytes(Math.toIntExact(maxBytes + 1));
+                }
+                if (bytes.length > maxBytes) {
+                    throw new IOException("Nested JAR exceeds entry limit: " + nestedLocation);
+                }
+                String nestedHash = sha256(bytes);
+                Path nestedArtifact = nestedDirectory.resolve(nestedHash + ".jar");
+                if (!Files.exists(nestedArtifact)) {
+                    Files.write(nestedArtifact, bytes);
+                }
+                collectPreparationInputs(nestedArtifact, source + "!/" + nestedLocation,
+                        cacheDirectory, destination, seenArtifacts);
+            }
+        }
+    }
+
     private static Diagnostic unsupported(String code, String modId, Path artifact, String message) {
         return new Diagnostic(DiagnosticSeverity.ERROR, code, BridgePhase.PLAN, modId, artifact, message, null);
     }
@@ -301,6 +351,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
 
     private record PreparedArtifact(String modId, String source, String sourceSha256, String output,
             String outputSha256, String cacheKey, String sourceNamespace) {}
+
+    private record PreparationInput(Path path, String source, FabricModMetadata metadata) {}
 
     private record CompatibilityReport(String formatVersion, AdapterDescriptor adapter,
             List<ModInspection> mods, List<BridgeCapability> requiredCapabilities,

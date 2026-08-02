@@ -68,3 +68,6 @@ All notable user-facing changes will be recorded here.
 - Added an independently implemented Kotlin language adapter for Kotlin object,
   class, property, and member-method JVM shapes, selected from structured
   entrypoint metadata with stable rejection of unknown adapters.
+- Added bounded recursive nested-JAR materialization, transformation, output,
+  provenance reporting, and content-hash deduplication; Kotlin and Loader API
+  requirements no longer trigger obsolete blanket preparation gates.
