@@ -118,3 +118,6 @@ All notable user-facing changes will be recorded here.
 - Generated dual refmap lookup keys for original Fabric selectors and
   TinyRemapper's runtime selectors, with stable malformed-resource and
   translated-key collision diagnostics; original refmaps remain untouched.
+- Expanded the Mixin remapping golden fixture across `@Inject`, `@Redirect`,
+  `@ModifyArg`, `@ModifyArgs`, `@ModifyVariable`, `@ModifyConstant`, nested
+  `@At` targets, `@Accessor`, `@Invoker`, `@Shadow`, and `@Overwrite`.

@@ -44,6 +44,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - Namespace-aware Mixin refmap translation for intermediary inputs, retaining
   both original and post-remap selector keys and translating owners, fields,
   methods, and nested descriptors across default and contextual mappings.
+- Golden remapping coverage for all standard injection annotation families,
+  nested `@At` member targets, accessors, invokers, shadows, and overwrites.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
