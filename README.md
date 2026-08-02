@@ -51,8 +51,9 @@ compatible.
 The current controlled server fixture has passed on Minecraft 1.21.1 with Forge
 52.1.0: Fabric `main` ran, Fabric `server` ran during sided setup, Forge reached
 ready, the existing world reloaded, and all dimensions saved during a clean
-shutdown. This is a scaffold milestone, not evidence that arbitrary Fabric mods
-are compatible.
+shutdown. The M1 `test --scenario` path has also repeated that complete cycle
+through two real Forge launches and emitted a passing structured report. This is
+a scaffold milestone, not evidence that arbitrary Fabric mods are compatible.
 
 ## Build and use
 
