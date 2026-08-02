@@ -19,3 +19,5 @@ All notable user-facing changes will be recorded here.
 - Initial LoaderBridge project scaffold.
 - Added validated, launcher-neutral repository provider, artifact, dependency,
   hashing, and pagination contracts for compatibility catalog providers.
+- Added a ServiceLoader-discovered Modrinth v2 provider with ranked Fabric
+  search, version/dependency parsing, and checksum-addressed downloads.

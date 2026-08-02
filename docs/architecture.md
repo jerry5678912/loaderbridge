@@ -5,6 +5,7 @@ The engine is split so a future GUI can call the same Java API as the CLI.
 | Module | Responsibility |
 | --- | --- |
 | `bridge-api` | Stable launcher-neutral adapter records and diagnostics |
+| `repository-modrinth` | Modrinth v2 search, version metadata, dependencies, and verified artifact caching |
 | `fabric-metadata` | Safe archive inspection and local dependency planning |
 | `fabric-remap` | Reference analysis, TinyRemapper wrapper, deterministic preparation, lock/report writing |
 | `fabric-loader-shim` | Independently implemented common Fabric Loader API surface |
