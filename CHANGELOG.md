@@ -27,3 +27,5 @@ All notable user-facing changes will be recorded here.
   selection, hash/source deduplication, top-up enforcement, and canonical JSON.
 - Added paginated multi-provider catalog collection and the credential-aware
   `catalog freeze` CLI command.
+- Added immutable version-ID lookup plus recursive required-dependency
+  resolution with deduplication, installation ordering, and cycle diagnostics.

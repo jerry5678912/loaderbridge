@@ -80,6 +80,20 @@ class ModrinthRepositoryProviderTest {
     }
 
     @Test
+    void resolvesPinnedVersionIdsForDependencyTraversal() throws Exception {
+        FakeTransport transport = new FakeTransport();
+        String versionArray = versionJson(7, SHA1);
+        transport.versionsJson = versionArray.substring(versionArray.indexOf('{'),
+                versionArray.lastIndexOf('}') + 1);
+        ModrinthRepositoryProvider provider = new ModrinthRepositoryProvider(transport);
+
+        var artifact = provider.versionById("VERSION1");
+
+        assertThat(artifact).hasValueSatisfying(value -> assertThat(value.versionId()).isEqualTo("VERSION1"));
+        assertThat(transport.requested.getFirst().getPath()).endsWith("/version/VERSION1");
+    }
+
+    @Test
     void downloadsToHashAddressedCacheAndVerifiesContent() throws Exception {
         byte[] bytes = "fixture".getBytes(StandardCharsets.UTF_8);
         FakeTransport transport = new FakeTransport();

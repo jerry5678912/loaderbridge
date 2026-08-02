@@ -3,6 +3,7 @@ package dev.loaderbridge.api.repository;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Launcher-neutral source for catalog projects and immutable mod artifacts.
@@ -18,6 +19,11 @@ public interface RepositoryProvider {
 
     List<RepositoryArtifact> versions(String projectId, String minecraftVersion, String loader)
             throws IOException;
+
+    /** Resolve a repository-native immutable version/file ID when dependency metadata pins one. */
+    default Optional<RepositoryArtifact> versionById(String versionId) throws IOException {
+        return Optional.empty();
+    }
 
     Path download(RepositoryArtifact artifact, Path cacheDirectory) throws IOException;
 }

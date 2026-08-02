@@ -103,6 +103,16 @@ public final class ModrinthRepositoryProvider implements RepositoryProvider {
     }
 
     @Override
+    public Optional<RepositoryArtifact> versionById(String versionId) throws IOException {
+        URI uri = endpoint("version/" + pathSegment(versionId));
+        try {
+            return parseVersion(object(read(uri)));
+        } catch (RuntimeException exception) {
+            throw malformed("version-by-ID response", exception);
+        }
+    }
+
+    @Override
     public Path download(RepositoryArtifact artifact, Path cacheDirectory) throws IOException {
         if (!artifact.repository().equals(ID)) {
             throw new IOException("Modrinth provider cannot download " + artifact.repository().value()

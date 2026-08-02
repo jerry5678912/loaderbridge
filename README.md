@@ -34,6 +34,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   ranked search, release/dependency resolution, checksums, and verified caches.
 - Deterministic catalog snapshots with platform quotas, cross-site hash/source
   deduplication, top-up enforcement, and canonical JSON serialization.
+- Recursive required-dependency graph resolution, including Modrinth's
+  version-only pins, deterministic installation ordering, and cycle detection.
 
 ## Intentionally gated
 
