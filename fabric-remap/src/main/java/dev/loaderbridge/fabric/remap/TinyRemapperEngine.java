@@ -9,6 +9,7 @@ import net.fabricmc.tinyremapper.NonClassCopyMode;
 import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
 import net.fabricmc.tinyremapper.TinyUtils;
+import net.fabricmc.tinyremapper.extension.mixin.MixinExtension;
 
 /** Thin deterministic wrapper around TinyRemapper; mapping resolution stays outside this class. */
 public final class TinyRemapperEngine {
@@ -18,6 +19,7 @@ public final class TinyRemapperEngine {
                 mappings, sourceNamespace, targetNamespace);
         TinyRemapper remapper = TinyRemapper.newRemapper()
                 .withMappings(mappingProvider)
+                .extension(new MixinExtension())
                 .renameInvalidLocals(true)
                 .rebuildSourceFilenames(true)
                 .build();

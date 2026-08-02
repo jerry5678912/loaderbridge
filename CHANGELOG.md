@@ -104,3 +104,6 @@ All notable user-facing changes will be recorded here.
   server save/reload; the same injection passed both integrated-server launches.
 - Added stable `LB-MIXIN-ENV-001` gating for environment-scoped configurations
   until side-safe generated wrapper configs are implemented.
+- Attached TinyRemapper's Mixin extension to intermediary transformations and
+  golden-tested remapping of hard Mixin targets plus string injection selectors
+  into descriptor-qualified official runtime names.

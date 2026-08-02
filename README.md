@@ -36,6 +36,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - Early registration of universal Fabric Mixin configurations through Forge's
   existing Mixin 0.8.7 runtime, proven by a controlled injection into a real
   Minecraft server class on dedicated and integrated servers.
+- Intermediary Mixin target and injection-selector remapping through
+  TinyRemapper's Mixin extension, including descriptor-qualified selectors.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -56,8 +58,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 
 The adapter currently rejects environment-scoped Mixin configurations, access
 wideners, Fabric API, unknown custom language adapters, Loader API calls outside
-the current shim, or native-library review. Mixin selector/refmap remapping,
-config plugins, MixinExtras, patch packs, broad semantic graphical assertions,
+the current shim, or native-library review. Mixin JSON refmap remapping, config
+plugins, MixinExtras, patch packs, broad semantic graphical assertions,
 and real-mod probes are not yet implemented.
 These gaps produce stable diagnostics instead of a JAR that is falsely labeled
 compatible.
