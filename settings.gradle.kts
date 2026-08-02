@@ -21,6 +21,7 @@ include(
     "repository-curseforge",
     "compatibility-catalog",
     "scenario-api",
+    "scenario-yaml",
     "fabric-metadata",
     "fabric-remap",
     "fabric-loader-shim",

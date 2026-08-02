@@ -9,6 +9,7 @@ The engine is split so a future GUI can call the same Java API as the CLI.
 | `repository-curseforge` | Authenticated CurseForge search, paginated file/dependency resolution, and verified artifact caching |
 | `compatibility-catalog` | Deterministic ranking, cross-site deduplication, immutable snapshots, and canonical serialization |
 | `scenario-api` | Versioned behavioral scenarios, bounded steps, plugins, results, and failure classification |
+| `scenario-yaml` | Safe YAML 1.2 parsing into scenario contracts without arbitrary object construction |
 | `fabric-metadata` | Safe archive inspection and local dependency planning |
 | `fabric-remap` | Reference analysis, TinyRemapper wrapper, deterministic preparation, lock/report writing |
 | `fabric-loader-shim` | Independently implemented common Fabric Loader API surface |

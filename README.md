@@ -36,6 +36,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   deduplication, top-up enforcement, and canonical JSON serialization.
 - Recursive required-dependency graph resolution, including Modrinth's
   version-only pins, deterministic installation ordering, and cycle detection.
+- Versioned M1 behavioral-scenario contracts and strict bounded YAML parsing,
+  with dynamically namespaced actions for future ServiceLoader plugins.
 
 ## Intentionally gated
 

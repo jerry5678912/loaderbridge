@@ -55,4 +55,11 @@ class CompatibilityScenarioContractTest {
                 "bad code", "invalid", Duration.ZERO, List.of()))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("code");
     }
+
+    @Test
+    void permitsNamespacedActionsForFutureServiceLoadedPlugins() {
+        ScenarioAction action = new ScenarioAction("example:assert_custom_state");
+
+        assertThat(action.value()).isEqualTo("example:assert_custom_state");
+    }
 }
