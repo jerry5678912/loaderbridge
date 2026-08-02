@@ -21,5 +21,8 @@ include(
     "fabric-remap",
     "fabric-loader-shim",
     "forge-runtime",
+    "forge-transform-service",
+    "integration-harness",
     "cli",
+    "fixture-fabric-main",
 )

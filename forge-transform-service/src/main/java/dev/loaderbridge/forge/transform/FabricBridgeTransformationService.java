@@ -1,4 +1,4 @@
-package dev.loaderbridge.forge;
+package dev.loaderbridge.forge.transform;
 
 import cpw.mods.modlauncher.api.IEnvironment;
 import cpw.mods.modlauncher.api.ITransformationService;

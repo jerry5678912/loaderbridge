@@ -14,25 +14,34 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - Local Fabric-style dependency diagnostics and common extended-semver ranges.
 - ASM reference inventory for Loader API, Fabric API, Minecraft, reflection-like
   strings, and native libraries.
-- A tested TinyRemapper engine accepting Tiny v2 namespace mappings.
+- Checksum-verified Mojang 1.21.1 client artifacts plus bundled Fabric
+  intermediary mappings, composed into an intermediary-to-official remap.
+- A real TinyRemapper pipeline for classes, fields, methods, descriptors, and
+  lambdas, tested against the Minecraft 1.21.1 client JAR.
 - Deterministic unsigned output JARs with generated `mods.toml` and
   `loaderbridge.json`, SHA-256 caching, `bridge.lock.json`, and
   `compatibility-report.json`.
 - Recursive nested-JAR inspection (recursive transformation/loading is gated).
-- A ServiceLoader-discovered `BridgeAdapter`, CLI commands, Forge language and
-  transformation service registrations, custom Forge container scaffold, and a
+- A ServiceLoader-discovered `BridgeAdapter`, a Forge language provider, a
+  separate early transformation service, custom Forge mod container, and a
   small independently implemented Fabric Loader API shim.
+- Native execution of ordinary Fabric `main` entrypoints on Forge.
+- A server verification harness that launches Forge, waits for ready, requests
+  shutdown, and requires a clean world-save marker.
 
 ## Intentionally gated
 
-The adapter currently rejects mods that require Minecraft namespace remapping,
-mixins, access wideners, Fabric API, custom language adapters, or native-library
-review. The low-level class remapper is present and golden-tested, but the
-official Minecraft classpath/mapping resolver and resource transformations must
-be connected before enabling it for ordinary mods. Forge launch verification,
-client/server lifecycle entrypoints, patch packs, and real-mod probes are also
-not implemented yet. These gaps produce stable diagnostics instead of a JAR
-that is falsely labeled compatible.
+The adapter currently rejects mods that require mixins, access wideners, Fabric
+API, custom language adapters, recursively loaded nested JARs, Loader API calls
+outside the current shim, or native-library review. Client/server lifecycle
+entrypoints, patch packs, client verification, and real-mod probes are not yet
+implemented. These gaps produce stable diagnostics instead of a JAR that is
+falsely labeled compatible.
+
+The current controlled server fixture has passed on Minecraft 1.21.1 with Forge
+52.1.0: Fabric `main` ran, Forge reached ready, the existing world reloaded, and
+all dimensions saved during a clean shutdown. This is a scaffold milestone,
+not evidence that arbitrary Fabric mods are compatible.
 
 ## Build and use
 
@@ -47,7 +56,17 @@ cli/build/install/cli/bin/cli prepare \
   --forge-version recommended \
   --mods path/to/mods \
   --output path/to/prepared
+
+cli/build/install/cli/bin/cli verify \
+  --instance path/to/installed-forge-server \
+  --side server \
+  --timeout-seconds 120
 ```
+
+For verification, install the generated mod JAR, `forge-runtime`,
+`forge-transform-service`, and `fabric-loader-shim` in the Forge instance's
+`mods` directory first. `verify` uses that instance's `run.sh` or `run.bat` and
+automatically uses the same Java runtime as LoaderBridge.
 
 Exit codes are `0` success, `2` invalid input, `3` unsupported capability or
 dependency, `4` transformation failure, and `5` launch/verification failure.

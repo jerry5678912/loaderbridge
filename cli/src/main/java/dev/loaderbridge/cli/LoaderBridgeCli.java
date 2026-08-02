@@ -8,10 +8,12 @@ import dev.loaderbridge.api.BridgeRequest;
 import dev.loaderbridge.api.Diagnostic;
 import dev.loaderbridge.api.DiagnosticSeverity;
 import dev.loaderbridge.api.LoaderId;
+import dev.loaderbridge.integration.ForgeServerVerifier;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -159,7 +161,7 @@ public final class LoaderBridgeCli implements Runnable {
         }
     }
 
-    @Command(name = "verify", description = "Validate a prepared instance (launch harness is not yet implemented).")
+    @Command(name = "verify", description = "Launch and validate a prepared Forge instance.")
     static final class Verify implements Callable<Integer> {
         @Option(names = "--instance", required = true)
         Path instance;
@@ -167,15 +169,36 @@ public final class LoaderBridgeCli implements Runnable {
         @Option(names = "--side", required = true, converter = EnvironmentConverter.class)
         BridgeEnvironment side;
 
+        @Option(names = "--timeout-seconds", defaultValue = "120")
+        long timeoutSeconds;
+
         @Override
         public Integer call() {
             if (!Files.isDirectory(instance)) {
                 System.err.println("Instance is not a directory: " + instance);
                 return INVALID_INPUT;
             }
-            System.err.println("LB-VERIFY-001: Forge launch verification is not implemented for "
-                    + side.name().toLowerCase(java.util.Locale.ROOT));
-            return LAUNCH_FAILURE;
+            if (side != BridgeEnvironment.SERVER) {
+                System.err.println("LB-VERIFY-001: client launch verification is not implemented");
+                return LAUNCH_FAILURE;
+            }
+            if (timeoutSeconds <= 0) {
+                System.err.println("Timeout must be positive");
+                return INVALID_INPUT;
+            }
+            try {
+                var result = new ForgeServerVerifier().verify(instance, Duration.ofSeconds(timeoutSeconds),
+                        System.out::println);
+                if (result.succeeded()) {
+                    System.out.println(result.diagnosticCode() + ": " + result.message());
+                    return 0;
+                }
+                System.err.println(result.diagnosticCode() + ": " + result.message());
+                return LAUNCH_FAILURE;
+            } catch (IOException exception) {
+                System.err.println("LB-VERIFY-002: " + exception.getMessage());
+                return LAUNCH_FAILURE;
+            }
         }
     }
 

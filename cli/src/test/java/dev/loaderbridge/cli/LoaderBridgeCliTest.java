@@ -43,4 +43,14 @@ class LoaderBridgeCliTest {
 
         assertThat(exitCode).isEqualTo(LoaderBridgeCli.INVALID_INPUT);
     }
+
+    @Test
+    void rejectsNonPositiveVerificationTimeout() throws Exception {
+        Path instance = Files.createDirectories(temporaryDirectory.resolve("instance"));
+
+        int exitCode = new CommandLine(new LoaderBridgeCli()).execute("verify",
+                "--instance", instance.toString(), "--side", "server", "--timeout-seconds", "0");
+
+        assertThat(exitCode).isEqualTo(LoaderBridgeCli.INVALID_INPUT);
+    }
 }
