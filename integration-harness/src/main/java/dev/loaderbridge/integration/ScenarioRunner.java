@@ -9,6 +9,7 @@ import dev.loaderbridge.scenario.ScenarioRunResult;
 import dev.loaderbridge.scenario.ScenarioStep;
 import dev.loaderbridge.scenario.ScenarioStepResult;
 import dev.loaderbridge.scenario.ScenarioStepStatus;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 public final class ScenarioRunner {
+    private static final int INFRASTRUCTURE_RETRIES = 3;
     private final Map<ScenarioAction, ScenarioPlugin> plugins;
 
     public ScenarioRunner(List<ScenarioPlugin> plugins) {
@@ -34,13 +36,26 @@ public final class ScenarioRunner {
             ScenarioSession session) {
         List<ScenarioStepResult> results = new ArrayList<>();
         for (ScenarioStep step : scenario.steps()) {
-            ScenarioStepResult result = execute(context, session, step);
+            ScenarioStepResult result = executeWithRetries(context, session, step);
             results.add(result);
             if (result.status() == ScenarioStepStatus.FAILED) {
                 break;
             }
         }
         return new ScenarioRunResult(scenario.id(), results);
+    }
+
+    private ScenarioStepResult executeWithRetries(ScenarioExecutionContext context,
+            ScenarioSession session, ScenarioStep step) {
+        ScenarioStepResult result;
+        int retries = 0;
+        do {
+            result = execute(context, session, step);
+            if (result.failurePhase().orElse(null) != CompatibilityFailurePhase.INFRASTRUCTURE) {
+                return result;
+            }
+        } while (retries++ < INFRASTRUCTURE_RETRIES);
+        return result;
     }
 
     private ScenarioStepResult execute(ScenarioExecutionContext context, ScenarioSession session,
@@ -62,6 +77,10 @@ public final class ScenarioRunner {
                     elapsed(started), session.artifacts());
         } catch (StepFailure exception) {
             return ScenarioStepResult.failure(exception.phase, exception.code, exception.getMessage(),
+                    elapsed(started), session.artifacts());
+        } catch (IOException exception) {
+            return ScenarioStepResult.failure(CompatibilityFailurePhase.INFRASTRUCTURE,
+                    "LB-SCENARIO-INFRA-001", "I/O infrastructure failure: " + safeMessage(exception),
                     elapsed(started), session.artifacts());
         } catch (Exception exception) {
             if (exception instanceof InterruptedException) {

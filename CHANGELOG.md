@@ -50,3 +50,5 @@ All notable user-facing changes will be recorded here.
 - Added a validation-gated suite of 25 unique controlled client/server scenarios
   spanning lifecycle, commands, registries, networking, world state, rendering,
   resources, configuration, saving, shutdown, and reload.
+- Added three retries for failures explicitly classified as infrastructure while
+  preserving immediate failures for bridge or mod behavioral mismatches.

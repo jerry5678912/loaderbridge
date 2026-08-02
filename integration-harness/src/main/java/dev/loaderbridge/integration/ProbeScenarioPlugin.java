@@ -62,11 +62,11 @@ public final class ProbeScenarioPlugin implements ScenarioPlugin {
             String token = requiredRuntime(context, "probe.token");
             if (token.length() < 32 || token.length() > 256 || token.indexOf('\r') >= 0
                     || token.indexOf('\n') >= 0) {
-                return failure("LB-PROBE-ASSERT-001", "Probe token is invalid", started);
+                return infrastructureFailure("LB-PROBE-ASSERT-001", "Probe token is invalid", started);
             }
             String kind = PATHS.get(step.action());
             if (kind == null) {
-                return failure("LB-PROBE-ASSERT-001", "Unsupported probe action", started);
+                return infrastructureFailure("LB-PROBE-ASSERT-001", "Unsupported probe action", started);
             }
             String subject = requiredParameter(step, "subject");
             String expected = requiredParameter(step, "equals");
@@ -79,15 +79,15 @@ public final class ProbeScenarioPlugin implements ScenarioPlugin {
             try (InputStream body = response.body()) {
                 byte[] bytes = body.readNBytes(MAXIMUM_RESPONSE_BYTES + 1);
                 if (bytes.length > MAXIMUM_RESPONSE_BYTES) {
-                    return failure("LB-PROBE-ASSERT-005", "Probe response exceeds 1 MiB", started);
+                    return infrastructureFailure("LB-PROBE-ASSERT-005", "Probe response exceeds 1 MiB", started);
                 }
                 String observed = new String(bytes, StandardCharsets.UTF_8);
                 if (response.statusCode() != 200) {
-                    return failure("LB-PROBE-ASSERT-002",
+                    return infrastructureFailure("LB-PROBE-ASSERT-002",
                             "Probe returned HTTP " + response.statusCode(), started);
                 }
                 if (!observed.equals(expected)) {
-                    return failure("LB-PROBE-ASSERT-004",
+                    return scenarioFailure("LB-PROBE-ASSERT-004",
                             "Probe state mismatch for " + kind + "/" + subject, started);
                 }
             }
@@ -95,11 +95,11 @@ public final class ProbeScenarioPlugin implements ScenarioPlugin {
                     "Probe assertion passed for " + kind + "/" + subject, elapsed(started), List.of());
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            return failure("LB-PROBE-ASSERT-003", "Probe assertion was interrupted", started);
+            return infrastructureFailure("LB-PROBE-ASSERT-003", "Probe assertion was interrupted", started);
         } catch (IllegalArgumentException exception) {
-            return failure("LB-PROBE-ASSERT-001", safeMessage(exception), started);
+            return infrastructureFailure("LB-PROBE-ASSERT-001", safeMessage(exception), started);
         } catch (Exception exception) {
-            return failure("LB-PROBE-ASSERT-003", exception.getClass().getSimpleName() + ": "
+            return infrastructureFailure("LB-PROBE-ASSERT-003", exception.getClass().getSimpleName() + ": "
                     + safeMessage(exception), started);
         }
     }
@@ -136,7 +136,12 @@ public final class ProbeScenarioPlugin implements ScenarioPlugin {
         return value;
     }
 
-    private static ScenarioStepResult failure(String code, String message, long started) {
+    private static ScenarioStepResult infrastructureFailure(String code, String message, long started) {
+        return ScenarioStepResult.failure(CompatibilityFailurePhase.INFRASTRUCTURE, code, message,
+                elapsed(started), List.of());
+    }
+
+    private static ScenarioStepResult scenarioFailure(String code, String message, long started) {
         return ScenarioStepResult.failure(CompatibilityFailurePhase.SCENARIO, code, message,
                 elapsed(started), List.of());
     }
