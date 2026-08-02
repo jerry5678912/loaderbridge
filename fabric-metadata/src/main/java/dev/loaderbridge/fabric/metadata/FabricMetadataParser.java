@@ -48,7 +48,14 @@ public final class FabricMetadataParser {
                 parseMixins(root.getAsJsonArray("mixins")),
                 optionalString(root, "accessWidener"),
                 parseNestedJars(root.getAsJsonArray("jars")),
-                parseStringMap(root.getAsJsonObject("languageAdapters")));
+                parseStringMap(root.getAsJsonObject("languageAdapters")),
+                optionalString(root, "description").orElse(""),
+                parsePeople(root.getAsJsonArray("authors")),
+                parsePeople(root.getAsJsonArray("contributors")),
+                parseStringMap(root.getAsJsonObject("contact")),
+                parseStringValues(root.get("license")),
+                parseIcons(root.get("icon")),
+                parseCustom(root.getAsJsonObject("custom")));
     }
 
     private static Map<String, List<FabricEntrypoint>> parseEntrypoints(JsonObject object) throws UnsafeJarException {
@@ -132,6 +139,63 @@ public final class FabricMetadataParser {
         Map<String, String> result = new LinkedHashMap<>();
         if (object != null) {
             object.entrySet().forEach(entry -> result.put(entry.getKey(), entry.getValue().getAsString()));
+        }
+        return result;
+    }
+
+    private static List<FabricPerson> parsePeople(JsonArray array) throws UnsafeJarException {
+        List<FabricPerson> result = new ArrayList<>();
+        if (array == null) return result;
+        for (JsonElement element : array) {
+            if (element.isJsonPrimitive()) {
+                result.add(new FabricPerson(element.getAsString(), Map.of()));
+            } else if (element.isJsonObject()) {
+                JsonObject person = element.getAsJsonObject();
+                result.add(new FabricPerson(requiredString(person, "name"),
+                        parseStringMap(person.getAsJsonObject("contact"))));
+            } else {
+                throw new UnsafeJarException("Fabric author/contributor must be a string or object");
+            }
+        }
+        return result;
+    }
+
+    private static List<String> parseStringValues(JsonElement element) throws UnsafeJarException {
+        List<String> result = new ArrayList<>();
+        if (element == null || element.isJsonNull()) return result;
+        for (JsonElement value : asArray(element)) {
+            if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) {
+                throw new UnsafeJarException("Fabric metadata value must be a string");
+            }
+            result.add(value.getAsString());
+        }
+        return result;
+    }
+
+    private static Map<Integer, String> parseIcons(JsonElement element) throws UnsafeJarException {
+        Map<Integer, String> result = new LinkedHashMap<>();
+        if (element == null || element.isJsonNull()) return result;
+        if (element.isJsonPrimitive()) {
+            result.put(0, element.getAsString());
+            return result;
+        }
+        if (!element.isJsonObject()) throw new UnsafeJarException("Fabric icon must be a string or object");
+        for (Map.Entry<String, JsonElement> entry : element.getAsJsonObject().entrySet()) {
+            try {
+                int size = Integer.parseInt(entry.getKey());
+                if (size <= 0) throw new NumberFormatException();
+                result.put(size, entry.getValue().getAsString());
+            } catch (NumberFormatException | UnsupportedOperationException exception) {
+                throw new UnsafeJarException("Invalid Fabric icon size: " + entry.getKey());
+            }
+        }
+        return result;
+    }
+
+    private static Map<String, String> parseCustom(JsonObject object) {
+        Map<String, String> result = new LinkedHashMap<>();
+        if (object != null) {
+            object.entrySet().forEach(entry -> result.put(entry.getKey(), entry.getValue().toString()));
         }
         return result;
     }

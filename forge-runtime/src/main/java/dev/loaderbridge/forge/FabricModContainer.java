@@ -19,6 +19,7 @@ import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.LanguageAdapter;
 import net.fabricmc.loader.api.LanguageAdapterException;
+import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.fml.ModContainer;
 import net.minecraftforge.fml.event.IModBusEvent;
@@ -56,11 +57,20 @@ public final class FabricModContainer extends ModContainer {
         net.fabricmc.api.EnvType environment = FMLEnvironment.dist.isClient()
                 ? net.fabricmc.api.EnvType.CLIENT : net.fabricmc.api.EnvType.SERVER;
         BridgeFabricLoader.getInstance().configure(environment, FMLPaths.GAMEDIR.get());
+        try {
+            BridgeFabricLoader.getInstance().installMappings(
+                    root.resolve("META-INF/loaderbridge/mappings.tiny"));
+        } catch (IOException exception) {
+            throw new IllegalStateException("LB-MAP-003: failed to install runtime mappings for "
+                    + info.getModId(), exception);
+        }
         active = bridgeModContainer.getMetadata().getEnvironment().matches(environment);
         if (!active) {
             return;
         }
         BridgeFabricLoader.getInstance().registerMod(bridgeModContainer);
+        invokeEntrypoints(metadataPath, "preLaunch", PreLaunchEntrypoint.class,
+                entrypoint -> entrypoint.onPreLaunch());
         invokeEntrypoints(metadataPath, "main", ModInitializer.class,
                 initializer -> initializer.onInitialize());
     }

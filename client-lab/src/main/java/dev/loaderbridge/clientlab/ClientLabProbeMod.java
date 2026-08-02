@@ -5,6 +5,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
@@ -16,6 +17,8 @@ import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.ModLoader;
+import net.minecraftforge.client.gui.LoadingErrorScreen;
 
 @Mod("loaderbridge_client_probe")
 public final class ClientLabProbeMod {
@@ -23,6 +26,7 @@ public final class ClientLabProbeMod {
 
     private final AtomicReference<Phase> phase = new AtomicReference<>(Phase.WAITING_FOR_TITLE);
     private final AtomicReference<String> lastScreen = new AtomicReference<>();
+    private final AtomicBoolean reportedLoadWarnings = new AtomicBoolean();
     private final ScheduledExecutorService readinessPoller = Executors.newSingleThreadScheduledExecutor(runnable -> {
         Thread thread = new Thread(runnable, "loaderbridge-client-ready-probe");
         thread.setDaemon(true);
@@ -48,6 +52,11 @@ public final class ClientLabProbeMod {
         if (screen instanceof AccessibilityOnboardingScreen) {
             minecraft.setScreen(new TitleScreen());
             return;
+        }
+
+        if (screen instanceof LoadingErrorScreen && reportedLoadWarnings.compareAndSet(false, true)) {
+            ModLoader.get().getWarnings().forEach(warning ->
+                    System.out.println("LOADERBRIDGE_CLIENT_LOAD_WARNING=" + warning.formatToString()));
         }
 
         Phase current = phase.get();

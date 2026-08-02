@@ -28,6 +28,13 @@ final class FabricModInspectorTest {
                           "id": "example_mod",
                           "version": "1.2.3",
                           "name": "Example",
+                          "description": "Metadata fixture",
+                          "authors": ["Jerry", {"name":"Fabric Team","contact":{"homepage":"https://fabricmc.net"}}],
+                          "contributors": [{"name":"Contributor"}],
+                          "contact": {"sources":"https://example.invalid/source"},
+                          "license": ["Apache-2.0", "MIT"],
+                          "icon": {"32":"assets/icon-32.png", "128":"assets/icon-128.png"},
+                          "custom": {"flag":true,"count":3,"nested":{"value":"yes"}},
                           "environment": "*",
                           "entrypoints": {
                             "main": ["example.Main", {"adapter":"custom", "value":"example.Other"}],
@@ -60,6 +67,17 @@ final class FabricModInspectorTest {
                 .containsExactly("example.mixins.json", "client.mixins.json");
         assertThat(root.accessWidener()).contains("example.accesswidener");
         assertThat(root.languageAdapters()).containsEntry("custom", "example.CustomAdapter");
+        assertThat(root.description()).isEqualTo("Metadata fixture");
+        assertThat(root.authors()).extracting(FabricPerson::name)
+                .containsExactly("Jerry", "Fabric Team");
+        assertThat(root.authors().get(1).contact()).containsEntry("homepage", "https://fabricmc.net");
+        assertThat(root.contributors()).extracting(FabricPerson::name).containsExactly("Contributor");
+        assertThat(root.contact()).containsEntry("sources", "https://example.invalid/source");
+        assertThat(root.licenses()).containsExactly("Apache-2.0", "MIT");
+        assertThat(root.icons()).containsEntry(32, "assets/icon-32.png")
+                .containsEntry(128, "assets/icon-128.png");
+        assertThat(root.customJson()).containsEntry("flag", "true")
+                .containsEntry("count", "3");
         assertThat(tree.nested()).extracting(child -> child.root().id()).containsExactly("nested_mod");
     }
 

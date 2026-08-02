@@ -27,6 +27,7 @@ public final class BridgeFabricLoader implements FabricLoader {
     private final Map<String, ModContainer> mods = Collections.synchronizedMap(new LinkedHashMap<>());
     private final Map<String, List<RegisteredEntrypoint>> entrypoints = Collections.synchronizedMap(new LinkedHashMap<>());
     private final BridgeObjectShare objectShare = new BridgeObjectShare();
+    private final BridgeMappingResolver mappingResolver = new BridgeMappingResolver();
     private volatile EnvType environment = EnvType.CLIENT;
     private volatile Path gameDirectory = Path.of(".").toAbsolutePath().normalize();
     private volatile boolean developmentEnvironment;
@@ -55,6 +56,10 @@ public final class BridgeFabricLoader implements FabricLoader {
     public void registerMod(ModContainer container) {
         mods.put(container.getMetadata().getId(), container);
         container.getMetadata().getProvides().forEach(alias -> mods.put(alias, container));
+    }
+
+    public void installMappings(Path path) throws java.io.IOException {
+        mappingResolver.install(path);
     }
 
     public void registerEntrypoint(String key, Object entrypoint) {
@@ -120,7 +125,7 @@ public final class BridgeFabricLoader implements FabricLoader {
 
     @Override
     public MappingResolver getMappingResolver() {
-        return IdentityMappingResolver.INSTANCE;
+        return mappingResolver;
     }
 
     @Override
@@ -183,18 +188,4 @@ public final class BridgeFabricLoader implements FabricLoader {
         }
     }
 
-    private enum IdentityMappingResolver implements MappingResolver {
-        INSTANCE;
-
-        @Override public Collection<String> getNamespaces() { return List.of("official"); }
-        @Override public String getCurrentRuntimeNamespace() { return "official"; }
-        @Override public String mapClassName(String namespace, String className) { return className; }
-        @Override public String unmapClassName(String targetNamespace, String className) { return className; }
-        @Override public String mapFieldName(String namespace, String owner, String name, String descriptor) {
-            return name;
-        }
-        @Override public String mapMethodName(String namespace, String owner, String name, String descriptor) {
-            return name;
-        }
-    }
 }

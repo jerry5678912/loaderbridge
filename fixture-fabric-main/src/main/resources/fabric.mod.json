@@ -5,11 +5,17 @@
   "name": "LoaderBridge Main Fixture",
   "environment": "*",
   "entrypoints": {
+    "preLaunch": [
+      "dev.loaderbridge.fixture.PreLaunchFixture"
+    ],
     "main": [
       "dev.loaderbridge.fixture.MainFixture"
     ],
     "server": [
       "dev.loaderbridge.fixture.ServerFixture"
+    ],
+    "client": [
+      "dev.loaderbridge.fixture.ClientFixture"
     ]
   },
   "depends": {

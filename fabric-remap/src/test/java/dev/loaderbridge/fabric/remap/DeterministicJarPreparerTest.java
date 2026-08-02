@@ -47,6 +47,9 @@ class DeterministicJarPreparerTest {
             assertThat(read(jar, "META-INF/loaderbridge.json"))
                     .contains("\"sourceLoader\": \"fabric\"")
                     .contains("\"minecraftVersion\": \"1.21.1\"");
+            assertThat(read(jar, "pack.mcmeta"))
+                    .contains("\"pack_format\": 34")
+                    .contains("fixture resources");
         }
     }
 
@@ -82,6 +85,42 @@ class DeterministicJarPreparerTest {
             assertThat(toml.indexOf("modId=\"a_library\""))
                     .isLessThan(toml.indexOf("modId=\""
                             + DeterministicJarPreparer.hostModId("z-library") + "\""));
+        }
+    }
+
+    @Test
+    void preservesAuthorSuppliedPackMetadata() throws Exception {
+        Path source = temporaryDirectory.resolve("custom-pack.jar");
+        writeJar(source, Map.of(
+                "fabric.mod.json", "{\"schemaVersion\":1,\"id\":\"custom_pack\",\"version\":\"1\"}",
+                "pack.mcmeta", "{\"pack\":{\"description\":\"author supplied\",\"pack_format\":34}}"));
+        Path output = temporaryDirectory.resolve("custom-pack-output.jar");
+        new DeterministicJarPreparer().prepare(source, output,
+                new FabricModInspector().inspect(source).root(),
+                PreparationManifest.pinned("1.21.1", "52.1.0"));
+
+        try (JarFile jar = new JarFile(output.toFile())) {
+            assertThat(read(jar, "pack.mcmeta")).contains("author supplied");
+        }
+    }
+
+    @Test
+    void embedsRuntimeMappingsForTheLoaderApiShim() throws Exception {
+        Path source = temporaryDirectory.resolve("mapping-mod.jar");
+        writeJar(source, Map.of(
+                "fabric.mod.json", "{\"schemaVersion\":1,\"id\":\"mapping_mod\",\"version\":\"1\"}"));
+        Path mappings = temporaryDirectory.resolve("intermediary-named.tiny");
+        Files.writeString(mappings, "tiny\t2\t0\tintermediary\tnamed\n"
+                + "c\tnet/minecraft/class_310\tnet/minecraft/client/Minecraft\n");
+        Path output = temporaryDirectory.resolve("mapping-mod-output.jar");
+
+        new DeterministicJarPreparer().prepare(source, output,
+                new FabricModInspector().inspect(source).root(),
+                PreparationManifest.pinned("1.21.1", "52.1.0"), mappings);
+
+        try (JarFile jar = new JarFile(output.toFile())) {
+            assertThat(read(jar, "META-INF/loaderbridge/mappings.tiny"))
+                    .contains("intermediary", "net/minecraft/client/Minecraft");
         }
     }
 

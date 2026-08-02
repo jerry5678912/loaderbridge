@@ -21,7 +21,7 @@ public record PreparationManifest(
     }
 
     public static PreparationManifest pinned(String minecraftVersion, String forgeVersion) {
-        return new PreparationManifest("1", "0.1.0", minecraftVersion, forgeVersion,
+        return new PreparationManifest("1", FabricAdapterVersion.CURRENT, minecraftVersion, forgeVersion,
                 "intermediary", "official", null, null);
     }
 

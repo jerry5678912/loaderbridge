@@ -43,7 +43,11 @@ class FabricToForgeAdapterTest {
         assertThat(result.artifacts()).hasSize(1).allMatch(Files::exists);
         assertThat(Files.readString(result.report())).contains("fixture", "main");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
-                .contains("sourceSha256", "outputSha256");
+                .contains("sourceSha256", "outputSha256", "\"adapterVersion\": \"0.2.0\"",
+                        "adapterArtifactSha256");
+        try (JarFile jar = new JarFile(result.artifacts().getFirst().toFile())) {
+            assertThat(jar.getEntry("pack.mcmeta")).isNotNull();
+        }
     }
 
     @Test
@@ -124,12 +128,77 @@ class FabricToForgeAdapterTest {
         }
     }
 
+    @Test
+    void deduplicatesSameVersionModulesByFabricIdAndRejectsVersionCollisions() throws Exception {
+        byte[] first = jarBytes("""
+                {"schemaVersion":1,"id":"fabric_api_module","version":"1.0.0"}
+                """);
+        byte[] sameIdentity = jarBytesWithResource("""
+                {"schemaVersion":1,"id":"fabric_api_module","version":"1.0.0"}
+                """, "different.txt", "different");
+        byte[] conflicting = jarBytes("""
+                {"schemaVersion":1,"id":"fabric_api_module","version":"2.0.0"}
+                """);
+        Path parent = nestedParent("dedup_parent", first, sameIdentity);
+        BridgeRequest request = new BridgeRequest("1.21.1", new LoaderId("forge"), "52.1.0",
+                BridgeEnvironment.CLIENT, List.of(parent), temporaryDirectory.resolve("output-id-dedup"),
+                temporaryDirectory.resolve("cache-id-dedup"));
+
+        var result = new FabricToForgeAdapter().prepare(request,
+                new FabricToForgeAdapter().plan(request));
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .containsExactlyInAnyOrder("dedup_parent-1-loaderbridge.jar",
+                        "fabric_api_module-1.0.0-loaderbridge.jar");
+
+        Path collisionParent = nestedParent("collision_parent", first, conflicting);
+        BridgeRequest collisionRequest = new BridgeRequest("1.21.1", new LoaderId("forge"), "52.1.0",
+                BridgeEnvironment.CLIENT, List.of(collisionParent),
+                temporaryDirectory.resolve("output-id-collision"),
+                temporaryDirectory.resolve("cache-id-collision"));
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+        var collisionPlan = adapter.plan(collisionRequest);
+        assertThat(collisionPlan.canPrepare()).isFalse();
+        assertThat(collisionPlan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-NESTED-006");
+            assertThat(diagnostic.message()).contains("conflicting versions");
+        });
+    }
+
+    private Path nestedParent(String id, byte[] first, byte[] second) throws Exception {
+        Path source = temporaryDirectory.resolve(id + ".jar");
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(source))) {
+            jar.putNextEntry(new JarEntry("fabric.mod.json"));
+            jar.write(("{\"schemaVersion\":1,\"id\":\"" + id + "\",\"version\":\"1\","
+                    + "\"jars\":[{\"file\":\"META-INF/jars/first.jar\"},"
+                    + "{\"file\":\"META-INF/jars/second.jar\"}]}")
+                    .getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+            jar.putNextEntry(new JarEntry("META-INF/jars/first.jar"));
+            jar.write(first);
+            jar.closeEntry();
+            jar.putNextEntry(new JarEntry("META-INF/jars/second.jar"));
+            jar.write(second);
+            jar.closeEntry();
+        }
+        return source;
+    }
+
     private static byte[] jarBytes(String metadata) throws Exception {
+        return jarBytesWithResource(metadata, null, null);
+    }
+
+    private static byte[] jarBytesWithResource(String metadata, String resource, String contents)
+            throws Exception {
         var output = new java.io.ByteArrayOutputStream();
         try (JarOutputStream jar = new JarOutputStream(output)) {
             jar.putNextEntry(new JarEntry("fabric.mod.json"));
             jar.write(metadata.getBytes(StandardCharsets.UTF_8));
             jar.closeEntry();
+            if (resource != null) {
+                jar.putNextEntry(new JarEntry(resource));
+                jar.write(contents.getBytes(StandardCharsets.UTF_8));
+                jar.closeEntry();
+            }
         }
         return output.toByteArray();
     }

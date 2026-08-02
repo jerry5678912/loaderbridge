@@ -94,6 +94,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                         "Could not inspect Fabric mod", exception));
             }
         }
+        diagnoseDuplicateIds(allMetadata, diagnostics);
         diagnostics.addAll(new FabricDependencyResolver().resolve(null, allMetadata,
                 Map.of("minecraft", request.minecraftVersion(), "java", Runtime.version().feature() + ".0.0",
                         "fabricloader", "0.16.10")));
@@ -114,9 +115,11 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         Path resolvedIntermediaryMappings = null;
         List<PreparationInput> inputs = new ArrayList<>();
         Set<String> seenArtifacts = new LinkedHashSet<>();
+        Map<String, String> seenModVersions = new LinkedHashMap<>();
+        String adapterFingerprint = implementationFingerprint();
         for (Path source : request.inputArtifacts()) {
             collectPreparationInputs(source, source.toString(), null, null,
-                    request.cacheDirectory(), inputs, seenArtifacts);
+                    request.cacheDirectory(), inputs, seenArtifacts, seenModVersions);
         }
         for (PreparationInput input : inputs) {
             Path source = input.path();
@@ -125,8 +128,11 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             SourceNamespace namespace = sourceNamespace(request, inventory, null, metadata.id(), source);
             String sourceHash = sha256(source);
             Path preparationInput = source;
+            Path runtimeMappings = null;
             String mappingKey = "namespace-neutral";
-            if (namespace == SourceNamespace.INTERMEDIARY) {
+            boolean needsMappingResolver = inventory.loaderApiClasses().contains(
+                    "net.fabricmc.loader.api.MappingResolver");
+            if (namespace == SourceNamespace.INTERMEDIARY || needsMappingResolver) {
                 if (resolvedMinecraft == null) {
                     resolvedMinecraft = minecraftArtifacts.resolve(request.minecraftVersion(),
                             request.cacheDirectory(), request.refresh());
@@ -136,16 +142,24 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                 mappingKey = resolvedMinecraft.clientJar().sha1() + "|"
                         + resolvedMinecraft.clientMappings().sha1() + "|"
                         + sha256(resolvedIntermediaryMappings);
-                Path remapped = request.cacheDirectory().resolve("remapped-inputs")
-                        .resolve(sourceHash + "-named.jar");
-                new MinecraftRemappingPipeline().remap(source, remapped,
-                        resolvedMinecraft.clientJar().path(), resolvedIntermediaryMappings,
-                        resolvedMinecraft.clientMappings().path(), request.cacheDirectory().resolve("remap-work"));
-                preparationInput = remapped;
+                MinecraftRemappingPipeline pipeline = new MinecraftRemappingPipeline();
+                Path work = request.cacheDirectory().resolve("remap-work");
+                if (namespace == SourceNamespace.INTERMEDIARY) {
+                    Path remapped = request.cacheDirectory().resolve("remapped-inputs")
+                            .resolve(sourceHash + "-named.jar");
+                    runtimeMappings = pipeline.remap(source, remapped,
+                            resolvedMinecraft.clientJar().path(), resolvedIntermediaryMappings,
+                            resolvedMinecraft.clientMappings().path(), work);
+                    preparationInput = remapped;
+                } else {
+                    runtimeMappings = pipeline.composeMappings(resolvedIntermediaryMappings,
+                            resolvedMinecraft.clientMappings().path(), work);
+                }
             }
             String containmentKey = input.parentModId() == null ? "root"
                     : input.parentModId() + "!/" + input.parentSubLocation();
-            String cacheKey = sha256((sourceHash + "|0.1.0|" + request.minecraftVersion() + "|"
+            String cacheKey = sha256((sourceHash + "|" + FabricAdapterVersion.CURRENT + "|"
+                    + adapterFingerprint + "|" + request.minecraftVersion() + "|"
                     + request.hostVersion() + "|" + mappingKey + "|" + containmentKey)
                     .getBytes(StandardCharsets.UTF_8));
             Path cached = request.cacheDirectory().resolve(cacheKey + ".jar");
@@ -155,7 +169,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                 if (input.parentModId() != null) {
                     manifest = manifest.nested(input.parentModId(), input.parentSubLocation());
                 }
-                preparer.prepare(preparationInput, cached, metadata, manifest);
+                preparer.prepare(preparationInput, cached, metadata, manifest, runtimeMappings);
             }
             Path output = request.outputDirectory().resolve(metadata.id() + "-" + safe(metadata.version())
                     + "-loaderbridge.jar");
@@ -166,7 +180,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                             java.util.Locale.ROOT)));
         }
         Path report = writeReport(request, plan, prepared);
-        writeLock(request, prepared, resolvedMinecraft, resolvedIntermediaryMappings);
+        writeLock(request, prepared, resolvedMinecraft, resolvedIntermediaryMappings,
+                adapterFingerprint);
         return new PreparationResult(outputs, report, plan.diagnostics());
     }
 
@@ -271,14 +286,36 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         tree.nested().forEach(child -> collectMetadata(child, destination));
     }
 
+    private static void diagnoseDuplicateIds(List<FabricModMetadata> metadata,
+            List<Diagnostic> diagnostics) {
+        Map<String, String> versions = new LinkedHashMap<>();
+        for (FabricModMetadata mod : metadata) {
+            String prior = versions.putIfAbsent(mod.id(), mod.version());
+            if (prior != null && !prior.equals(mod.version())) {
+                diagnostics.add(unsupported("LB-NESTED-006", mod.id(), null,
+                        "Duplicate Fabric mod ID has conflicting versions " + prior
+                                + " and " + mod.version()));
+            }
+        }
+    }
+
     private void collectPreparationInputs(Path artifact, String source, String parentModId,
             String parentSubLocation, Path cacheDirectory,
-            List<PreparationInput> destination, Set<String> seenArtifacts) throws IOException {
+            List<PreparationInput> destination, Set<String> seenArtifacts,
+            Map<String, String> seenModVersions) throws IOException {
         String hash = sha256(artifact);
         if (!seenArtifacts.add(hash)) {
             return;
         }
         FabricModMetadata metadata = inspector.inspect(artifact).root();
+        String priorVersion = seenModVersions.putIfAbsent(metadata.id(), metadata.version());
+        if (priorVersion != null) {
+            if (priorVersion.equals(metadata.version())) {
+                return;
+            }
+            throw new IOException("LB-NESTED-006: duplicate Fabric mod ID '" + metadata.id()
+                    + "' has conflicting versions " + priorVersion + " and " + metadata.version());
+        }
         destination.add(new PreparationInput(
                 artifact, source, metadata, parentModId, parentSubLocation));
         if (metadata.nestedJars().isEmpty()) {
@@ -311,7 +348,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                 }
                 collectPreparationInputs(nestedArtifact, source + "!/" + nestedLocation,
                         metadata.id(), nestedLocation,
-                        cacheDirectory, destination, seenArtifacts);
+                        cacheDirectory, destination, seenArtifacts, seenModVersions);
             }
         }
     }
@@ -342,6 +379,26 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         }
     }
 
+    private static String implementationFingerprint() throws IOException {
+        try {
+            var source = FabricToForgeAdapter.class.getProtectionDomain().getCodeSource();
+            if (source == null) return FabricAdapterVersion.CURRENT;
+            Path location = Path.of(source.getLocation().toURI());
+            if (Files.isRegularFile(location)) return sha256(location);
+            if (!Files.isDirectory(location)) return FabricAdapterVersion.CURRENT;
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            try (var files = Files.walk(location)) {
+                for (Path file : files.filter(Files::isRegularFile).sorted().toList()) {
+                    digest.update(location.relativize(file).toString().getBytes(StandardCharsets.UTF_8));
+                    digest.update(Files.readAllBytes(file));
+                }
+            }
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (java.net.URISyntaxException | NoSuchAlgorithmException exception) {
+            throw new IOException("Could not fingerprint the Fabric adapter implementation", exception);
+        }
+    }
+
     private static Path writeReport(BridgeRequest request, BridgePlan plan, List<PreparedArtifact> prepared)
             throws IOException {
         Files.createDirectories(request.outputDirectory());
@@ -352,10 +409,11 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
     }
 
     private static void writeLock(BridgeRequest request, List<PreparedArtifact> prepared,
-            ResolvedMinecraftArtifacts minecraft, Path intermediaryMappings) throws IOException {
+            ResolvedMinecraftArtifacts minecraft, Path intermediaryMappings,
+            String adapterFingerprint) throws IOException {
         Path lock = request.outputDirectory().resolve("bridge.lock.json");
         LockData data = new LockData("1", request.minecraftVersion(), "forge", request.hostVersion(),
-                "fabric-to-forge", "0.1.0", minecraft,
+                "fabric-to-forge", FabricAdapterVersion.CURRENT, adapterFingerprint, minecraft,
                 intermediaryMappings == null ? null : sha256(intermediaryMappings), prepared);
         Files.writeString(lock, JSON.toJson(data), StandardCharsets.UTF_8);
     }
@@ -375,7 +433,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             List<Diagnostic> diagnostics, List<PreparedArtifact> preparedArtifacts) {}
 
     private record LockData(String formatVersion, String minecraftVersion, String hostLoader,
-            String hostVersion, String adapter, String adapterVersion,
+            String hostVersion, String adapter, String adapterVersion, String adapterArtifactSha256,
             ResolvedMinecraftArtifacts minecraftArtifacts, String intermediaryMappingsSha256,
             List<PreparedArtifact> artifacts) {}
 

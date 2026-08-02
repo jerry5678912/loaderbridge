@@ -18,6 +18,16 @@ steps:
     timeout: PT30S
     parameters:
       contains: LOADERBRIDGE_FIXTURE_MAIN_READY
+  - id: fixture_prelaunch_entrypoint
+    action: wait_for_log
+    timeout: PT30S
+    parameters:
+      contains: LOADERBRIDGE_FIXTURE_PRELAUNCH_READY
+  - id: fixture_server_entrypoint
+    action: wait_for_log
+    timeout: PT30S
+    parameters:
+      contains: LOADERBRIDGE_FIXTURE_SERVER_READY
   - id: save
     action: save
     timeout: PT1M

@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,8 +19,12 @@ import net.fabricmc.loader.api.metadata.ModDependency;
 import net.fabricmc.loader.api.metadata.ModEnvironment;
 import net.fabricmc.loader.api.Version;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class BridgeFabricLoaderTest {
+    @TempDir
+    Path temporaryDirectory;
+
     @Test
     void exposesRegisteredModsAliasesEntrypointsAndDirectories() {
         BridgeFabricLoader loader = BridgeFabricLoader.getInstance();
@@ -128,6 +133,13 @@ class BridgeFabricLoaderTest {
                   "id": "rich_fixture",
                   "version": "2.0.0",
                   "name": "Rich Fixture",
+                  "description": "Runtime metadata",
+                  "authors": [{"name":"Jerry","contact":{"email":"jerry@example.invalid"}}],
+                  "contributors": ["Helper"],
+                  "contact": {"homepage":"https://example.invalid"},
+                  "license": ["Apache-2.0"],
+                  "icon": {"32":"small.png","128":"large.png"},
+                  "custom": {"enabled":true,"settings":{"mode":"test"},"values":[1,"two"]},
                   "environment": "client",
                   "provides": ["rich_alias"],
                   "depends": {"minecraft": ">=1.21.1"},
@@ -137,6 +149,24 @@ class BridgeFabricLoaderTest {
         ModContainer container = BridgeModContainer.create(parsed, Path.of("build/rich-fixture"));
 
         assertThat(container.getMetadata().getEnvironment()).isEqualTo(ModEnvironment.CLIENT);
+        assertThat(container.getMetadata().getDescription()).isEqualTo("Runtime metadata");
+        assertThat(container.getMetadata().getAuthors()).singleElement()
+                .satisfies(person -> {
+                    assertThat(person.getName()).isEqualTo("Jerry");
+                    assertThat(person.getContact().get("email")).contains("jerry@example.invalid");
+                });
+        assertThat(container.getMetadata().getContributors())
+                .extracting(net.fabricmc.loader.api.metadata.Person::getName).containsExactly("Helper");
+        assertThat(container.getMetadata().getContact().get("homepage"))
+                .contains("https://example.invalid");
+        assertThat(container.getMetadata().getLicense()).containsExactly("Apache-2.0");
+        assertThat(container.getMetadata().getIconPath(64)).contains("large.png");
+        assertThat(container.getMetadata().getIconPath(256)).contains("large.png");
+        assertThat(container.getMetadata().getCustomValue("enabled").getAsBoolean()).isTrue();
+        assertThat(container.getMetadata().getCustomValue("settings").getAsObject()
+                .get("mode").getAsString()).isEqualTo("test");
+        assertThat(container.getMetadata().getCustomValue("values").getAsArray().get(1)
+                .getAsString()).isEqualTo("two");
         assertThat(container.getMetadata().getProvides()).containsExactly("rich_alias");
         assertThat(container.getMetadata().getDependencies())
                 .extracting(ModDependency::getKind, ModDependency::getModId)
@@ -179,5 +209,19 @@ class BridgeFabricLoaderTest {
                 .isEqualTo(net.fabricmc.loader.api.metadata.ModOrigin.Kind.NESTED);
         assertThat(child.getOrigin().getParentModId()).isEqualTo("parent");
         assertThat(child.getOrigin().getParentSubLocation()).isEqualTo("META-INF/jars/child.jar");
+    }
+
+    @Test
+    void resolvesClasspathResourcesAcrossMultipleRootsInOrder() throws Exception {
+        Path first = Files.createDirectories(temporaryDirectory.resolve("first"));
+        Path second = Files.createDirectories(temporaryDirectory.resolve("second/assets/fixture"));
+        Path resource = Files.writeString(second.resolve("value.txt"), "found");
+        ModContainer container = new BridgeModContainer(
+                BridgeModContainer.create("classpath", "1", "Classpath", List.of(), first).metadata(),
+                List.of(first, temporaryDirectory.resolve("second")), null, null);
+
+        assertThat(container.getRootPaths()).containsExactly(first, temporaryDirectory.resolve("second"));
+        assertThat(container.findPath("assets/fixture/value.txt")).contains(resource);
+        assertThat(container.findPath("assets/fixture/missing.txt")).isEmpty();
     }
 }

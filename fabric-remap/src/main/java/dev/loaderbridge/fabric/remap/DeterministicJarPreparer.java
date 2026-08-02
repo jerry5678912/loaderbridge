@@ -34,6 +34,15 @@ public final class DeterministicJarPreparer {
             Path destination,
             FabricModMetadata metadata,
             PreparationManifest manifest) throws IOException {
+        prepare(source, destination, metadata, manifest, null);
+    }
+
+    public void prepare(
+            Path source,
+            Path destination,
+            FabricModMetadata metadata,
+            PreparationManifest manifest,
+            Path runtimeMappings) throws IOException {
         Path parent = destination.toAbsolutePath().getParent();
         if (parent == null) {
             throw new IOException("Output JAR must have a parent directory");
@@ -41,7 +50,7 @@ public final class DeterministicJarPreparer {
         Files.createDirectories(parent);
         Path temporary = Files.createTempFile(parent, destination.getFileName().toString(), ".tmp");
         try {
-            write(source, temporary, metadata, manifest);
+            write(source, temporary, metadata, manifest, runtimeMappings);
             Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING,
                     StandardCopyOption.ATOMIC_MOVE);
         } catch (IOException | RuntimeException exception) {
@@ -54,7 +63,8 @@ public final class DeterministicJarPreparer {
             Path source,
             Path destination,
             FabricModMetadata metadata,
-            PreparationManifest manifest) throws IOException {
+            PreparationManifest manifest,
+            Path runtimeMappings) throws IOException {
         try (JarFile input = new JarFile(source.toFile(), false);
                 JarOutputStream output = new JarOutputStream(Files.newOutputStream(destination))) {
             List<JarEntry> entries = input.stream()
@@ -71,6 +81,14 @@ public final class DeterministicJarPreparer {
                 }
                 try (InputStream bytes = input.getInputStream(entry)) {
                     put(output, entry.getName(), readBounded(bytes));
+                }
+            }
+            if (!names.contains("pack.mcmeta")) {
+                put(output, "pack.mcmeta", packMetadata(metadata));
+            }
+            if (runtimeMappings != null) {
+                try (InputStream bytes = Files.newInputStream(runtimeMappings)) {
+                    put(output, "META-INF/loaderbridge/mappings.tiny", readBounded(bytes));
                 }
             }
             put(output, "META-INF/loaderbridge.json", bridgeMetadata(metadata, manifest));
@@ -115,6 +133,16 @@ public final class DeterministicJarPreparer {
         appendDependencies(result, escapedId, metadata.dependencies().recommends(), false);
         appendDependencies(result, escapedId, metadata.dependencies().suggests(), false);
         return result.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static byte[] packMetadata(FabricModMetadata metadata) {
+        JsonObject pack = new JsonObject();
+        pack.addProperty("description", metadata.name() + " resources");
+        pack.addProperty("pack_format", 34);
+        JsonObject root = new JsonObject();
+        root.add("pack", pack);
+        return new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
+                .toJson(root).getBytes(StandardCharsets.UTF_8);
     }
 
     private static void appendDependencies(StringBuilder target, String owner,
@@ -185,7 +213,8 @@ public final class DeterministicJarPreparer {
     }
 
     private static boolean isGeneratedEntry(String name) {
-        return name.equals("META-INF/mods.toml") || name.equals("META-INF/loaderbridge.json");
+        return name.equals("META-INF/mods.toml") || name.equals("META-INF/loaderbridge.json")
+                || name.equals("META-INF/loaderbridge/mappings.tiny");
     }
 
     private static boolean isInvalidatedSignature(String name) {

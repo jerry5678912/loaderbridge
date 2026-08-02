@@ -2,17 +2,23 @@ package dev.loaderbridge.fabric.runtime;
 
 import dev.loaderbridge.fabric.metadata.FabricDependencies;
 import dev.loaderbridge.fabric.metadata.FabricModMetadata;
+import dev.loaderbridge.fabric.metadata.FabricPerson;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Comparator;
 import net.fabricmc.loader.api.ModContainer;
 import net.fabricmc.loader.api.Version;
 import net.fabricmc.loader.api.metadata.ModDependency;
+import net.fabricmc.loader.api.metadata.ContactInformation;
+import net.fabricmc.loader.api.metadata.CustomValue;
 import net.fabricmc.loader.api.metadata.ModEnvironment;
 import net.fabricmc.loader.api.metadata.ModMetadata;
 import net.fabricmc.loader.api.metadata.ModOrigin;
+import net.fabricmc.loader.api.metadata.Person;
 import net.fabricmc.loader.api.metadata.version.VersionInterval;
 import net.fabricmc.loader.api.metadata.version.VersionPredicate;
 
@@ -32,7 +38,8 @@ public record BridgeModContainer(
             Collection<String> aliases, Path root) {
         Version parsedVersion = parseVersion(version);
         ModMetadata metadata = new SimpleMetadata(
-                id, aliases, parsedVersion, name, ModEnvironment.UNIVERSAL, List.of());
+                id, aliases, parsedVersion, name, ModEnvironment.UNIVERSAL, List.of(), "",
+                List.of(), List.of(), Map.of(), List.of(), Map.of(), Map.of());
         return new BridgeModContainer(metadata, List.of(root), null, null);
     }
 
@@ -48,7 +55,9 @@ public record BridgeModContainer(
                 parseVersion(source.version()),
                 source.name(),
                 parseEnvironment(source.environment()),
-                dependencies(source.dependencies()));
+                dependencies(source.dependencies()),
+                source.description(), source.authors(), source.contributors(), source.contact(),
+                source.licenses(), source.icons(), source.customJson());
         return new BridgeModContainer(metadata, List.of(root), parentModId, parentSubLocation);
     }
 
@@ -129,11 +138,24 @@ public record BridgeModContainer(
             Version version,
             String name,
             ModEnvironment environment,
-            Collection<ModDependency> dependencies)
+            Collection<ModDependency> dependencies,
+            String description,
+            List<FabricPerson> authors,
+            List<FabricPerson> contributors,
+            Map<String, String> contact,
+            List<String> licenses,
+            Map<Integer, String> icons,
+            Map<String, String> customJson)
             implements ModMetadata {
         SimpleMetadata {
             provides = List.copyOf(provides);
             dependencies = List.copyOf(dependencies);
+            authors = List.copyOf(authors);
+            contributors = List.copyOf(contributors);
+            contact = Map.copyOf(contact);
+            licenses = List.copyOf(licenses);
+            icons = Map.copyOf(icons);
+            customJson = Map.copyOf(customJson);
         }
         @Override public String getId() { return id; }
         @Override public Collection<String> getProvides() { return provides; }
@@ -141,6 +163,40 @@ public record BridgeModContainer(
         @Override public String getName() { return name; }
         @Override public ModEnvironment getEnvironment() { return environment; }
         @Override public Collection<ModDependency> getDependencies() { return dependencies; }
+        @Override public String getDescription() { return description; }
+        @Override public Collection<Person> getAuthors() {
+            return authors.stream().<Person>map(SimplePerson::new).toList();
+        }
+        @Override public Collection<Person> getContributors() {
+            return contributors.stream().<Person>map(SimplePerson::new).toList();
+        }
+        @Override public ContactInformation getContact() { return new SimpleContact(contact); }
+        @Override public Collection<String> getLicense() { return licenses; }
+        @Override public Optional<String> getIconPath(int size) {
+            if (icons.isEmpty()) return Optional.empty();
+            if (icons.containsKey(0)) return Optional.of(icons.get(0));
+            return icons.entrySet().stream()
+                    .min(Comparator.<Map.Entry<Integer, String>>comparingInt(entry ->
+                            entry.getKey() >= size ? entry.getKey() : Integer.MAX_VALUE)
+                            .thenComparing((left, right) -> Integer.compare(right.getKey(), left.getKey())))
+                    .map(Map.Entry::getValue);
+        }
+        @Override public Map<String, CustomValue> getCustomValues() {
+            Map<String, CustomValue> values = new java.util.LinkedHashMap<>();
+            customJson.forEach((key, json) -> values.put(key, BridgeCustomValue.parse(json)));
+            return Map.copyOf(values);
+        }
+    }
+
+    private record SimpleContact(Map<String, String> values) implements ContactInformation {
+        SimpleContact { values = Map.copyOf(values); }
+        @Override public Optional<String> get(String key) { return Optional.ofNullable(values.get(key)); }
+        @Override public Map<String, String> asMap() { return values; }
+    }
+
+    private record SimplePerson(FabricPerson source) implements Person {
+        @Override public String getName() { return source.name(); }
+        @Override public ContactInformation getContact() { return new SimpleContact(source.contact()); }
     }
 
     private record BridgeDependency(Kind kind, String modId, List<String> ranges) implements ModDependency {

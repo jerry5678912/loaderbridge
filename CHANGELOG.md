@@ -79,3 +79,20 @@ All notable user-facing changes will be recorded here.
   exceptions.
 - Added Fabric Loader 0.16 semantic/opaque version values, public predicate
   terms and operators, interval algebra, and runtime dependency requirements.
+- Added Fabric Loader rich metadata contracts for people, contacts, licenses,
+  icons, descriptions, and recursively typed custom values.
+- Added public environment annotations, `preLaunch` entrypoint compatibility,
+  client entrypoint verification, multi-root classpath lookup, and a
+  self-contained Forge game-layer Loader API shim artifact.
+- Added intermediary-to-runtime `MappingResolver` data composition, bounded
+  embedding in transformed JARs, and class/field/method runtime lookups.
+- Added Forge-valid generated `pack.mcmeta` resources while preserving author
+  metadata, eliminating the invalid `ResourcePackInfo` loading warning.
+- Versioned the Fabric adapter at 0.2.0 and included the adapter artifact hash
+  in preparation cache keys and locks so implementation changes cannot reuse
+  stale transformed JARs.
+- Added duplicate nested mod ID/version diagnostics and deduplication independent
+  of filenames or archive hashes.
+- Extended the controlled server scenario and graphical client laboratory to
+  prove Fabric `preLaunch`, `main`, sided entrypoints, world save, clean stop,
+  and world reload on Forge 52.1.0.

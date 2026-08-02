@@ -14,7 +14,7 @@ public final class MinecraftRemappingPipeline {
     private final TinyRemapperEngine remapper = new TinyRemapperEngine();
     private final OfficialMappingComposer composer = new OfficialMappingComposer();
 
-    public void remap(Path inputMod, Path outputMod, Path obfuscatedClientJar,
+    public Path remap(Path inputMod, Path outputMod, Path obfuscatedClientJar,
             Path intermediaryMappings, Path mojangMappings, Path workDirectory) throws IOException {
         Files.createDirectories(workDirectory);
         String minecraftKey = digest(obfuscatedClientJar, intermediaryMappings);
@@ -24,11 +24,7 @@ public final class MinecraftRemappingPipeline {
                     "official", "intermediary", List.of());
         }
 
-        String mappingKey = digest(intermediaryMappings, mojangMappings);
-        Path composedMappings = workDirectory.resolve("intermediary-named-" + mappingKey + ".tiny");
-        if (!Files.isRegularFile(composedMappings)) {
-            composer.compose(intermediaryMappings, mojangMappings, composedMappings);
-        }
+        Path composedMappings = composeMappings(intermediaryMappings, mojangMappings, workDirectory);
 
         String modKey = digest(inputMod, composedMappings, intermediaryClient);
         Path remappedMod = workDirectory.resolve("mod-named-" + modKey + ".jar");
@@ -38,6 +34,18 @@ public final class MinecraftRemappingPipeline {
         }
         Files.createDirectories(outputMod.toAbsolutePath().getParent());
         Files.copy(remappedMod, outputMod, StandardCopyOption.REPLACE_EXISTING);
+        return composedMappings;
+    }
+
+    public Path composeMappings(Path intermediaryMappings, Path mojangMappings,
+            Path workDirectory) throws IOException {
+        Files.createDirectories(workDirectory);
+        String mappingKey = digest(intermediaryMappings, mojangMappings);
+        Path composedMappings = workDirectory.resolve("intermediary-named-" + mappingKey + ".tiny");
+        if (!Files.isRegularFile(composedMappings)) {
+            composer.compose(intermediaryMappings, mojangMappings, composedMappings);
+        }
+        return composedMappings;
     }
 
     private static String digest(Path... paths) throws IOException {

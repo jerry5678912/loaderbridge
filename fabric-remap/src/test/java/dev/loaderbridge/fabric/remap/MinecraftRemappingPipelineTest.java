@@ -35,8 +35,8 @@ class MinecraftRemappingPipelineTest {
         writeJar(mod, "fixture/Caller.class", fabricCaller());
         Path output = temporaryDirectory.resolve("remapped.jar");
 
-        new MinecraftRemappingPipeline().remap(mod, output, client, intermediary, mojang,
-                temporaryDirectory.resolve("work"));
+        Path runtimeMappings = new MinecraftRemappingPipeline().remap(
+                mod, output, client, intermediary, mojang, temporaryDirectory.resolve("work"));
 
         AtomicReference<String> invocation = new AtomicReference<>();
         try (JarFile jar = new JarFile(output.toFile()); var input = jar.getInputStream(
@@ -56,6 +56,10 @@ class MinecraftRemappingPipelineTest {
             }, 0);
         }
         assertThat(invocation).hasValue("net/minecraft/Example.run()V");
+        assertThat(Files.readString(runtimeMappings))
+                .contains("tiny\t2\t0\tintermediary\tnamed")
+                .contains("net/minecraft/class_1\tnet/minecraft/Example")
+                .contains("method_1\trun");
     }
 
     private static void writeJar(Path path, String className, byte[] classBytes) throws Exception {
