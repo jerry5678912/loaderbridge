@@ -35,3 +35,5 @@ All notable user-facing changes will be recorded here.
   plugin, structured result, and failure-phase contracts for the M1 laboratory.
 - Added a strict, bounded YAML 1.2 scenario parser that rejects aliases,
   arbitrary object tags, duplicate keys, unknown fields, and oversized inputs.
+- Added sequential scenario execution for lifecycle, log, command, save,
+  reload, shutdown, and dynamically provided plugin actions.
