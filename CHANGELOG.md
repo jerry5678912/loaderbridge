@@ -41,3 +41,5 @@ All notable user-facing changes will be recorded here.
   console commands, transcripts, latest-log discovery, and crash collection.
 - Added the machine-readable `test --scenario` command and an initial controlled
   server lifecycle/save/reload scenario.
+- Added checksum-pinned disposable Forge server installation with empty-target
+  protection, bounded execution, transcripts, and stable failure codes.
