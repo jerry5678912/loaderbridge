@@ -351,6 +351,12 @@ public final class LoaderBridgeCli implements Runnable {
         @Option(names = "--json", description = "Emit the result as JSON.")
         boolean json;
 
+        @Option(names = "--probe-uri", description = "Test-only loopback probe origin.")
+        String probeUri;
+
+        @Option(names = "--probe-token-file", description = "File containing the test probe bearer token.")
+        Path probeTokenFile;
+
         @Override
         public Integer call() {
             if (!Files.isDirectory(instance)) {
@@ -364,7 +370,14 @@ public final class LoaderBridgeCli implements Runnable {
                     System.err.println("Artifacts path is not a directory: " + artifacts);
                     return INVALID_INPUT;
                 }
-                var context = new ScenarioExecutionContext(instance, artifacts, scenario.side(), Map.of());
+                if ((probeUri == null) != (probeTokenFile == null)) {
+                    System.err.println("--probe-uri and --probe-token-file must be supplied together");
+                    return INVALID_INPUT;
+                }
+                Map<String, String> runtimeAttributes = probeUri == null ? Map.of()
+                        : Map.of("probe.uri", probeUri, "probe.token", readProbeToken(probeTokenFile));
+                var context = new ScenarioExecutionContext(instance, artifacts, scenario.side(),
+                        runtimeAttributes);
                 List<ScenarioPlugin> plugins = ServiceLoader.load(ScenarioPlugin.class).stream()
                         .map(ServiceLoader.Provider::get).toList();
                 ScenarioRunResult result;
@@ -411,6 +424,24 @@ public final class LoaderBridgeCli implements Runnable {
                 return value;
             }).toList());
             return report;
+        }
+
+        private static String readProbeToken(Path path) throws IOException {
+            if (!Files.isRegularFile(path, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+                throw new IOException("Probe token is not a regular file: " + path);
+            }
+            byte[] bytes;
+            try (var input = Files.newInputStream(path)) {
+                bytes = input.readNBytes(1025);
+            }
+            if (bytes.length > 1024) {
+                throw new IOException("Probe token file exceeds 1 KiB");
+            }
+            String token = new String(bytes, java.nio.charset.StandardCharsets.UTF_8).strip();
+            if (token.isEmpty()) {
+                throw new IOException("Probe token file is empty");
+            }
+            return token;
         }
     }
 

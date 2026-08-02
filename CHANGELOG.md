@@ -45,3 +45,5 @@ All notable user-facing changes will be recorded here.
   protection, bounded execution, transcripts, and stable failure codes.
 - Added client scenario execution through fixed `run-client.sh`/`run-client.bat`
   launchers without allowing scenario documents to supply process commands.
+- Added ServiceLoader-discovered semantic assertions over an authenticated,
+  size-bounded, loopback-only test probe; bearer tokens are read from files.

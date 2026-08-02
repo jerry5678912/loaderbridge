@@ -2,6 +2,9 @@ package dev.loaderbridge.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.sun.net.httpserver.HttpServer;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -151,6 +154,62 @@ class LoaderBridgeCliTest {
                 "--artifacts", temporaryDirectory.resolve("client-artifacts").toString());
 
         assertThat(exitCode).isZero();
+    }
+
+    @Test
+    void loadsTheAuthenticatedProbePluginForSemanticAssertions() throws Exception {
+        String token = "loaderbridge-cli-probe-token-with-at-least-32-characters";
+        HttpServer probe = HttpServer.create(
+                new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0), 0);
+        probe.createContext("/v1/registry/", exchange -> {
+            boolean authenticated = ("Bearer " + token).equals(
+                    exchange.getRequestHeaders().getFirst("Authorization"));
+            byte[] body = (authenticated ? "registered" : "unauthorized")
+                    .getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(authenticated ? 200 : 401, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        probe.start();
+        try {
+            Path instance = Files.createDirectories(temporaryDirectory.resolve("probe-instance"));
+            writeScenarioLaunchScript(instance);
+            Path tokenFile = temporaryDirectory.resolve("probe.token");
+            Files.writeString(tokenFile, token, StandardCharsets.UTF_8);
+            Path scenario = temporaryDirectory.resolve("probe-scenario.yaml");
+            Files.writeString(scenario, """
+                    schemaVersion: 1
+                    id: fixture_probe_cycle
+                    description: Uses the authenticated semantic probe.
+                    side: server
+                    mods: [fixture]
+                    steps:
+                      - id: start
+                        action: start_instance
+                        timeout: PT5S
+                      - id: stone
+                        action: assert_registry
+                        timeout: PT5S
+                        parameters:
+                          subject: minecraft:stone
+                          equals: registered
+                      - id: stop
+                        action: shutdown
+                        timeout: PT5S
+                        parameters:
+                          marker: CLEAN_STOP
+                    """, StandardCharsets.UTF_8);
+
+            int exitCode = new CommandLine(new LoaderBridgeCli()).execute("test",
+                    "--scenario", scenario.toString(), "--instance", instance.toString(),
+                    "--artifacts", temporaryDirectory.resolve("probe-artifacts").toString(),
+                    "--probe-uri", "http://127.0.0.1:" + probe.getAddress().getPort(),
+                    "--probe-token-file", tokenFile.toString());
+
+            assertThat(exitCode).isZero();
+        } finally {
+            probe.stop(0);
+        }
     }
 
     private static void writeScenarioLaunchScript(Path instance) throws Exception {
