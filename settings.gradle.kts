@@ -19,6 +19,7 @@ include(
     "bridge-api",
     "repository-modrinth",
     "repository-curseforge",
+    "compatibility-catalog",
     "fabric-metadata",
     "fabric-remap",
     "fabric-loader-shim",

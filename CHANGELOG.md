@@ -23,3 +23,5 @@ All notable user-facing changes will be recorded here.
   search, version/dependency parsing, and checksum-addressed downloads.
 - Added an authenticated CurseForge provider with Fabric 1.21.1 discovery,
   paginated file resolution, dependency mapping, and verified CDN downloads.
+- Added deterministic catalog freezing with platform-local ranking, latest-release
+  selection, hash/source deduplication, top-up enforcement, and canonical JSON.
