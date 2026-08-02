@@ -6,6 +6,7 @@ public enum BridgeCapability {
     DEPENDENCY_RESOLUTION,
     REMAPPING,
     MIXINS,
+    MIXIN_EXTRAS,
     ACCESS_WIDENERS,
     NESTED_JARS,
     LOADER_API,

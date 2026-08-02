@@ -48,6 +48,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   nested `@At` member targets, accessors, invokers, shadows, and overwrites.
 - Standard Mixin config plugins proven through real `IMixinConfigPlugin`
   callbacks on both launches of the controlled Forge server save/reload run.
+- Annotation-aware MixinExtras detection with automatic, checksum-pinned
+  installation of the official Forge game-library artifact; a controlled
+  `@ModifyReturnValue` passed both server launches, save, and reload.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -68,8 +71,7 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 
 The adapter currently rejects access wideners, Fabric API, unknown custom
 language adapters, Loader API calls outside
-the current shim, or native-library review. Mixin config plugins, MixinExtras,
-patch packs, broad semantic graphical assertions,
+the current shim, or native-library review. Patch packs, broad semantic graphical assertions,
 and real-mod probes are not yet implemented.
 These gaps produce stable diagnostics instead of a JAR that is falsely labeled
 compatible.
@@ -130,7 +132,8 @@ writing `bridge.repository.lock.json`.
 `test` runs bounded lifecycle/save/reload behavior and writes a structured
 `scenario-report.json` plus per-launch Forge transcripts and discovered logs.
 
-For verification, install the generated mod JAR, `forge-runtime`,
+For verification, install every generated artifact (including automatically
+selected runtime libraries), `forge-runtime`,
 `forge-transform-service`, and `fabric-loader-shim` in the Forge instance's
 `mods` directory first. `verify` uses that instance's `run.sh` or `run.bat` and
 automatically uses the same Java runtime as LoaderBridge.

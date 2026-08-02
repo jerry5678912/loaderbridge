@@ -3,6 +3,7 @@ package dev.loaderbridge.fabric.remap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.loaderbridge.api.BridgeAdapter;
+import dev.loaderbridge.api.BridgeCapability;
 import dev.loaderbridge.api.BridgeEnvironment;
 import dev.loaderbridge.api.BridgeRequest;
 import dev.loaderbridge.api.LoaderId;
@@ -16,6 +17,8 @@ import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
 
 class FabricToForgeAdapterTest {
     @TempDir
@@ -43,7 +46,7 @@ class FabricToForgeAdapterTest {
         assertThat(result.artifacts()).hasSize(1).allMatch(Files::exists);
         assertThat(Files.readString(result.report())).contains("fixture", "main");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
-                .contains("sourceSha256", "outputSha256", "\"adapterVersion\": \"0.3.4\"",
+                .contains("sourceSha256", "outputSha256", "\"adapterVersion\": \"0.3.5\"",
                         "adapterArtifactSha256");
         try (JarFile jar = new JarFile(result.artifacts().getFirst().toFile())) {
             assertThat(jar.getEntry("pack.mcmeta")).isNotNull();
@@ -85,6 +88,49 @@ class FabricToForgeAdapterTest {
                 .contains("LB-AW-001")
                 .doesNotContain("LB-MIXIN-001")
                 .doesNotContain("LB-NESTED-001");
+    }
+
+    @Test
+    void automaticallyAddsPinnedMixinExtrasRuntimeWhenAnnotationsRequireIt() throws Exception {
+        Path source = temporaryDirectory.resolve("mixinextras-mod.jar");
+        ClassWriter writer = new ClassWriter(0);
+        writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, "fixture/ExtrasMixin", null,
+                "java/lang/Object", null);
+        var method = writer.visitMethod(Opcodes.ACC_PRIVATE, "modify", "(Z)Z", null, null);
+        method.visitAnnotation("Lcom/llamalad7/mixinextras/injector/ModifyReturnValue;", false)
+                .visitEnd();
+        method.visitEnd();
+        writer.visitEnd();
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(source))) {
+            jar.putNextEntry(new JarEntry("fabric.mod.json"));
+            jar.write("{\"schemaVersion\":1,\"id\":\"extras_fixture\",\"version\":\"1\"}"
+                    .getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+            jar.putNextEntry(new JarEntry("fixture/ExtrasMixin.class"));
+            jar.write(writer.toByteArray());
+            jar.closeEntry();
+        }
+        Path runtime = temporaryDirectory.resolve("mixinextras-forge-test.jar");
+        Files.writeString(runtime, "controlled-runtime", StandardCharsets.UTF_8);
+        RuntimeLibraryProvider provider = (cache, refresh) -> new ResolvedRuntimeLibrary(
+                "mixinextras-forge", "test", java.net.URI.create("https://example.invalid/runtime.jar"),
+                "controlled-sha256", runtime);
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter(
+                (version, cache, refresh) -> { throw new AssertionError("Minecraft not required"); },
+                (version, cache) -> { throw new AssertionError("Mappings not required"); }, provider);
+        BridgeRequest request = new BridgeRequest("1.21.1", new LoaderId("forge"), "52.1.0",
+                BridgeEnvironment.SERVER, List.of(source), temporaryDirectory.resolve("extras-output"),
+                temporaryDirectory.resolve("extras-cache"));
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.requiredCapabilities()).contains(BridgeCapability.MIXIN_EXTRAS);
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .containsExactlyInAnyOrder("extras_fixture-1-loaderbridge.jar",
+                        "mixinextras-forge-test.jar");
+        assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
+                .contains("https://example.invalid/runtime.jar", "runtime-library");
     }
 
     @Test

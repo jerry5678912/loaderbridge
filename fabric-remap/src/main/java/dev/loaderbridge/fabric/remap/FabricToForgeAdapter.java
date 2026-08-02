@@ -48,22 +48,32 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
     private final BytecodeReferenceAnalyzer analyzer = new BytecodeReferenceAnalyzer();
     private final MinecraftArtifactsProvider minecraftArtifacts;
     private final IntermediaryMappingsProvider intermediaryMappings;
+    private final RuntimeLibraryProvider mixinExtrasRuntime;
 
     public FabricToForgeAdapter() {
-        this(new MinecraftArtifactResolver(), new BundledIntermediaryMappings());
+        this(new MinecraftArtifactResolver(), new BundledIntermediaryMappings(),
+                new MixinExtrasRuntimeResolver());
     }
 
     FabricToForgeAdapter(MinecraftArtifactsProvider minecraftArtifacts,
             IntermediaryMappingsProvider intermediaryMappings) {
+        this(minecraftArtifacts, intermediaryMappings, new MixinExtrasRuntimeResolver());
+    }
+
+    FabricToForgeAdapter(MinecraftArtifactsProvider minecraftArtifacts,
+            IntermediaryMappingsProvider intermediaryMappings,
+            RuntimeLibraryProvider mixinExtrasRuntime) {
         this.minecraftArtifacts = java.util.Objects.requireNonNull(minecraftArtifacts, "minecraftArtifacts");
         this.intermediaryMappings = java.util.Objects.requireNonNull(intermediaryMappings, "intermediaryMappings");
+        this.mixinExtrasRuntime = java.util.Objects.requireNonNull(mixinExtrasRuntime, "mixinExtrasRuntime");
     }
 
     @Override
     public AdapterDescriptor descriptor() {
         return new AdapterDescriptor("fabric-to-forge", "1", FABRIC, FORGE, "=1.21.1", "[52.1.0,53)",
                 List.of(BridgeCapability.METADATA, BridgeCapability.DEPENDENCY_RESOLUTION,
-                        BridgeCapability.REMAPPING, BridgeCapability.MIXINS));
+                        BridgeCapability.REMAPPING, BridgeCapability.MIXINS,
+                        BridgeCapability.MIXIN_EXTRAS));
     }
 
     @Override
@@ -117,6 +127,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         Set<String> seenArtifacts = new LinkedHashSet<>();
         Map<String, String> seenModVersions = new LinkedHashMap<>();
         String adapterFingerprint = implementationFingerprint();
+        boolean needsMixinExtras = false;
         for (Path source : request.inputArtifacts()) {
             collectPreparationInputs(source, source.toString(), null, null,
                     request.cacheDirectory(), inputs, seenArtifacts, seenModVersions);
@@ -125,6 +136,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             Path source = input.path();
             FabricModMetadata metadata = input.metadata();
             ReferenceInventory inventory = analyzer.analyze(source);
+            needsMixinExtras |= !inventory.mixinExtrasClasses().isEmpty();
             SourceNamespace namespace = sourceNamespace(request, inventory, null, metadata.id(), source);
             String sourceHash = sha256(source);
             Path preparationInput = source;
@@ -180,6 +192,16 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                     output.toString(), sha256(output), cacheKey, namespace.name().toLowerCase(
                             java.util.Locale.ROOT)));
         }
+        if (needsMixinExtras) {
+            ResolvedRuntimeLibrary library = mixinExtrasRuntime.resolve(
+                    request.cacheDirectory(), request.refresh());
+            Path output = request.outputDirectory().resolve(
+                    library.id() + "-" + library.version() + ".jar");
+            Files.copy(library.path(), output, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            outputs.add(output);
+            prepared.add(new PreparedArtifact(library.id(), library.url().toString(), library.sha256(),
+                    output.toString(), sha256(output), library.sha256(), "runtime-library"));
+        }
         Path report = writeReport(request, plan, prepared);
         writeLock(request, prepared, resolvedMinecraft, resolvedIntermediaryMappings,
                 adapterFingerprint);
@@ -190,6 +212,9 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             Set<BridgeCapability> required, List<Diagnostic> diagnostics, BridgeRequest request) {
         if (!metadata.mixins().isEmpty()) {
             required.add(BridgeCapability.MIXINS);
+        }
+        if (!inventory.mixinExtrasClasses().isEmpty()) {
+            required.add(BridgeCapability.MIXIN_EXTRAS);
         }
         if (metadata.accessWidener().isPresent()) {
             required.add(BridgeCapability.ACCESS_WIDENERS);

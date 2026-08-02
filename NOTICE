@@ -7,6 +7,8 @@ under the Apache License, Version 2.0.
 
 This product links to ForgeSPI, Forge/FML, ModLauncher, TinyRemapper, Mapping IO,
 ASM, Gson, and picocli. Those components remain under their respective licenses.
+MixinExtras is downloaded unmodified from its official Maven Central artifact
+only when inspected bytecode requires it, and remains under its own MIT license.
 
 This product implements compatibility with public contracts documented by
 FabricMC. Fabric Loader and Fabric API are Apache License 2.0 projects.

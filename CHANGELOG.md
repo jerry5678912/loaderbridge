@@ -123,3 +123,8 @@ All notable user-facing changes will be recorded here.
   `@At` targets, `@Accessor`, `@Invoker`, `@Shadow`, and `@Overwrite`.
 - Added a controlled standard Mixin config plugin and required its real callback
   marker across both Forge dedicated-server launches, save, and reload.
+- Added annotation-aware MixinExtras capability detection and automatic output
+  of the unmodified official Forge 0.5.4 game-library artifact, pinned by URL
+  and SHA-256 in the compatibility report and bridge lock.
+- Proved `@ModifyReturnValue` behavior on a real Minecraft server method across
+  both Forge launches, save, reload, and clean shutdown.

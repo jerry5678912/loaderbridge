@@ -8,6 +8,8 @@ import java.util.Set;
 import java.util.jar.JarFile;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.AnnotationVisitor;
+import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -18,6 +20,7 @@ public final class BytecodeReferenceAnalyzer {
     public ReferenceInventory analyze(Path artifact) throws IOException {
         Set<String> fabricApi = new LinkedHashSet<>();
         Set<String> loaderApi = new LinkedHashSet<>();
+        Set<String> mixinExtras = new LinkedHashSet<>();
         Set<String> minecraft = new LinkedHashSet<>();
         Set<String> strings = new LinkedHashSet<>();
         Set<String> natives = new LinkedHashSet<>();
@@ -32,13 +35,14 @@ public final class BytecodeReferenceAnalyzer {
                     natives.add(entry.getName());
                 } else if (entry.getName().endsWith(".class")) {
                     try (InputStream input = jar.getInputStream(entry)) {
-                        new ClassReader(input).accept(new InventoryVisitor(fabricApi, loaderApi, minecraft, strings),
+                        new ClassReader(input).accept(new InventoryVisitor(
+                                fabricApi, loaderApi, mixinExtras, minecraft, strings),
                                 ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
                     }
                 }
             }
         }
-        return new ReferenceInventory(fabricApi, loaderApi, minecraft, strings, natives);
+        return new ReferenceInventory(fabricApi, loaderApi, mixinExtras, minecraft, strings, natives);
     }
 
     private static boolean isNative(String name) {
@@ -50,15 +54,38 @@ public final class BytecodeReferenceAnalyzer {
     private static final class InventoryVisitor extends ClassVisitor {
         private final Set<String> fabricApi;
         private final Set<String> loaderApi;
+        private final Set<String> mixinExtras;
         private final Set<String> minecraft;
         private final Set<String> strings;
 
-        InventoryVisitor(Set<String> fabricApi, Set<String> loaderApi, Set<String> minecraft, Set<String> strings) {
+        InventoryVisitor(Set<String> fabricApi, Set<String> loaderApi, Set<String> mixinExtras,
+                Set<String> minecraft, Set<String> strings) {
             super(Opcodes.ASM9);
             this.fabricApi = fabricApi;
             this.loaderApi = loaderApi;
+            this.mixinExtras = mixinExtras;
             this.minecraft = minecraft;
             this.strings = strings;
+        }
+
+        @Override
+        public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+            collectDescriptor(descriptor);
+            return annotationVisitor();
+        }
+
+        @Override
+        public FieldVisitor visitField(int access, String name, String descriptor,
+                String signature, Object value) {
+            collectDescriptor(descriptor);
+            return new FieldVisitor(Opcodes.ASM9) {
+                @Override
+                public AnnotationVisitor visitAnnotation(String annotationDescriptor,
+                        boolean visible) {
+                    collectDescriptor(annotationDescriptor);
+                    return annotationVisitor();
+                }
+            };
         }
 
         @Override
@@ -66,6 +93,20 @@ public final class BytecodeReferenceAnalyzer {
                 String[] exceptions) {
             collectDescriptor(descriptor);
             return new MethodVisitor(Opcodes.ASM9) {
+                @Override
+                public AnnotationVisitor visitAnnotation(String annotationDescriptor,
+                        boolean visible) {
+                    collectDescriptor(annotationDescriptor);
+                    return annotationVisitor();
+                }
+
+                @Override
+                public AnnotationVisitor visitParameterAnnotation(int parameter,
+                        String annotationDescriptor, boolean visible) {
+                    collectDescriptor(annotationDescriptor);
+                    return annotationVisitor();
+                }
+
                 @Override
                 public void visitTypeInsn(int opcode, String type) {
                     collect(type);
@@ -101,11 +142,39 @@ public final class BytecodeReferenceAnalyzer {
                 @Override
                 public void visitLdcInsn(Object value) {
                     if (value instanceof String text && (text.startsWith("net.fabricmc.")
-                            || text.startsWith("net/minecraft/"))) {
+                            || text.startsWith("net/minecraft/")
+                            || text.startsWith("com.llamalad7.mixinextras."))) {
                         strings.add(text);
                     } else if (value instanceof Type type) {
                         collectDescriptor(type.getDescriptor());
                     }
+                }
+            };
+        }
+
+        private AnnotationVisitor annotationVisitor() {
+            return new AnnotationVisitor(Opcodes.ASM9) {
+                @Override
+                public void visit(String name, Object value) {
+                    if (value instanceof Type type) {
+                        collectDescriptor(type.getDescriptor());
+                    }
+                }
+
+                @Override
+                public void visitEnum(String name, String descriptor, String value) {
+                    collectDescriptor(descriptor);
+                }
+
+                @Override
+                public AnnotationVisitor visitAnnotation(String name, String descriptor) {
+                    collectDescriptor(descriptor);
+                    return annotationVisitor();
+                }
+
+                @Override
+                public AnnotationVisitor visitArray(String name) {
+                    return annotationVisitor();
                 }
             };
         }
@@ -138,6 +207,8 @@ public final class BytecodeReferenceAnalyzer {
                 fabricApi.add(binaryName);
             } else if (binaryName.startsWith("net.fabricmc.loader.api.")) {
                 loaderApi.add(binaryName);
+            } else if (binaryName.startsWith("com.llamalad7.mixinextras.")) {
+                mixinExtras.add(binaryName);
             } else if (binaryName.startsWith("net.minecraft.")) {
                 minecraft.add(binaryName);
             }

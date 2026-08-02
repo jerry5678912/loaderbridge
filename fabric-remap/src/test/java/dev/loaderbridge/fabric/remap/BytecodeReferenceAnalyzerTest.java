@@ -9,6 +9,7 @@ import java.util.jar.JarOutputStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -21,6 +22,9 @@ class BytecodeReferenceAnalyzerTest {
         ClassWriter writer = new ClassWriter(0);
         writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, "fixture/Example", null, "java/lang/Object", null);
         MethodVisitor method = writer.visitMethod(Opcodes.ACC_PUBLIC, "use", "()V", null, null);
+        AnnotationVisitor mixinExtras = method.visitAnnotation(
+                "Lcom/llamalad7/mixinextras/injector/ModifyReturnValue;", false);
+        mixinExtras.visitEnd();
         method.visitCode();
         method.visitMethodInsn(Opcodes.INVOKESTATIC,
                 "net/fabricmc/fabric/api/event/EventFactory", "createArrayBacked", "()V", false);
@@ -43,6 +47,8 @@ class BytecodeReferenceAnalyzerTest {
 
         assertThat(inventory.fabricApiClasses())
                 .contains("net.fabricmc.fabric.api.event.EventFactory");
+        assertThat(inventory.mixinExtrasClasses())
+                .contains("com.llamalad7.mixinextras.injector.ModifyReturnValue");
         assertThat(inventory.nativeLibraries()).contains("META-INF/natives/linux/libfixture.so");
     }
 }
