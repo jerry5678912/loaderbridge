@@ -235,8 +235,15 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         }
         if (!inventory.fabricApiClasses().isEmpty()) {
             required.add(BridgeCapability.FABRIC_API);
-            diagnostics.add(unsupported("LB-FAPI-001", metadata.id(), artifact,
-                    "Unbridged Fabric API references: " + inventory.fabricApiClasses().stream().limit(5).toList()));
+            String references = "Fabric API references: "
+                    + inventory.fabricApiClasses().stream().limit(5).toList();
+            boolean declared = metadata.dependencies().depends().keySet().stream()
+                    .anyMatch(FabricToForgeAdapter::isFabricApiDependency);
+            diagnostics.add(declared
+                    ? unsupported("LB-FAPI-001", metadata.id(), artifact,
+                            "Unbridged required " + references)
+                    : warning("LB-FAPI-002", metadata.id(), artifact,
+                            "Undeclared, potentially optional " + references));
         }
         if (!inventory.loaderApiClasses().isEmpty()) {
             required.add(BridgeCapability.LOADER_API);
@@ -275,10 +282,13 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                 .map(name -> name.substring(name.lastIndexOf('.') + 1))
                 .filter(name -> name.matches("class_[0-9]+(?:\\$.*)?"))
                 .count();
-        if (intermediaryCount == inventory.minecraftClasses().size()) {
+        long total = inventory.minecraftClasses().size();
+        if (intermediaryCount == total
+                || (total >= 10 && intermediaryCount / (double) total >= 0.95d)) {
             return SourceNamespace.INTERMEDIARY;
         }
-        if (intermediaryCount == 0) {
+        if (intermediaryCount == 0
+                || (total >= 10 && (total - intermediaryCount) / (double) total >= 0.95d)) {
             return SourceNamespace.NAMED;
         }
         if (diagnostics != null) {
@@ -379,6 +389,15 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
 
     private static Diagnostic unsupported(String code, String modId, Path artifact, String message) {
         return new Diagnostic(DiagnosticSeverity.ERROR, code, BridgePhase.PLAN, modId, artifact, message, null);
+    }
+
+    private static Diagnostic warning(String code, String modId, Path artifact, String message) {
+        return new Diagnostic(DiagnosticSeverity.WARNING, code, BridgePhase.PLAN,
+                modId, artifact, message, null);
+    }
+
+    private static boolean isFabricApiDependency(String id) {
+        return id.equals("fabric-api") || (id.startsWith("fabric-") && id.contains("api"));
     }
 
     private static Diagnostic error(String code, BridgePhase phase, String modId, Path artifact,

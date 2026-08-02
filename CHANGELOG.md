@@ -128,3 +128,6 @@ All notable user-facing changes will be recorded here.
   and SHA-256 in the compatibility report and bridge lock.
 - Proved `@ModifyReturnValue` behavior on a real Minecraft server method across
   both Forge launches, save, reload, and clean shutdown.
+- Replaced all-or-nothing namespace detection with a tested 95% dominance
+  threshold and downgraded undeclared Fabric API references to a structured
+  warning while keeping declared Fabric API dependencies as hard gates.

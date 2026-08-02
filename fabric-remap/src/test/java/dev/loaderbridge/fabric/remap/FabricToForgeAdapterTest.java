@@ -6,6 +6,7 @@ import dev.loaderbridge.api.BridgeAdapter;
 import dev.loaderbridge.api.BridgeCapability;
 import dev.loaderbridge.api.BridgeEnvironment;
 import dev.loaderbridge.api.BridgeRequest;
+import dev.loaderbridge.api.DiagnosticSeverity;
 import dev.loaderbridge.api.LoaderId;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -46,7 +47,7 @@ class FabricToForgeAdapterTest {
         assertThat(result.artifacts()).hasSize(1).allMatch(Files::exists);
         assertThat(Files.readString(result.report())).contains("fixture", "main");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
-                .contains("sourceSha256", "outputSha256", "\"adapterVersion\": \"0.3.5\"",
+                .contains("sourceSha256", "outputSha256", "\"adapterVersion\": \"0.3.6\"",
                         "adapterArtifactSha256");
         try (JarFile jar = new JarFile(result.artifacts().getFirst().toFile())) {
             assertThat(jar.getEntry("pack.mcmeta")).isNotNull();
@@ -131,6 +132,53 @@ class FabricToForgeAdapterTest {
                         "mixinextras-forge-test.jar");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
                 .contains("https://example.invalid/runtime.jar", "runtime-library");
+    }
+
+    @Test
+    void acceptsAHighConfidenceDominantIntermediaryNamespace() throws Exception {
+        Path source = referencedMod("dominant", null, writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
+            for (int index = 1; index <= 20; index++) {
+                method.visitTypeInsn(Opcodes.CHECKCAST, "net/minecraft/class_" + index);
+            }
+            method.visitTypeInsn(Opcodes.CHECKCAST, "net/minecraft/server/MinecraftServer");
+            method.visitEnd();
+        });
+        BridgeRequest request = new BridgeRequest("1.21.1", new LoaderId("forge"), "52.1.0",
+                BridgeEnvironment.SERVER, List.of(source), temporaryDirectory.resolve("dominant-output"),
+                temporaryDirectory.resolve("dominant-cache"));
+
+        var plan = new FabricToForgeAdapter().plan(request);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.requiredCapabilities()).contains(BridgeCapability.REMAPPING);
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-REMAP-003");
+    }
+
+    @Test
+    void treatsUndeclaredFabricApiReferencesAsOptionalButDeclaredOnesAsRequired()
+            throws Exception {
+        java.util.function.Consumer<ClassWriter> reference = writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
+            method.visitMethodInsn(Opcodes.INVOKESTATIC,
+                    "net/fabricmc/fabric/api/transfer/v1/item/ItemStorage", "find", "()V", false);
+            method.visitEnd();
+        };
+        Path optional = referencedMod("optional_api", null, reference);
+        Path required = referencedMod("required_api", "fabric-api", reference);
+
+        var optionalPlan = new FabricToForgeAdapter().plan(requestFor(optional, "optional-api"));
+        var requiredPlan = new FabricToForgeAdapter().plan(requestFor(required, "required-api"));
+
+        assertThat(optionalPlan.canPrepare()).isTrue();
+        assertThat(optionalPlan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-FAPI-002");
+            assertThat(diagnostic.severity()).isEqualTo(DiagnosticSeverity.WARNING);
+        });
+        assertThat(requiredPlan.canPrepare()).isFalse();
+        assertThat(requiredPlan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .contains("LB-FAPI-001");
     }
 
     @Test
@@ -231,6 +279,35 @@ class FabricToForgeAdapterTest {
             jar.closeEntry();
         }
         return source;
+    }
+
+    private Path referencedMod(String id, String fabricDependency,
+            java.util.function.Consumer<ClassWriter> classBody) throws Exception {
+        Path source = temporaryDirectory.resolve(id + ".jar");
+        ClassWriter writer = new ClassWriter(0);
+        writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, "fixture/References", null,
+                "java/lang/Object", null);
+        classBody.accept(writer);
+        writer.visitEnd();
+        String depends = fabricDependency == null ? "" : ",\"depends\":{\""
+                + fabricDependency + "\":\"*\"}";
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(source))) {
+            jar.putNextEntry(new JarEntry("fabric.mod.json"));
+            jar.write(("{\"schemaVersion\":1,\"id\":\"" + id
+                    + "\",\"version\":\"1\"" + depends + "}")
+                    .getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+            jar.putNextEntry(new JarEntry("fixture/References.class"));
+            jar.write(writer.toByteArray());
+            jar.closeEntry();
+        }
+        return source;
+    }
+
+    private BridgeRequest requestFor(Path source, String directory) {
+        return new BridgeRequest("1.21.1", new LoaderId("forge"), "52.1.0",
+                BridgeEnvironment.SERVER, List.of(source), temporaryDirectory.resolve(directory),
+                temporaryDirectory.resolve(directory + "-cache"));
     }
 
     private static byte[] jarBytes(String metadata) throws Exception {
