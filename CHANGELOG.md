@@ -77,3 +77,5 @@ All notable user-facing changes will be recorded here.
 - Added deterministic Forge-safe host IDs, translated Fabric dependency-order
   edges, runtime side filtering, and Fabric-compatible entrypoint resolution
   exceptions.
+- Added Fabric Loader 0.16 semantic/opaque version values, public predicate
+  terms and operators, interval algebra, and runtime dependency requirements.

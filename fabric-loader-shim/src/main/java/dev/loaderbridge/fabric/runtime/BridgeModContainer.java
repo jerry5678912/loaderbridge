@@ -2,7 +2,6 @@ package dev.loaderbridge.fabric.runtime;
 
 import dev.loaderbridge.fabric.metadata.FabricDependencies;
 import dev.loaderbridge.fabric.metadata.FabricModMetadata;
-import dev.loaderbridge.fabric.metadata.FabricVersionPredicate;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,7 +30,7 @@ public record BridgeModContainer(
 
     public static BridgeModContainer create(String id, String version, String name,
             Collection<String> aliases, Path root) {
-        Version parsedVersion = new SimpleVersion(version);
+        Version parsedVersion = parseVersion(version);
         ModMetadata metadata = new SimpleMetadata(
                 id, aliases, parsedVersion, name, ModEnvironment.UNIVERSAL, List.of());
         return new BridgeModContainer(metadata, List.of(root), null, null);
@@ -46,7 +45,7 @@ public record BridgeModContainer(
         ModMetadata metadata = new SimpleMetadata(
                 source.id(),
                 source.provides(),
-                new SimpleVersion(source.version()),
+                parseVersion(source.version()),
                 source.name(),
                 parseEnvironment(source.environment()),
                 dependencies(source.dependencies()));
@@ -59,6 +58,14 @@ public record BridgeModContainer(
             case "server" -> ModEnvironment.SERVER;
             default -> ModEnvironment.UNIVERSAL;
         };
+    }
+
+    private static Version parseVersion(String value) {
+        try {
+            return Version.parse(value);
+        } catch (net.fabricmc.loader.api.VersionParsingException exception) {
+            throw new IllegalArgumentException("Invalid Fabric mod version: " + value, exception);
+        }
     }
 
     private static List<ModDependency> dependencies(FabricDependencies source) {
@@ -141,17 +148,22 @@ public record BridgeModContainer(
         @Override public Kind getKind() { return kind; }
         @Override public String getModId() { return modId; }
         @Override public boolean matches(Version version) {
-            return FabricVersionPredicate.anyMatches(ranges, version.getFriendlyString());
+            return getVersionRequirements().stream().anyMatch(requirement -> requirement.test(version));
         }
-        @Override public Collection<VersionPredicate> getVersionRequirements() { return List.of(); }
-        @Override public List<VersionInterval> getVersionIntervals() { return List.of(); }
-    }
-
-    private record SimpleVersion(String friendlyString) implements Version {
-        @Override public String getFriendlyString() { return friendlyString; }
-        @Override public int compareTo(Version other) {
-            return friendlyString.compareTo(other.getFriendlyString());
+        @Override public Collection<VersionPredicate> getVersionRequirements() {
+            try {
+                return VersionPredicate.parse(ranges);
+            } catch (net.fabricmc.loader.api.VersionParsingException exception) {
+                throw new IllegalStateException("Invalid Fabric dependency predicate for " + modId, exception);
+            }
         }
-        @Override public String toString() { return friendlyString; }
+        @Override public List<VersionInterval> getVersionIntervals() {
+            List<VersionInterval> result = new ArrayList<>();
+            for (VersionPredicate requirement : getVersionRequirements()) {
+                VersionInterval interval = requirement.getInterval();
+                if (interval != null) result = new ArrayList<>(VersionInterval.or(result, interval));
+            }
+            return List.copyOf(result);
+        }
     }
 }

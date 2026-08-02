@@ -145,6 +145,13 @@ class BridgeFabricLoaderTest {
                         org.assertj.core.groups.Tuple.tuple(ModDependency.Kind.BREAKS, "broken_mod"));
         assertThat(container.getMetadata().getDepends().iterator().next().matches(Version.parse("1.21.1")))
                 .isTrue();
+        ModDependency minecraft = container.getMetadata().getDepends().iterator().next();
+        assertThat(minecraft.getVersionRequirements()).hasSize(1);
+        assertThat(minecraft.getVersionIntervals()).singleElement()
+                .satisfies(interval -> {
+                    assertThat(interval.getMin().getFriendlyString()).isEqualTo("1.21.1");
+                    assertThat(interval.getMax()).isNull();
+                });
     }
 
     @Test
