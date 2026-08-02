@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "name": "LoaderBridge Main Fixture",
   "environment": "*",
+  "mixins": [
+    "loaderbridge.fixture.mixins.json"
+  ],
   "entrypoints": {
     "preLaunch": [
       "dev.loaderbridge.fixture.PreLaunchFixture"

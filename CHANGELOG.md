@@ -96,3 +96,11 @@ All notable user-facing changes will be recorded here.
 - Extended the controlled server scenario and graphical client laboratory to
   prove Fabric `preLaunch`, `main`, sided entrypoints, world save, clean stop,
   and world reload on Forge 52.1.0.
+- Began M3 by translating universal Fabric Mixin metadata into deterministic
+  Forge-visible manifest registrations while continuing to use Forge's bundled
+  Mixin 0.8.7 runtime.
+- Added a controlled Fabric `@Inject` fixture targeting Minecraft's real
+  `MinecraftServer.runServer` method and required its marker through dedicated
+  server save/reload; the same injection passed both integrated-server launches.
+- Added stable `LB-MIXIN-ENV-001` gating for environment-scoped configurations
+  until side-safe generated wrapper configs are implemented.

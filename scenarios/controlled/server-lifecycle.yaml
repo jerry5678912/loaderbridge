@@ -28,6 +28,11 @@ steps:
     timeout: PT30S
     parameters:
       contains: LOADERBRIDGE_FIXTURE_SERVER_READY
+  - id: fixture_mixin
+    action: wait_for_log
+    timeout: PT30S
+    parameters:
+      contains: LOADERBRIDGE_FIXTURE_MIXIN_APPLIED
   - id: save
     action: save
     timeout: PT1M

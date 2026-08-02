@@ -4,6 +4,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import dev.loaderbridge.fabric.metadata.FabricModMetadata;
 import dev.loaderbridge.fabric.metadata.UnsafeJarException;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,6 +25,7 @@ import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 
 /** Produces the deterministic packaging envelope around transformed bytecode. */
 public final class DeterministicJarPreparer {
@@ -67,13 +69,20 @@ public final class DeterministicJarPreparer {
             Path runtimeMappings) throws IOException {
         try (JarFile input = new JarFile(source.toFile(), false);
                 JarOutputStream output = new JarOutputStream(Files.newOutputStream(destination))) {
+            Set<String> names = new HashSet<>();
+            boolean augmentManifest = !metadata.mixins().isEmpty();
+            if (augmentManifest) {
+                put(output, "META-INF/MANIFEST.MF", mixinManifest(input, metadata));
+                names.add("META-INF/MANIFEST.MF");
+            }
             List<JarEntry> entries = input.stream()
                     .filter(entry -> !entry.isDirectory())
+                    .filter(entry -> !augmentManifest
+                            || !entry.getName().equalsIgnoreCase("META-INF/MANIFEST.MF"))
                     .filter(entry -> !isInvalidatedSignature(entry.getName()))
                     .filter(entry -> !isGeneratedEntry(entry.getName()))
                     .sorted(Comparator.comparing(JarEntry::getName))
                     .toList();
-            Set<String> names = new HashSet<>();
             for (JarEntry entry : entries) {
                 validateName(entry.getName());
                 if (!names.add(entry.getName())) {
@@ -143,6 +152,35 @@ public final class DeterministicJarPreparer {
         root.add("pack", pack);
         return new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
                 .toJson(root).getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static byte[] mixinManifest(JarFile input, FabricModMetadata metadata)
+            throws IOException {
+        Manifest manifest = new Manifest();
+        JarEntry existing = input.getJarEntry("META-INF/MANIFEST.MF");
+        if (existing != null) {
+            try (InputStream bytes = input.getInputStream(existing)) {
+                manifest.read(new ByteArrayInputStream(readBounded(bytes)));
+            }
+        }
+        if (manifest.getMainAttributes().getValue("Manifest-Version") == null) {
+            manifest.getMainAttributes().putValue("Manifest-Version", "1.0");
+        }
+        var configs = metadata.mixins().stream()
+                .map(mixin -> mixin.config()).distinct().sorted().toList();
+        for (String config : configs) validateMixinConfig(config);
+        manifest.getMainAttributes().putValue("MixinConfigs", String.join(",", configs));
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        manifest.write(output);
+        return output.toByteArray();
+    }
+
+    private static void validateMixinConfig(String config) throws UnsafeJarException {
+        if (config.isBlank() || config.startsWith("/") || config.contains("\\")
+                || config.contains("\t") || config.contains("\r") || config.contains("\n")
+                || List.of(config.split("/")).contains("..")) {
+            throw new UnsafeJarException("Unsafe Mixin configuration resource: " + config);
+        }
     }
 
     private static void appendDependencies(StringBuilder target, String owner,

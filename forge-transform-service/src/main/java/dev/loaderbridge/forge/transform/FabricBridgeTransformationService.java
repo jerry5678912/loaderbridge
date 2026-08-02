@@ -14,7 +14,7 @@ public final class FabricBridgeTransformationService implements ITransformationS
 
     @Override
     public void initialize(IEnvironment environment) {
-        // Mixin and access-widener transformers will be registered here before game classes load.
+        // Access-widener transformers will be registered here before game classes load.
     }
 
     @Override

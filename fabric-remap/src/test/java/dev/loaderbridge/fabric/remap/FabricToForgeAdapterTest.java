@@ -43,7 +43,7 @@ class FabricToForgeAdapterTest {
         assertThat(result.artifacts()).hasSize(1).allMatch(Files::exists);
         assertThat(Files.readString(result.report())).contains("fixture", "main");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
-                .contains("sourceSha256", "outputSha256", "\"adapterVersion\": \"0.2.0\"",
+                .contains("sourceSha256", "outputSha256", "\"adapterVersion\": \"0.3.0\"",
                         "adapterArtifactSha256");
         try (JarFile jar = new JarFile(result.artifacts().getFirst().toFile())) {
             assertThat(jar.getEntry("pack.mcmeta")).isNotNull();
@@ -79,7 +79,8 @@ class FabricToForgeAdapterTest {
 
         assertThat(plan.canPrepare()).isFalse();
         assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
-                .contains("LB-MIXIN-001", "LB-AW-001")
+                .contains("LB-AW-001")
+                .doesNotContain("LB-MIXIN-001")
                 .doesNotContain("LB-NESTED-001");
     }
 

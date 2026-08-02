@@ -63,7 +63,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
     public AdapterDescriptor descriptor() {
         return new AdapterDescriptor("fabric-to-forge", "1", FABRIC, FORGE, "=1.21.1", "[52.1.0,53)",
                 List.of(BridgeCapability.METADATA, BridgeCapability.DEPENDENCY_RESOLUTION,
-                        BridgeCapability.REMAPPING));
+                        BridgeCapability.REMAPPING, BridgeCapability.MIXINS));
     }
 
     @Override
@@ -189,8 +189,14 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             Set<BridgeCapability> required, List<Diagnostic> diagnostics, BridgeRequest request) {
         if (!metadata.mixins().isEmpty()) {
             required.add(BridgeCapability.MIXINS);
-            diagnostics.add(unsupported("LB-MIXIN-001", metadata.id(), artifact,
-                    "Mixin registration is not implemented in this scaffold build"));
+            var scoped = metadata.mixins().stream()
+                    .filter(mixin -> !mixin.environment().equals("*"))
+                    .map(mixin -> mixin.environment() + ":" + mixin.config())
+                    .toList();
+            if (!scoped.isEmpty()) {
+                diagnostics.add(unsupported("LB-MIXIN-ENV-001", metadata.id(), artifact,
+                        "Environment-scoped Mixin configs require side wrappers: " + scoped));
+            }
         }
         if (metadata.accessWidener().isPresent()) {
             required.add(BridgeCapability.ACCESS_WIDENERS);

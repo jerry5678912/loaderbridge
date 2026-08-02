@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -121,6 +122,30 @@ class DeterministicJarPreparerTest {
         try (JarFile jar = new JarFile(output.toFile())) {
             assertThat(read(jar, "META-INF/loaderbridge/mappings.tiny"))
                     .contains("intermediary", "net/minecraft/client/Minecraft");
+        }
+    }
+
+    @Test
+    void declaresUniversalFabricMixinConfigurationsInTheForgeManifest() throws Exception {
+        Path source = temporaryDirectory.resolve("mixin-mod.jar");
+        writeJar(source, Map.of(
+                "fabric.mod.json", """
+                        {"schemaVersion":1,"id":"mixin_mod","version":"1",
+                         "mixins":["z.mixins.json","a.mixins.json"]}
+                        """,
+                "a.mixins.json", "{}",
+                "z.mixins.json", "{}"));
+        Path output = temporaryDirectory.resolve("mixin-mod-output.jar");
+
+        new DeterministicJarPreparer().prepare(source, output,
+                new FabricModInspector().inspect(source).root(),
+                PreparationManifest.pinned("1.21.1", "52.1.0"));
+
+        try (JarFile jar = new JarFile(output.toFile())) {
+            Manifest manifest = jar.getManifest();
+            assertThat(manifest).isNotNull();
+            assertThat(manifest.getMainAttributes().getValue("MixinConfigs"))
+                    .isEqualTo("a.mixins.json,z.mixins.json");
         }
     }
 
