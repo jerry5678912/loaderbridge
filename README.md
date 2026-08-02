@@ -40,13 +40,16 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   with dynamically namespaced actions for future ServiceLoader plugins.
 - A checked-in 25-scenario controlled M1 suite covering server and client
   lifecycle plus semantic game-state assertion families.
+- A standalone ForgeGradle client laboratory that launches Forge 52.1.0,
+  reaches the real title screen, opens or creates a disposable world, saves all
+  dimensions, disconnects, reloads the world, and stops cleanly.
 
 ## Intentionally gated
 
 The adapter currently rejects mods that require mixins, access wideners, Fabric
 API, custom language adapters, recursively loaded nested JARs, Loader API calls
 outside the current shim, or native-library review. Member-style entrypoints,
-patch packs, real graphical client assertions, and real-mod probes are not yet
+patch packs, general graphical assertions, and real-mod probes are not yet
 implemented.
 These gaps produce stable diagnostics instead of a JAR that is falsely labeled
 compatible.
@@ -57,12 +60,15 @@ ready, the existing world reloaded, and all dimensions saved during a clean
 shutdown. The M1 `test --scenario` path has also repeated that complete cycle
 through two real Forge launches and emitted a passing structured report. This is
 a scaffold milestone, not evidence that arbitrary Fabric mods are compatible.
+The standalone M1 client laboratory has independently passed a real graphical
+Forge 52.1.0 title/world/save/disconnect/reload/shutdown cycle on macOS.
 
 ## Build and use
 
 ```shell
 ./gradlew build
 ./gradlew :cli:installDist
+./gradlew -p client-lab runClient
 
 cli/build/install/cli/bin/cli inspect path/to/mod.jar --json
 cli/build/install/cli/bin/cli prepare \

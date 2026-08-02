@@ -52,3 +52,6 @@ All notable user-facing changes will be recorded here.
   resources, configuration, saving, shutdown, and reload.
 - Added three retries for failures explicitly classified as infrastructure while
   preserving immediate failures for bridge or mod behavioral mismatches.
+- Added a standalone Forge 52.1.0 graphical client laboratory with a guarded
+  development-mod layout and automated title, world, save, clean disconnect,
+  reload, and shutdown readiness markers.
