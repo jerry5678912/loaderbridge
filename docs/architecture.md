@@ -15,7 +15,7 @@ The engine is split so a future GUI can call the same Java API as the CLI.
 | `fabric-loader-shim` | Independently implemented common Fabric Loader API surface |
 | `forge-runtime` | Forge language provider and custom mod-container boundary |
 | `forge-transform-service` | Early ModLauncher transformation-service boundary |
-| `integration-harness` | Scenario execution plus reusable Forge process launch, readiness, and clean-shutdown verification |
+| `integration-harness` | Scenario execution plus Forge process launch, reload, bounded commands, and artifact capture |
 | `cli` | ServiceLoader discovery and machine-oriented commands/exit codes |
 | `fixture-fabric-main` | Controlled Fabric `main` entrypoint probe |
 
