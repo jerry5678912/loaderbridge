@@ -15,6 +15,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.loader.api.LanguageAdapter;
+import net.fabricmc.loader.api.LanguageAdapterException;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.fml.ModContainer;
 import net.minecraftforge.fml.event.IModBusEvent;
@@ -23,6 +25,7 @@ import net.minecraftforge.forgespi.language.ModFileScanData;
 
 public final class FabricModContainer extends ModContainer {
     private final List<Object> modInstances = new ArrayList<>();
+    private final BridgeModContainer bridgeModContainer;
     private final AtomicBoolean clientEntrypointsInvoked = new AtomicBoolean();
     private final AtomicBoolean serverEntrypointsInvoked = new AtomicBoolean();
 
@@ -31,8 +34,9 @@ public final class FabricModContainer extends ModContainer {
         this.contextExtension = () -> null;
         Path metadataPath = info.getOwningFile().getFile().findResource("fabric.mod.json");
         Path root = metadataPath.getParent();
-        BridgeFabricLoader.getInstance().registerMod(BridgeModContainer.create(info.getModId(),
-                info.getVersion().toString(), info.getDisplayName(), List.of(), root));
+        bridgeModContainer = BridgeModContainer.create(info.getModId(), info.getVersion().toString(),
+                info.getDisplayName(), List.of(), root);
+        BridgeFabricLoader.getInstance().registerMod(bridgeModContainer);
         invokeEntrypoints(metadataPath, "main", ModInitializer.class,
                 initializer -> initializer.onInitialize());
     }
@@ -51,22 +55,13 @@ public final class FabricModContainer extends ModContainer {
             for (JsonElement declaration : declarations) {
                 String className = declaration.isJsonPrimitive() ? declaration.getAsString()
                         : declaration.getAsJsonObject().get("value").getAsString();
-                if (className.contains("::")) {
-                    throw new IllegalStateException("LB-ENTRY-002: member entrypoints are not implemented: "
-                            + className);
-                }
-                Object instance = Class.forName(className, true, Thread.currentThread().getContextClassLoader())
-                        .getDeclaredConstructor().newInstance();
-                if (!contract.isInstance(instance)) {
-                    throw new IllegalStateException("LB-ENTRY-003: " + key
-                            + " entrypoint does not implement " + contract.getName() + ": " + className);
-                }
+                T instance = LanguageAdapter.getDefault().create(bridgeModContainer, className, contract);
                 modInstances.add(instance);
-                BridgeFabricLoader.getInstance().registerEntrypoint(key, instance);
-                T typed = contract.cast(instance);
-                invoker.invoke(typed);
+                BridgeFabricLoader.getInstance().registerEntrypoint(
+                        key, bridgeModContainer, className, instance);
+                invoker.invoke(instance);
             }
-        } catch (IOException | ReflectiveOperationException exception) {
+        } catch (IOException | LanguageAdapterException exception) {
             throw new IllegalStateException("LB-ENTRY-001: failed to initialize " + modId, exception);
         }
     }

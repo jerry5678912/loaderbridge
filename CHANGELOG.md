@@ -59,3 +59,6 @@ All notable user-facing changes will be recorded here.
   entrypoint containers and aggregated failures, validated ObjectShare
   callbacks, sanitized launch arguments, runtime context, corrected Version
   package/signatures, mod origins, containment, and the public metadata types.
+- Added Fabric-compatible default language-adapter handling for class,
+  static-field, static-method, and instance-method entrypoint declarations with
+  exact provider and definition attribution.
