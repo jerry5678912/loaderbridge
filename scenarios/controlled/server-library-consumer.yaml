@@ -1,0 +1,9 @@
+schemaVersion: 1
+id: server_library_consumer
+description: Verifies a controlled consumer can call a library mod through the game layer.
+side: server
+mods: [loaderbridge_test_probe, loaderbridge_library_fixture]
+steps:
+  - {id: start, action: start_instance, timeout: PT2M}
+  - {id: library, action: assert_configuration, timeout: PT30S, parameters: {subject: "library/consumer", equals: "invoked"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "All dimensions are saved"}}

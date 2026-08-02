@@ -1,0 +1,9 @@
+schemaVersion: 1
+id: server_configuration
+description: Verifies controlled server configuration values survive startup.
+side: server
+mods: [loaderbridge_test_probe]
+steps:
+  - {id: start, action: start_instance, timeout: PT2M}
+  - {id: config, action: assert_configuration, timeout: PT30S, parameters: {subject: "loaderbridge.enabled", equals: "true"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "All dimensions are saved"}}

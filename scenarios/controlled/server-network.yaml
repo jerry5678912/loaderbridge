@@ -1,0 +1,9 @@
+schemaVersion: 1
+id: server_network
+description: Verifies controlled server networking channel registration and round trip state.
+side: server
+mods: [loaderbridge_test_probe]
+steps:
+  - {id: start, action: start_instance, timeout: PT2M}
+  - {id: channel, action: assert_network, timeout: PT30S, parameters: {subject: "loaderbridge:fixture", equals: "round_trip_complete"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "All dimensions are saved"}}

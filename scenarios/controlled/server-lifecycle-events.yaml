@@ -1,0 +1,9 @@
+schemaVersion: 1
+id: server_lifecycle_events
+description: Verifies controlled server lifecycle callbacks execute in order.
+side: server
+mods: [loaderbridge_test_probe]
+steps:
+  - {id: start, action: start_instance, timeout: PT2M}
+  - {id: lifecycle, action: assert_world, timeout: PT30S, parameters: {subject: "lifecycle/server", equals: "started"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "All dimensions are saved"}}

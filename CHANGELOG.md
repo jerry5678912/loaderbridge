@@ -47,3 +47,6 @@ All notable user-facing changes will be recorded here.
   launchers without allowing scenario documents to supply process commands.
 - Added ServiceLoader-discovered semantic assertions over an authenticated,
   size-bounded, loopback-only test probe; bearer tokens are read from files.
+- Added a validation-gated suite of 25 unique controlled client/server scenarios
+  spanning lifecycle, commands, registries, networking, world state, rendering,
+  resources, configuration, saving, shutdown, and reload.

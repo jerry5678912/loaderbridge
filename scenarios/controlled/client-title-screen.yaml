@@ -1,0 +1,9 @@
+schemaVersion: 1
+id: client_title_screen
+description: Verifies the Minecraft title screen becomes the active client screen.
+side: client
+mods: [loaderbridge_test_probe]
+steps:
+  - {id: start, action: start_instance, timeout: PT3M}
+  - {id: title, action: assert_screen, timeout: PT2M, parameters: {subject: "minecraft:title", equals: "active"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "LOADERBRIDGE_CLIENT_STOPPED"}}

@@ -38,6 +38,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   version-only pins, deterministic installation ordering, and cycle detection.
 - Versioned M1 behavioral-scenario contracts and strict bounded YAML parsing,
   with dynamically namespaced actions for future ServiceLoader plugins.
+- A checked-in 25-scenario controlled M1 suite covering server and client
+  lifecycle plus semantic game-state assertion families.
 
 ## Intentionally gated
 

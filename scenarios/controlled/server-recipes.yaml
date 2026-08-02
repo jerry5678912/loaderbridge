@@ -1,0 +1,9 @@
+schemaVersion: 1
+id: server_recipes
+description: Verifies controlled recipe loading and lookup on the server.
+side: server
+mods: [loaderbridge_test_probe]
+steps:
+  - {id: start, action: start_instance, timeout: PT2M}
+  - {id: recipe, action: assert_resource, timeout: PT30S, parameters: {subject: "recipe/loaderbridge:fixture", equals: "loaded"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "All dimensions are saved"}}

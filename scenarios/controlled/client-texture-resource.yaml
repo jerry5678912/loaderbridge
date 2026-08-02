@@ -1,0 +1,9 @@
+schemaVersion: 1
+id: client_texture_resource
+description: Verifies the controlled texture is available to the client resource manager.
+side: client
+mods: [loaderbridge_test_probe]
+steps:
+  - {id: start, action: start_instance, timeout: PT3M}
+  - {id: texture, action: assert_resource, timeout: PT2M, parameters: {subject: "texture/loaderbridge:fixture", equals: "loaded"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "LOADERBRIDGE_CLIENT_STOPPED"}}

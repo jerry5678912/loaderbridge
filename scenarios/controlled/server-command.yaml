@@ -1,0 +1,10 @@
+schemaVersion: 1
+id: server_command
+description: Executes a server command and verifies its observed game state.
+side: server
+mods: [loaderbridge_test_probe]
+steps:
+  - {id: start, action: start_instance, timeout: PT2M}
+  - {id: command, action: send_command, timeout: PT30S, parameters: {command: "loaderbridge fixture"}}
+  - {id: result, action: assert_world, timeout: PT30S, parameters: {subject: "command/loaderbridge", equals: "executed"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "All dimensions are saved"}}

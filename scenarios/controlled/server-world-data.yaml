@@ -1,0 +1,11 @@
+schemaVersion: 1
+id: server_world_data
+description: Verifies controlled persistent world data after a save and reload.
+side: server
+mods: [loaderbridge_test_probe]
+steps:
+  - {id: start, action: start_instance, timeout: PT2M}
+  - {id: save, action: save, timeout: PT1M, parameters: {marker: "All dimensions are saved"}}
+  - {id: reload, action: reload, timeout: PT3M, parameters: {marker: "Done ("}}
+  - {id: data, action: assert_world, timeout: PT30S, parameters: {subject: "persistent/loaderbridge_fixture", equals: "restored"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "All dimensions are saved"}}

@@ -1,0 +1,9 @@
+schemaVersion: 1
+id: client_resource_reload
+description: Verifies a controlled client resource reload listener completed.
+side: client
+mods: [loaderbridge_test_probe]
+steps:
+  - {id: start, action: start_instance, timeout: PT3M}
+  - {id: reload, action: assert_resource, timeout: PT2M, parameters: {subject: "reload/client", equals: "complete"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "LOADERBRIDGE_CLIENT_STOPPED"}}

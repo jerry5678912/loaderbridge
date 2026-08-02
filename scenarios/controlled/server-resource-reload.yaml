@@ -1,0 +1,10 @@
+schemaVersion: 1
+id: server_resource_reload
+description: Reloads server resources and verifies the controlled reload listener ran.
+side: server
+mods: [loaderbridge_test_probe]
+steps:
+  - {id: start, action: start_instance, timeout: PT2M}
+  - {id: reload_command, action: send_command, timeout: PT30S, parameters: {command: "reload"}}
+  - {id: reload_state, action: assert_resource, timeout: PT1M, parameters: {subject: "reload/server", equals: "complete"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "All dimensions are saved"}}

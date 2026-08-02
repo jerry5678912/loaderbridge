@@ -1,0 +1,9 @@
+schemaVersion: 1
+id: client_configuration
+description: Verifies the controlled client configuration value after startup.
+side: client
+mods: [loaderbridge_test_probe]
+steps:
+  - {id: start, action: start_instance, timeout: PT3M}
+  - {id: config, action: assert_configuration, timeout: PT2M, parameters: {subject: "loaderbridge.client_enabled", equals: "true"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "LOADERBRIDGE_CLIENT_STOPPED"}}

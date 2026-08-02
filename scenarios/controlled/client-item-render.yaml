@@ -1,0 +1,9 @@
+schemaVersion: 1
+id: client_item_render
+description: Verifies the controlled item render path emits the expected semantic state.
+side: client
+mods: [loaderbridge_test_probe]
+steps:
+  - {id: start, action: start_instance, timeout: PT3M}
+  - {id: item_render, action: assert_render, timeout: PT2M, parameters: {subject: "item/loaderbridge:fixture", equals: "visible"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "LOADERBRIDGE_CLIENT_STOPPED"}}

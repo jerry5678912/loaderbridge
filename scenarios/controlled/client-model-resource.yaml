@@ -1,0 +1,9 @@
+schemaVersion: 1
+id: client_model_resource
+description: Verifies the controlled baked model is present after client resource loading.
+side: client
+mods: [loaderbridge_test_probe]
+steps:
+  - {id: start, action: start_instance, timeout: PT3M}
+  - {id: model, action: assert_resource, timeout: PT2M, parameters: {subject: "model/loaderbridge:fixture", equals: "baked"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "LOADERBRIDGE_CLIENT_STOPPED"}}

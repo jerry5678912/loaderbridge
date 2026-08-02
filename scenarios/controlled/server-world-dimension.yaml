@@ -1,0 +1,9 @@
+schemaVersion: 1
+id: server_world_dimension
+description: Verifies the overworld is loaded and accessible through server state.
+side: server
+mods: [loaderbridge_test_probe]
+steps:
+  - {id: start, action: start_instance, timeout: PT2M}
+  - {id: dimension, action: assert_world, timeout: PT30S, parameters: {subject: "dimension/minecraft:overworld", equals: "loaded"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "All dimensions are saved"}}

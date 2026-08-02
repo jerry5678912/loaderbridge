@@ -1,0 +1,9 @@
+schemaVersion: 1
+id: client_network
+description: Verifies a controlled client-server payload completes a round trip.
+side: client
+mods: [loaderbridge_test_probe]
+steps:
+  - {id: start, action: start_instance, timeout: PT3M}
+  - {id: payload, action: assert_network, timeout: PT2M, parameters: {subject: "loaderbridge:client_fixture", equals: "round_trip_complete"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "LOADERBRIDGE_CLIENT_STOPPED"}}

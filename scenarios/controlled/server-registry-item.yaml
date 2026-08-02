@@ -1,0 +1,9 @@
+schemaVersion: 1
+id: server_registry_item
+description: Verifies a controlled item and its identifier in the server registry.
+side: server
+mods: [loaderbridge_test_probe]
+steps:
+  - {id: start, action: start_instance, timeout: PT2M}
+  - {id: item, action: assert_registry, timeout: PT30S, parameters: {subject: "item/loaderbridge:fixture", equals: "registered"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "All dimensions are saved"}}

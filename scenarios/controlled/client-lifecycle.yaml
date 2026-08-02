@@ -1,0 +1,9 @@
+schemaVersion: 1
+id: client_lifecycle
+description: Verifies the controlled client reaches its ready lifecycle marker.
+side: client
+mods: [loaderbridge_test_probe]
+steps:
+  - {id: start, action: start_instance, timeout: PT3M}
+  - {id: ready, action: wait_for_log, timeout: PT2M, parameters: {contains: "LOADERBRIDGE_CLIENT_READY"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "LOADERBRIDGE_CLIENT_STOPPED"}}

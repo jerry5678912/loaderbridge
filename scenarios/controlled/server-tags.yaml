@@ -1,0 +1,9 @@
+schemaVersion: 1
+id: server_tags
+description: Verifies server datapack tag loading through the resource system.
+side: server
+mods: [loaderbridge_test_probe]
+steps:
+  - {id: start, action: start_instance, timeout: PT2M}
+  - {id: tag, action: assert_resource, timeout: PT30S, parameters: {subject: "tag/loaderbridge:fixture_blocks", equals: "loaded"}}
+  - {id: stop, action: shutdown, timeout: PT1M, parameters: {marker: "All dimensions are saved"}}
