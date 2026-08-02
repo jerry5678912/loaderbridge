@@ -20,6 +20,7 @@ include(
     "repository-modrinth",
     "repository-curseforge",
     "compatibility-catalog",
+    "scenario-api",
     "fabric-metadata",
     "fabric-remap",
     "fabric-loader-shim",

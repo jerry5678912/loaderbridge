@@ -31,3 +31,5 @@ All notable user-facing changes will be recorded here.
   resolution with deduplication, installation ordering, and cycle diagnostics.
 - Added canonical repository dependency locks and a repository-qualified
   `resolve` CLI that installs verified root and dependency artifacts.
+- Added versioned compatibility-scenario, bounded step, execution-context,
+  plugin, structured result, and failure-phase contracts for the M1 laboratory.
