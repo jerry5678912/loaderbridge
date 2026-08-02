@@ -31,4 +31,10 @@ public record PreparationManifest(
                 Objects.requireNonNull(parentId, "parentId"),
                 Objects.requireNonNull(subLocation, "subLocation"));
     }
+
+    public PreparationManifest namespaces(String source, String target) {
+        return new PreparationManifest(formatVersion, adapterVersion, minecraftVersion, forgeVersion,
+                Objects.requireNonNull(source, "source"), Objects.requireNonNull(target, "target"),
+                parentModId, parentSubLocation);
+    }
 }

@@ -43,10 +43,13 @@ class FabricToForgeAdapterTest {
         assertThat(result.artifacts()).hasSize(1).allMatch(Files::exists);
         assertThat(Files.readString(result.report())).contains("fixture", "main");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
-                .contains("sourceSha256", "outputSha256", "\"adapterVersion\": \"0.3.2\"",
+                .contains("sourceSha256", "outputSha256", "\"adapterVersion\": \"0.3.3\"",
                         "adapterArtifactSha256");
         try (JarFile jar = new JarFile(result.artifacts().getFirst().toFile())) {
             assertThat(jar.getEntry("pack.mcmeta")).isNotNull();
+            assertThat(new String(jar.getInputStream(jar.getJarEntry("META-INF/loaderbridge.json"))
+                    .readAllBytes(), StandardCharsets.UTF_8))
+                    .contains("\"sourceNamespace\": \"neutral\"");
         }
     }
 

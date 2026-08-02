@@ -165,7 +165,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             Path cached = request.cacheDirectory().resolve(cacheKey + ".jar");
             if (!Files.exists(cached)) {
                 PreparationManifest manifest = PreparationManifest.pinned(
-                        request.minecraftVersion(), request.hostVersion());
+                        request.minecraftVersion(), request.hostVersion())
+                        .namespaces(namespace.name().toLowerCase(java.util.Locale.ROOT), "official");
                 if (input.parentModId() != null) {
                     manifest = manifest.nested(input.parentModId(), input.parentSubLocation());
                 }
