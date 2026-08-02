@@ -41,6 +41,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - Deterministic generated wrappers for Fabric `client` and `server` scoped
   Mixin configs; original configs remain untouched while common declarations
   are exposed only on the declared Mixin side.
+- Namespace-aware Mixin refmap translation for intermediary inputs, retaining
+  both original and post-remap selector keys and translating owners, fields,
+  methods, and nested descriptors across default and contextual mappings.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -61,8 +64,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 
 The adapter currently rejects access wideners, Fabric API, unknown custom
 language adapters, Loader API calls outside
-the current shim, or native-library review. Mixin JSON refmap remapping, config
-plugins, MixinExtras, patch packs, broad semantic graphical assertions,
+the current shim, or native-library review. Mixin config plugins, MixinExtras,
+patch packs, broad semantic graphical assertions,
 and real-mod probes are not yet implemented.
 These gaps produce stable diagnostics instead of a JAR that is falsely labeled
 compatible.

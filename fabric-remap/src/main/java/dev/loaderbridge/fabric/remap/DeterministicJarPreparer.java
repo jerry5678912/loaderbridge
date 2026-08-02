@@ -75,7 +75,8 @@ public final class DeterministicJarPreparer {
                 JarOutputStream output = new JarOutputStream(Files.newOutputStream(destination))) {
             Set<String> names = new HashSet<>();
             boolean augmentManifest = !metadata.mixins().isEmpty();
-            MixinPackaging mixins = prepareMixins(input, metadata);
+            MixinPackaging mixins = prepareMixins(
+                    input, metadata, manifest.sourceNamespace(), runtimeMappings);
             if (augmentManifest) {
                 put(output, "META-INF/MANIFEST.MF", mixinManifest(input, mixins.configs()));
                 names.add("META-INF/MANIFEST.MF");
@@ -162,28 +163,53 @@ public final class DeterministicJarPreparer {
                 .toJson(root).getBytes(StandardCharsets.UTF_8);
     }
 
-    private static MixinPackaging prepareMixins(JarFile input, FabricModMetadata metadata)
+    private static MixinPackaging prepareMixins(JarFile input, FabricModMetadata metadata,
+            String sourceNamespace, Path runtimeMappings)
             throws IOException {
         List<String> configs = new ArrayList<>();
         Map<String, byte[]> generated = new java.util.TreeMap<>();
+        TinyMappingIndex mappingIndex = sourceNamespace.equals("intermediary")
+                && runtimeMappings != null ? TinyMappingIndex.read(runtimeMappings) : null;
         for (var mixin : metadata.mixins()) {
             validateMixinConfig(mixin.config());
             JsonObject config = readMixinConfig(input, mixin.config());
-            if (mixin.environment().equals("*")) {
-                configs.add(mixin.config());
-                continue;
-            }
-            if (!mixin.environment().equals("client") && !mixin.environment().equals("server")) {
+            boolean generatedConfig = false;
+            if (!mixin.environment().equals("*") && !mixin.environment().equals("client")
+                    && !mixin.environment().equals("server")) {
                 throw new UnsafeJarException("Unsupported Mixin environment: "
                         + mixin.environment());
             }
-            JsonArray sideMixins = new JsonArray();
-            appendMixinNames(config.get("mixins"), sideMixins, mixin.config());
-            appendMixinNames(config.get(mixin.environment()), sideMixins, mixin.config());
-            config.remove("mixins");
-            config.remove("client");
-            config.remove("server");
-            config.add(mixin.environment(), sideMixins);
+            if (!mixin.environment().equals("*")) {
+                JsonArray sideMixins = new JsonArray();
+                appendMixinNames(config.get("mixins"), sideMixins, mixin.config());
+                appendMixinNames(config.get(mixin.environment()), sideMixins, mixin.config());
+                config.remove("mixins");
+                config.remove("client");
+                config.remove("server");
+                config.add(mixin.environment(), sideMixins);
+                generatedConfig = true;
+            }
+            if (mappingIndex != null && config.has("refmap")) {
+                JsonElement refmapValue = config.get("refmap");
+                if (!refmapValue.isJsonPrimitive()
+                        || !refmapValue.getAsJsonPrimitive().isString()) {
+                    throw new UnsafeJarException(
+                            "LB-MIXIN-003: refmap must be a resource string: " + mixin.config());
+                }
+                String refmap = refmapValue.getAsString();
+                validateMixinConfig(refmap);
+                byte[] translated = new MixinRefmapTransformer().transform(
+                        readResource(input, refmap, "LB-MIXIN-REFMAP-004"), mappingIndex, refmap);
+                String translatedName = "META-INF/loaderbridge/mixins/"
+                        + sha256("refmap\u0000" + refmap) + ".refmap.json";
+                generated.put(translatedName, translated);
+                config.addProperty("refmap", translatedName);
+                generatedConfig = true;
+            }
+            if (!generatedConfig) {
+                configs.add(mixin.config());
+                continue;
+            }
             String generatedName = "META-INF/loaderbridge/mixins/"
                     + sha256(mixin.environment() + "\u0000" + mixin.config()) + ".json";
             generated.put(generatedName,
@@ -196,14 +222,7 @@ public final class DeterministicJarPreparer {
     }
 
     private static JsonObject readMixinConfig(JarFile input, String name) throws IOException {
-        JarEntry entry = input.getJarEntry(name);
-        if (entry == null || entry.isDirectory()) {
-            throw new UnsafeJarException("LB-MIXIN-002: missing Mixin config resource: " + name);
-        }
-        byte[] bytes;
-        try (InputStream inputStream = input.getInputStream(entry)) {
-            bytes = readBounded(inputStream);
-        }
+        byte[] bytes = readResource(input, name, "LB-MIXIN-002");
         try {
             JsonElement parsed = JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8));
             if (!parsed.isJsonObject()) {
@@ -215,6 +234,16 @@ public final class DeterministicJarPreparer {
                     "LB-MIXIN-003: malformed Mixin config: " + name);
             failure.initCause(exception);
             throw failure;
+        }
+    }
+
+    private static byte[] readResource(JarFile input, String name, String code) throws IOException {
+        JarEntry entry = input.getJarEntry(name);
+        if (entry == null || entry.isDirectory()) {
+            throw new UnsafeJarException(code + ": missing resource: " + name);
+        }
+        try (InputStream inputStream = input.getInputStream(entry)) {
+            return readBounded(inputStream);
         }
     }
 

@@ -113,3 +113,8 @@ All notable user-facing changes will be recorded here.
 - Proved side selection in real Forge runs: a server-scoped Fabric mixin applied
   in both dedicated-server launches and remained absent from the graphical
   client while its save/reload lifecycle still passed.
+- Added bounded Tiny-v2 resource mapping plus Mixin refmap translation for
+  owners, methods, fields, and descriptors in default and contextual maps.
+- Generated dual refmap lookup keys for original Fabric selectors and
+  TinyRemapper's runtime selectors, with stable malformed-resource and
+  translated-key collision diagnostics; original refmaps remain untouched.

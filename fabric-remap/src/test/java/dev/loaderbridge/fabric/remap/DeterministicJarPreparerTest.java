@@ -154,6 +154,7 @@ class DeterministicJarPreparerTest {
         Path source = temporaryDirectory.resolve("client-mixin-mod.jar");
         String original = """
                 {"required":true,"package":"fixture.mixin","plugin":"fixture.Plugin",
+                 "refmap":"fixture.refmap.json",
                  "mixins":["CommonMixin"],"client":["ExistingClientMixin"],
                  "server":["ExistingServerMixin"]}
                 """;
@@ -162,12 +163,21 @@ class DeterministicJarPreparerTest {
                         {"schemaVersion":1,"id":"client_mixin","version":"1",
                          "mixins":[{"config":"client.mixins.json","environment":"client"}]}
                         """,
-                "client.mixins.json", original));
+                "client.mixins.json", original,
+                "fixture.refmap.json", """
+                        {"mappings":{"fixture.mixin.CommonMixin":{
+                          "method_1":"Lnet/minecraft/class_1;method_1()V"
+                        }}}
+                        """));
         Path output = temporaryDirectory.resolve("client-mixin-output.jar");
+        Path mappings = temporaryDirectory.resolve("mixin-runtime.tiny");
+        Files.writeString(mappings, "tiny\t2\t0\tintermediary\tnamed\n"
+                + "c\tnet/minecraft/class_1\tnet/minecraft/Example\n"
+                + "\tm\t()V\tmethod_1\trun\n");
 
         new DeterministicJarPreparer().prepare(source, output,
                 new FabricModInspector().inspect(source).root(),
-                PreparationManifest.pinned("1.21.1", "52.1.0"));
+                PreparationManifest.pinned("1.21.1", "52.1.0"), mappings);
 
         try (JarFile jar = new JarFile(output.toFile())) {
             assertThat(read(jar, "client.mixins.json")).isEqualTo(original);
@@ -179,6 +189,16 @@ class DeterministicJarPreparerTest {
             assertThat(config.getAsJsonArray("client")).extracting(element -> element.getAsString())
                     .containsExactly("CommonMixin", "ExistingClientMixin");
             assertThat(config.get("plugin").getAsString()).isEqualTo("fixture.Plugin");
+            String refmap = config.get("refmap").getAsString();
+            assertThat(refmap).startsWith("META-INF/loaderbridge/mixins/")
+                    .endsWith(".refmap.json");
+            var refmapJson = com.google.gson.JsonParser.parseString(read(jar, refmap))
+                    .getAsJsonObject().getAsJsonObject("mappings")
+                    .getAsJsonObject("fixture.mixin.CommonMixin");
+            assertThat(refmapJson.get("method_1").getAsString())
+                    .isEqualTo("Lnet/minecraft/Example;run()V");
+            assertThat(refmapJson.get("run()V").getAsString())
+                    .isEqualTo("Lnet/minecraft/Example;run()V");
         }
     }
 
