@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dev.loaderbridge.fabric.runtime.BridgeFabricLoader;
 import dev.loaderbridge.fabric.runtime.BridgeModContainer;
+import dev.loaderbridge.fabric.runtime.BridgeKotlinLanguageAdapter;
 import dev.loaderbridge.fabric.metadata.FabricMetadataParser;
 import java.io.IOException;
 import java.io.Reader;
@@ -61,7 +62,17 @@ public final class FabricModContainer extends ModContainer {
             for (JsonElement declaration : declarations) {
                 String className = declaration.isJsonPrimitive() ? declaration.getAsString()
                         : declaration.getAsJsonObject().get("value").getAsString();
-                T instance = LanguageAdapter.getDefault().create(bridgeModContainer, className, contract);
+                String adapter = declaration.isJsonPrimitive() ? "default"
+                        : declaration.getAsJsonObject().has("adapter")
+                                ? declaration.getAsJsonObject().get("adapter").getAsString()
+                                : "default";
+                LanguageAdapter languageAdapter = switch (adapter) {
+                    case "default" -> LanguageAdapter.getDefault();
+                    case "kotlin" -> BridgeKotlinLanguageAdapter.INSTANCE;
+                    default -> throw new IllegalStateException("LB-ENTRY-004: unsupported language adapter '"
+                            + adapter + "' for " + modId);
+                };
+                T instance = languageAdapter.create(bridgeModContainer, className, contract);
                 modInstances.add(instance);
                 BridgeFabricLoader.getInstance().registerEntrypoint(
                         key, bridgeModContainer, className, instance);

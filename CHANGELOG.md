@@ -65,3 +65,6 @@ All notable user-facing changes will be recorded here.
 - Wired parsed Fabric metadata into runtime mod containers so aliases,
   environment scope, dependency kinds, and version matching remain available
   through `FabricLoader` after Forge construction.
+- Added an independently implemented Kotlin language adapter for Kotlin object,
+  class, property, and member-method JVM shapes, selected from structured
+  entrypoint metadata with stable rejection of unknown adapters.
