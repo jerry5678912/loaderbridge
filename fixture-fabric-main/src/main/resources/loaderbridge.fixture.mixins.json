@@ -2,6 +2,7 @@
   "required": true,
   "minVersion": "0.8",
   "package": "dev.loaderbridge.fixture.mixin",
+  "plugin": "dev.loaderbridge.fixture.mixin.FixtureMixinConfigPlugin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "MinecraftServerMixin"

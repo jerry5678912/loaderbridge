@@ -46,6 +46,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   methods, and nested descriptors across default and contextual mappings.
 - Golden remapping coverage for all standard injection annotation families,
   nested `@At` member targets, accessors, invokers, shadows, and overwrites.
+- Standard Mixin config plugins proven through real `IMixinConfigPlugin`
+  callbacks on both launches of the controlled Forge server save/reload run.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with

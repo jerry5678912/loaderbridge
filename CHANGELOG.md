@@ -121,3 +121,5 @@ All notable user-facing changes will be recorded here.
 - Expanded the Mixin remapping golden fixture across `@Inject`, `@Redirect`,
   `@ModifyArg`, `@ModifyArgs`, `@ModifyVariable`, `@ModifyConstant`, nested
   `@At` targets, `@Accessor`, `@Invoker`, `@Shadow`, and `@Overwrite`.
+- Added a controlled standard Mixin config plugin and required its real callback
+  marker across both Forge dedicated-server launches, save, and reload.
