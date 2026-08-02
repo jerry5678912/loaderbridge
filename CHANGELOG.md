@@ -17,3 +17,5 @@ All notable user-facing changes will be recorded here.
 ### Added
 
 - Initial LoaderBridge project scaffold.
+- Added validated, launcher-neutral repository provider, artifact, dependency,
+  hashing, and pagination contracts for compatibility catalog providers.
