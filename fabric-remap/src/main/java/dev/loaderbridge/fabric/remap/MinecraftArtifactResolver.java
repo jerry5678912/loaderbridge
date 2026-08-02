@@ -21,7 +21,7 @@ import java.time.Duration;
 import java.util.HexFormat;
 
 /** Resolves only Mojang-owned runtime artifacts and pins their declared SHA-1 values. */
-public final class MinecraftArtifactResolver {
+public final class MinecraftArtifactResolver implements MinecraftArtifactsProvider {
     public static final URI VERSION_MANIFEST = URI.create(
             "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json");
     private static final long MAXIMUM_METADATA_BYTES = 8L << 20;
@@ -37,6 +37,7 @@ public final class MinecraftArtifactResolver {
         this.transport = java.util.Objects.requireNonNull(transport, "transport");
     }
 
+    @Override
     public ResolvedMinecraftArtifacts resolve(String version, Path cacheDirectory, boolean refresh)
             throws IOException {
         Path root = cacheDirectory.resolve("minecraft").resolve(version);

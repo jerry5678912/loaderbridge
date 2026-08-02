@@ -106,7 +106,7 @@ public final class LoaderBridgeCli implements Runnable {
         @Option(names = "--source-namespace")
         Optional<String> sourceNamespace = Optional.empty();
 
-        @Option(names = "--refresh", description = "Refresh upstream resolution (not available in scaffold).")
+        @Option(names = "--refresh", description = "Refresh checksum-verified Mojang metadata and artifacts.")
         boolean refresh;
 
         @Override
@@ -120,9 +120,6 @@ public final class LoaderBridgeCli implements Runnable {
                 case "latest" -> "52.1.16";
                 default -> forgeVersion;
             };
-            if (refresh) {
-                System.err.println("--refresh requires the future official-metadata resolver; using pinned values");
-            }
             List<Path> artifacts;
             try (var paths = Files.list(mods)) {
                 artifacts = paths.filter(Files::isRegularFile)
@@ -143,7 +140,7 @@ public final class LoaderBridgeCli implements Runnable {
                 return UNSUPPORTED;
             }
             BridgeRequest request = new BridgeRequest(minecraft, new LoaderId(host), resolvedForge, side,
-                    artifacts, output, output.resolve(".cache"), sourceNamespace);
+                    artifacts, output, output.resolve(".cache"), sourceNamespace, refresh);
             try {
                 var plan = adapter.plan(request);
                 printDiagnostics(plan.diagnostics(), new PrintWriter(System.err, true));

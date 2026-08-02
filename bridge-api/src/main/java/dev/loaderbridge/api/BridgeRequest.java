@@ -13,7 +13,8 @@ public record BridgeRequest(
         List<Path> inputArtifacts,
         Path outputDirectory,
         Path cacheDirectory,
-        Optional<String> sourceNamespaceOverride) {
+        Optional<String> sourceNamespaceOverride,
+        boolean refresh) {
     public BridgeRequest {
         Objects.requireNonNull(minecraftVersion, "minecraftVersion");
         Objects.requireNonNull(hostLoader, "hostLoader");
@@ -28,6 +29,13 @@ public record BridgeRequest(
     public BridgeRequest(String minecraftVersion, LoaderId hostLoader, String hostVersion,
             BridgeEnvironment environment, List<Path> inputArtifacts, Path outputDirectory, Path cacheDirectory) {
         this(minecraftVersion, hostLoader, hostVersion, environment, inputArtifacts, outputDirectory,
-                cacheDirectory, Optional.empty());
+                cacheDirectory, Optional.empty(), false);
+    }
+
+    public BridgeRequest(String minecraftVersion, LoaderId hostLoader, String hostVersion,
+            BridgeEnvironment environment, List<Path> inputArtifacts, Path outputDirectory, Path cacheDirectory,
+            Optional<String> sourceNamespaceOverride) {
+        this(minecraftVersion, hostLoader, hostVersion, environment, inputArtifacts, outputDirectory,
+                cacheDirectory, sourceNamespaceOverride, false);
     }
 }

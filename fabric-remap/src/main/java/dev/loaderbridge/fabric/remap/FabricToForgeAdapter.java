@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** First directional adapter. It currently accepts namespace-neutral fixtures and reports remapping gaps. */
+/** First directional adapter for Fabric intermediary bytecode targeting Forge's official-name runtime. */
 public final class FabricToForgeAdapter implements BridgeAdapter {
     private static final LoaderId FABRIC = new LoaderId("fabric");
     private static final LoaderId FORGE = new LoaderId("forge");
@@ -43,11 +43,24 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             .create();
     private final FabricModInspector inspector = new FabricModInspector();
     private final BytecodeReferenceAnalyzer analyzer = new BytecodeReferenceAnalyzer();
+    private final MinecraftArtifactsProvider minecraftArtifacts;
+    private final IntermediaryMappingsProvider intermediaryMappings;
+
+    public FabricToForgeAdapter() {
+        this(new MinecraftArtifactResolver(), new BundledIntermediaryMappings());
+    }
+
+    FabricToForgeAdapter(MinecraftArtifactsProvider minecraftArtifacts,
+            IntermediaryMappingsProvider intermediaryMappings) {
+        this.minecraftArtifacts = java.util.Objects.requireNonNull(minecraftArtifacts, "minecraftArtifacts");
+        this.intermediaryMappings = java.util.Objects.requireNonNull(intermediaryMappings, "intermediaryMappings");
+    }
 
     @Override
     public AdapterDescriptor descriptor() {
         return new AdapterDescriptor("fabric-to-forge", "1", FABRIC, FORGE, "=1.21.1", "[52.1.0,53)",
-                List.of(BridgeCapability.METADATA, BridgeCapability.DEPENDENCY_RESOLUTION));
+                List.of(BridgeCapability.METADATA, BridgeCapability.DEPENDENCY_RESOLUTION,
+                        BridgeCapability.REMAPPING));
     }
 
     @Override
@@ -94,14 +107,37 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         List<Path> outputs = new ArrayList<>();
         List<PreparedArtifact> prepared = new ArrayList<>();
         DeterministicJarPreparer preparer = new DeterministicJarPreparer();
+        ResolvedMinecraftArtifacts resolvedMinecraft = null;
+        Path resolvedIntermediaryMappings = null;
         for (Path source : request.inputArtifacts()) {
             FabricModMetadata metadata = inspector.inspect(source).root();
+            ReferenceInventory inventory = analyzer.analyze(source);
+            SourceNamespace namespace = sourceNamespace(request, inventory, null, metadata.id(), source);
             String sourceHash = sha256(source);
+            Path preparationInput = source;
+            String mappingKey = "namespace-neutral";
+            if (namespace == SourceNamespace.INTERMEDIARY) {
+                if (resolvedMinecraft == null) {
+                    resolvedMinecraft = minecraftArtifacts.resolve(request.minecraftVersion(),
+                            request.cacheDirectory(), request.refresh());
+                    resolvedIntermediaryMappings = intermediaryMappings.resolve(request.minecraftVersion(),
+                            request.cacheDirectory());
+                }
+                mappingKey = resolvedMinecraft.clientJar().sha1() + "|"
+                        + resolvedMinecraft.clientMappings().sha1() + "|"
+                        + sha256(resolvedIntermediaryMappings);
+                Path remapped = request.cacheDirectory().resolve("remapped-inputs")
+                        .resolve(sourceHash + "-named.jar");
+                new MinecraftRemappingPipeline().remap(source, remapped,
+                        resolvedMinecraft.clientJar().path(), resolvedIntermediaryMappings,
+                        resolvedMinecraft.clientMappings().path(), request.cacheDirectory().resolve("remap-work"));
+                preparationInput = remapped;
+            }
             String cacheKey = sha256((sourceHash + "|0.1.0|" + request.minecraftVersion() + "|"
-                    + request.hostVersion()).getBytes(StandardCharsets.UTF_8));
+                    + request.hostVersion() + "|" + mappingKey).getBytes(StandardCharsets.UTF_8));
             Path cached = request.cacheDirectory().resolve(cacheKey + ".jar");
             if (!Files.exists(cached)) {
-                preparer.prepare(source, cached, metadata,
+                preparer.prepare(preparationInput, cached, metadata,
                         PreparationManifest.pinned(request.minecraftVersion(), request.hostVersion()));
             }
             Path output = request.outputDirectory().resolve(metadata.id() + "-" + safe(metadata.version())
@@ -109,10 +145,11 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             Files.copy(cached, output, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             outputs.add(output);
             prepared.add(new PreparedArtifact(metadata.id(), source.toString(), sourceHash,
-                    output.toString(), sha256(output), cacheKey));
+                    output.toString(), sha256(output), cacheKey, namespace.name().toLowerCase(
+                            java.util.Locale.ROOT)));
         }
         Path report = writeReport(request, plan, prepared);
-        writeLock(request, prepared);
+        writeLock(request, prepared, resolvedMinecraft, resolvedIntermediaryMappings);
         return new PreparationResult(outputs, report, plan.diagnostics());
     }
 
@@ -153,12 +190,47 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             diagnostics.add(unsupported("LB-NATIVE-001", metadata.id(), artifact,
                     "Native libraries require manual compatibility review: " + inventory.nativeLibraries()));
         }
-        if (!inventory.minecraftClasses().isEmpty()
-                && request.sourceNamespaceOverride().map(value -> !value.equals("official")).orElse(true)) {
+        SourceNamespace namespace = sourceNamespace(request, inventory, diagnostics, metadata.id(), artifact);
+        if (namespace == SourceNamespace.INTERMEDIARY) {
             required.add(BridgeCapability.REMAPPING);
-            diagnostics.add(unsupported("LB-REMAP-001", metadata.id(), artifact,
-                    "Minecraft bytecode references require the pending intermediary-to-official remapper"));
         }
+    }
+
+    private static SourceNamespace sourceNamespace(BridgeRequest request, ReferenceInventory inventory,
+            List<Diagnostic> diagnostics, String modId, Path artifact) {
+        if (request.sourceNamespaceOverride().isPresent()) {
+            String override = request.sourceNamespaceOverride().orElseThrow()
+                    .toLowerCase(java.util.Locale.ROOT);
+            if (override.equals("intermediary")) {
+                return SourceNamespace.INTERMEDIARY;
+            }
+            if (override.equals("official") || override.equals("named")) {
+                return SourceNamespace.NAMED;
+            }
+            if (diagnostics != null) {
+                diagnostics.add(unsupported("LB-REMAP-002", modId, artifact,
+                        "Unknown source namespace override: " + override));
+            }
+            return SourceNamespace.INVALID;
+        }
+        if (inventory.minecraftClasses().isEmpty()) {
+            return SourceNamespace.NEUTRAL;
+        }
+        long intermediaryCount = inventory.minecraftClasses().stream()
+                .map(name -> name.substring(name.lastIndexOf('.') + 1))
+                .filter(name -> name.matches("class_[0-9]+(?:\\$.*)?"))
+                .count();
+        if (intermediaryCount == inventory.minecraftClasses().size()) {
+            return SourceNamespace.INTERMEDIARY;
+        }
+        if (intermediaryCount == 0) {
+            return SourceNamespace.NAMED;
+        }
+        if (diagnostics != null) {
+            diagnostics.add(unsupported("LB-REMAP-003", modId, artifact,
+                    "Mixed intermediary and named Minecraft references require --source-namespace"));
+        }
+        return SourceNamespace.INVALID;
     }
 
     private static void validateTarget(BridgeRequest request, List<Diagnostic> diagnostics) {
@@ -218,20 +290,31 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         return report;
     }
 
-    private static void writeLock(BridgeRequest request, List<PreparedArtifact> prepared) throws IOException {
+    private static void writeLock(BridgeRequest request, List<PreparedArtifact> prepared,
+            ResolvedMinecraftArtifacts minecraft, Path intermediaryMappings) throws IOException {
         Path lock = request.outputDirectory().resolve("bridge.lock.json");
         LockData data = new LockData("1", request.minecraftVersion(), "forge", request.hostVersion(),
-                "fabric-to-forge", "0.1.0", prepared);
+                "fabric-to-forge", "0.1.0", minecraft,
+                intermediaryMappings == null ? null : sha256(intermediaryMappings), prepared);
         Files.writeString(lock, JSON.toJson(data), StandardCharsets.UTF_8);
     }
 
     private record PreparedArtifact(String modId, String source, String sourceSha256, String output,
-            String outputSha256, String cacheKey) {}
+            String outputSha256, String cacheKey, String sourceNamespace) {}
 
     private record CompatibilityReport(String formatVersion, AdapterDescriptor adapter,
             List<ModInspection> mods, List<BridgeCapability> requiredCapabilities,
             List<Diagnostic> diagnostics, List<PreparedArtifact> preparedArtifacts) {}
 
     private record LockData(String formatVersion, String minecraftVersion, String hostLoader,
-            String hostVersion, String adapter, String adapterVersion, List<PreparedArtifact> artifacts) {}
+            String hostVersion, String adapter, String adapterVersion,
+            ResolvedMinecraftArtifacts minecraftArtifacts, String intermediaryMappingsSha256,
+            List<PreparedArtifact> artifacts) {}
+
+    private enum SourceNamespace {
+        NEUTRAL,
+        INTERMEDIARY,
+        NAMED,
+        INVALID
+    }
 }
