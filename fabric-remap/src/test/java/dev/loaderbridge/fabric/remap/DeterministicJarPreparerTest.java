@@ -149,6 +149,39 @@ class DeterministicJarPreparerTest {
         }
     }
 
+    @Test
+    void createsSideScopedMixinWrapperWithoutChangingOriginalConfig() throws Exception {
+        Path source = temporaryDirectory.resolve("client-mixin-mod.jar");
+        String original = """
+                {"required":true,"package":"fixture.mixin","plugin":"fixture.Plugin",
+                 "mixins":["CommonMixin"],"client":["ExistingClientMixin"],
+                 "server":["ExistingServerMixin"]}
+                """;
+        writeJar(source, Map.of(
+                "fabric.mod.json", """
+                        {"schemaVersion":1,"id":"client_mixin","version":"1",
+                         "mixins":[{"config":"client.mixins.json","environment":"client"}]}
+                        """,
+                "client.mixins.json", original));
+        Path output = temporaryDirectory.resolve("client-mixin-output.jar");
+
+        new DeterministicJarPreparer().prepare(source, output,
+                new FabricModInspector().inspect(source).root(),
+                PreparationManifest.pinned("1.21.1", "52.1.0"));
+
+        try (JarFile jar = new JarFile(output.toFile())) {
+            assertThat(read(jar, "client.mixins.json")).isEqualTo(original);
+            String wrapper = jar.getManifest().getMainAttributes().getValue("MixinConfigs");
+            assertThat(wrapper).startsWith("META-INF/loaderbridge/mixins/").endsWith(".json");
+            var config = com.google.gson.JsonParser.parseString(read(jar, wrapper)).getAsJsonObject();
+            assertThat(config.has("mixins")).isFalse();
+            assertThat(config.has("server")).isFalse();
+            assertThat(config.getAsJsonArray("client")).extracting(element -> element.getAsString())
+                    .containsExactly("CommonMixin", "ExistingClientMixin");
+            assertThat(config.get("plugin").getAsString()).isEqualTo("fixture.Plugin");
+        }
+    }
+
     private static String read(JarFile jar, String name) throws IOException {
         try (var input = jar.getInputStream(jar.getJarEntry(name))) {
             return new String(input.readAllBytes(), StandardCharsets.UTF_8);

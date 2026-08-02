@@ -189,14 +189,6 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             Set<BridgeCapability> required, List<Diagnostic> diagnostics, BridgeRequest request) {
         if (!metadata.mixins().isEmpty()) {
             required.add(BridgeCapability.MIXINS);
-            var scoped = metadata.mixins().stream()
-                    .filter(mixin -> !mixin.environment().equals("*"))
-                    .map(mixin -> mixin.environment() + ":" + mixin.config())
-                    .toList();
-            if (!scoped.isEmpty()) {
-                diagnostics.add(unsupported("LB-MIXIN-ENV-001", metadata.id(), artifact,
-                        "Environment-scoped Mixin configs require side wrappers: " + scoped));
-            }
         }
         if (metadata.accessWidener().isPresent()) {
             required.add(BridgeCapability.ACCESS_WIDENERS);

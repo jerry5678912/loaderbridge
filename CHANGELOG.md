@@ -107,3 +107,9 @@ All notable user-facing changes will be recorded here.
 - Attached TinyRemapper's Mixin extension to intermediary transformations and
   golden-tested remapping of hard Mixin targets plus string injection selectors
   into descriptor-qualified official runtime names.
+- Replaced the temporary environment-scoped Mixin gate with deterministic
+  generated client/server wrapper configs that preserve original resources and
+  retain plugin/refmap fields.
+- Proved side selection in real Forge runs: a server-scoped Fabric mixin applied
+  in both dedicated-server launches and remained absent from the graphical
+  client while its save/reload lifecycle still passed.

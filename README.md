@@ -38,6 +38,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   Minecraft server class on dedicated and integrated servers.
 - Intermediary Mixin target and injection-selector remapping through
   TinyRemapper's Mixin extension, including descriptor-qualified selectors.
+- Deterministic generated wrappers for Fabric `client` and `server` scoped
+  Mixin configs; original configs remain untouched while common declarations
+  are exposed only on the declared Mixin side.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -56,8 +59,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 
 ## Intentionally gated
 
-The adapter currently rejects environment-scoped Mixin configurations, access
-wideners, Fabric API, unknown custom language adapters, Loader API calls outside
+The adapter currently rejects access wideners, Fabric API, unknown custom
+language adapters, Loader API calls outside
 the current shim, or native-library review. Mixin JSON refmap remapping, config
 plugins, MixinExtras, patch packs, broad semantic graphical assertions,
 and real-mod probes are not yet implemented.

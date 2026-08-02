@@ -5,7 +5,10 @@
   "name": "LoaderBridge Main Fixture",
   "environment": "*",
   "mixins": [
-    "loaderbridge.fixture.mixins.json"
+    {
+      "config": "loaderbridge.fixture.mixins.json",
+      "environment": "server"
+    }
   ],
   "entrypoints": {
     "preLaunch": [

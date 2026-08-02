@@ -1,7 +1,10 @@
 package dev.loaderbridge.fabric.remap;
 
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import dev.loaderbridge.fabric.metadata.FabricModMetadata;
 import dev.loaderbridge.fabric.metadata.UnsafeJarException;
 import java.io.ByteArrayInputStream;
@@ -15,6 +18,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -71,8 +75,9 @@ public final class DeterministicJarPreparer {
                 JarOutputStream output = new JarOutputStream(Files.newOutputStream(destination))) {
             Set<String> names = new HashSet<>();
             boolean augmentManifest = !metadata.mixins().isEmpty();
+            MixinPackaging mixins = prepareMixins(input, metadata);
             if (augmentManifest) {
-                put(output, "META-INF/MANIFEST.MF", mixinManifest(input, metadata));
+                put(output, "META-INF/MANIFEST.MF", mixinManifest(input, mixins.configs()));
                 names.add("META-INF/MANIFEST.MF");
             }
             List<JarEntry> entries = input.stream()
@@ -99,6 +104,9 @@ public final class DeterministicJarPreparer {
                 try (InputStream bytes = Files.newInputStream(runtimeMappings)) {
                     put(output, "META-INF/loaderbridge/mappings.tiny", readBounded(bytes));
                 }
+            }
+            for (Map.Entry<String, byte[]> generated : mixins.generatedResources().entrySet()) {
+                put(output, generated.getKey(), generated.getValue());
             }
             put(output, "META-INF/loaderbridge.json", bridgeMetadata(metadata, manifest));
             put(output, "META-INF/mods.toml", forgeMetadata(metadata));
@@ -154,7 +162,77 @@ public final class DeterministicJarPreparer {
                 .toJson(root).getBytes(StandardCharsets.UTF_8);
     }
 
-    private static byte[] mixinManifest(JarFile input, FabricModMetadata metadata)
+    private static MixinPackaging prepareMixins(JarFile input, FabricModMetadata metadata)
+            throws IOException {
+        List<String> configs = new ArrayList<>();
+        Map<String, byte[]> generated = new java.util.TreeMap<>();
+        for (var mixin : metadata.mixins()) {
+            validateMixinConfig(mixin.config());
+            JsonObject config = readMixinConfig(input, mixin.config());
+            if (mixin.environment().equals("*")) {
+                configs.add(mixin.config());
+                continue;
+            }
+            if (!mixin.environment().equals("client") && !mixin.environment().equals("server")) {
+                throw new UnsafeJarException("Unsupported Mixin environment: "
+                        + mixin.environment());
+            }
+            JsonArray sideMixins = new JsonArray();
+            appendMixinNames(config.get("mixins"), sideMixins, mixin.config());
+            appendMixinNames(config.get(mixin.environment()), sideMixins, mixin.config());
+            config.remove("mixins");
+            config.remove("client");
+            config.remove("server");
+            config.add(mixin.environment(), sideMixins);
+            String generatedName = "META-INF/loaderbridge/mixins/"
+                    + sha256(mixin.environment() + "\u0000" + mixin.config()) + ".json";
+            generated.put(generatedName,
+                    new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
+                            .toJson(config).getBytes(StandardCharsets.UTF_8));
+            configs.add(generatedName);
+        }
+        return new MixinPackaging(configs.stream().distinct().sorted().toList(),
+                java.util.Collections.unmodifiableMap(new LinkedHashMap<>(generated)));
+    }
+
+    private static JsonObject readMixinConfig(JarFile input, String name) throws IOException {
+        JarEntry entry = input.getJarEntry(name);
+        if (entry == null || entry.isDirectory()) {
+            throw new UnsafeJarException("LB-MIXIN-002: missing Mixin config resource: " + name);
+        }
+        byte[] bytes;
+        try (InputStream inputStream = input.getInputStream(entry)) {
+            bytes = readBounded(inputStream);
+        }
+        try {
+            JsonElement parsed = JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8));
+            if (!parsed.isJsonObject()) {
+                throw new UnsafeJarException("LB-MIXIN-003: Mixin config must be an object: " + name);
+            }
+            return parsed.getAsJsonObject().deepCopy();
+        } catch (com.google.gson.JsonParseException exception) {
+            UnsafeJarException failure = new UnsafeJarException(
+                    "LB-MIXIN-003: malformed Mixin config: " + name);
+            failure.initCause(exception);
+            throw failure;
+        }
+    }
+
+    private static void appendMixinNames(JsonElement value, JsonArray destination, String config)
+            throws UnsafeJarException {
+        if (value == null) return;
+        if (!value.isJsonArray()) {
+            throw new UnsafeJarException("LB-MIXIN-003: Mixin list must be an array: " + config);
+        }
+        for (JsonElement element : value.getAsJsonArray()) {
+            if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+                throw new UnsafeJarException("LB-MIXIN-003: Mixin name must be a string: " + config);
+            }
+            destination.add(element.getAsString());
+        }
+    }
+
+    private static byte[] mixinManifest(JarFile input, List<String> configs)
             throws IOException {
         Manifest manifest = new Manifest();
         JarEntry existing = input.getJarEntry("META-INF/MANIFEST.MF");
@@ -166,9 +244,6 @@ public final class DeterministicJarPreparer {
         if (manifest.getMainAttributes().getValue("Manifest-Version") == null) {
             manifest.getMainAttributes().putValue("Manifest-Version", "1.0");
         }
-        var configs = metadata.mixins().stream()
-                .map(mixin -> mixin.config()).distinct().sorted().toList();
-        for (String config : configs) validateMixinConfig(config);
         manifest.getMainAttributes().putValue("MixinConfigs", String.join(",", configs));
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         manifest.write(output);
@@ -222,6 +297,15 @@ public final class DeterministicJarPreparer {
         }
     }
 
+    private static String sha256(String value) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is required by Java", exception);
+        }
+    }
+
     private static String toml(String value) {
         return value.replace("\\", "\\\\").replace("\"", "\\\"")
                 .replace("\n", "\\n").replace("\r", "\\r");
@@ -252,7 +336,8 @@ public final class DeterministicJarPreparer {
 
     private static boolean isGeneratedEntry(String name) {
         return name.equals("META-INF/mods.toml") || name.equals("META-INF/loaderbridge.json")
-                || name.equals("META-INF/loaderbridge/mappings.tiny");
+                || name.equals("META-INF/loaderbridge/mappings.tiny")
+                || name.startsWith("META-INF/loaderbridge/mixins/");
     }
 
     private static boolean isInvalidatedSignature(String name) {
@@ -273,4 +358,6 @@ public final class DeterministicJarPreparer {
             throw new UnsafeJarException("Unsafe JAR entry: " + name);
         }
     }
+
+    private record MixinPackaging(List<String> configs, Map<String, byte[]> generatedResources) {}
 }
