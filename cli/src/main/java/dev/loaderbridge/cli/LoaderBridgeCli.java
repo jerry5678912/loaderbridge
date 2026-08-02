@@ -359,10 +359,6 @@ public final class LoaderBridgeCli implements Runnable {
             }
             try {
                 var scenario = new ScenarioYamlParser().parse(scenarioFile);
-                if (scenario.side() != BridgeEnvironment.SERVER) {
-                    System.err.println("LB-SCENARIO-CLIENT-001: client scenario execution is not implemented");
-                    return LAUNCH_FAILURE;
-                }
                 Files.createDirectories(artifacts);
                 if (!Files.isDirectory(artifacts)) {
                     System.err.println("Artifacts path is not a directory: " + artifacts);
@@ -372,7 +368,7 @@ public final class LoaderBridgeCli implements Runnable {
                 List<ScenarioPlugin> plugins = ServiceLoader.load(ScenarioPlugin.class).stream()
                         .map(ServiceLoader.Provider::get).toList();
                 ScenarioRunResult result;
-                try (var session = new ForgeProcessScenarioSession(instance, artifacts)) {
+                try (var session = new ForgeProcessScenarioSession(instance, artifacts, scenario.side())) {
                     result = new ScenarioRunner(plugins).run(scenario, context, session);
                 }
                 String encoded = JSON.toJson(report(result));

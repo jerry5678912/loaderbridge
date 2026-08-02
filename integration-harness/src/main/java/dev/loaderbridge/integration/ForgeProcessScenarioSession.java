@@ -1,5 +1,6 @@
 package dev.loaderbridge.integration;
 
+import dev.loaderbridge.api.BridgeEnvironment;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -35,7 +36,12 @@ public final class ForgeProcessScenarioSession implements ScenarioSession {
     private int launchNumber;
 
     public ForgeProcessScenarioSession(Path instance, Path artifactDirectory) {
-        this(instance, artifactDirectory, ForgeProcessScenarioSession::forgeLaunchCommand);
+        this(instance, artifactDirectory, BridgeEnvironment.SERVER);
+    }
+
+    public ForgeProcessScenarioSession(Path instance, Path artifactDirectory, BridgeEnvironment side) {
+        this(instance, artifactDirectory, path -> forgeLaunchCommand(path,
+                Objects.requireNonNull(side, "side")));
     }
 
     ForgeProcessScenarioSession(Path instance, Path artifactDirectory, CommandFactory commandFactory) {
@@ -236,14 +242,23 @@ public final class ForgeProcessScenarioSession implements ScenarioSession {
         }
     }
 
-    private static List<String> forgeLaunchCommand(Path instance) throws IOException {
+    private static List<String> forgeLaunchCommand(Path instance, BridgeEnvironment side) throws IOException {
         boolean windows = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
-        Path script = instance.resolve(windows ? "run.bat" : "run.sh");
+        String scriptName = switch (side) {
+            case SERVER -> windows ? "run.bat" : "run.sh";
+            case CLIENT -> windows ? "run-client.bat" : "run-client.sh";
+        };
+        Path script = instance.resolve(scriptName);
         if (!Files.isRegularFile(script, LinkOption.NOFOLLOW_LINKS)) {
             throw new IOException("Missing Forge launch script: " + script);
         }
-        return windows ? List.of("cmd.exe", "/c", script.toString(), "nogui")
-                : List.of("sh", script.toString(), "nogui");
+        if (windows) {
+            return side == BridgeEnvironment.SERVER
+                    ? List.of("cmd.exe", "/c", script.toString(), "nogui")
+                    : List.of("cmd.exe", "/c", script.toString());
+        }
+        return side == BridgeEnvironment.SERVER ? List.of("sh", script.toString(), "nogui")
+                : List.of("sh", script.toString());
     }
 
     private static void prependCurrentJava(ProcessBuilder builder) {

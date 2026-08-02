@@ -43,3 +43,5 @@ All notable user-facing changes will be recorded here.
   server lifecycle/save/reload scenario.
 - Added checksum-pinned disposable Forge server installation with empty-target
   protection, bounded execution, transcripts, and stable failure codes.
+- Added client scenario execution through fixed `run-client.sh`/`run-client.bat`
+  launchers without allowing scenario documents to supply process commands.

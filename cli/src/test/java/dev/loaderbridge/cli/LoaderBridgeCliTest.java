@@ -119,6 +119,40 @@ class LoaderBridgeCliTest {
                 .contains("\"succeeded\": true", "LB-SCENARIO-STEP-PASS");
     }
 
+    @Test
+    void runsClientScenariosThroughTheFixedClientLauncher() throws Exception {
+        Path instance = Files.createDirectories(temporaryDirectory.resolve("client-instance"));
+        writeClientLaunchScript(instance);
+        Path scenario = temporaryDirectory.resolve("client-scenario.yaml");
+        Files.writeString(scenario, """
+                schemaVersion: 1
+                id: fixture_client_cycle
+                description: Exercises client title readiness and clean shutdown.
+                side: client
+                mods: [fixture]
+                steps:
+                  - id: start
+                    action: start_instance
+                    timeout: PT5S
+                  - id: title
+                    action: wait_for_log
+                    timeout: PT5S
+                    parameters:
+                      contains: CLIENT_TITLE_READY
+                  - id: stop
+                    action: shutdown
+                    timeout: PT5S
+                    parameters:
+                      marker: CLIENT_STOPPED
+                """, StandardCharsets.UTF_8);
+
+        int exitCode = new CommandLine(new LoaderBridgeCli()).execute("test",
+                "--scenario", scenario.toString(), "--instance", instance.toString(),
+                "--artifacts", temporaryDirectory.resolve("client-artifacts").toString());
+
+        assertThat(exitCode).isZero();
+    }
+
     private static void writeScenarioLaunchScript(Path instance) throws Exception {
         boolean windows = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
         Path script = instance.resolve(windows ? "run.bat" : "run.sh");
@@ -130,6 +164,16 @@ class LoaderBridgeCliTest {
                         + "  if [ \"$command\" = 'save-all flush' ]; then printf '%s\\n' WORLD_SAVED; fi\n"
                         + "  if [ \"$command\" = stop ]; then printf '%s\\n' CLEAN_STOP; exit 0; fi\n"
                         + "done\n";
+        Files.writeString(script, contents, StandardCharsets.UTF_8);
+    }
+
+    private static void writeClientLaunchScript(Path instance) throws Exception {
+        boolean windows = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+        Path script = instance.resolve(windows ? "run-client.bat" : "run-client.sh");
+        String contents = windows
+                ? "@echo off\r\necho CLIENT_TITLE_READY\r\nset /p command=\r\necho CLIENT_STOPPED\r\n"
+                : "#!/usr/bin/env sh\nprintf '%s\\n' CLIENT_TITLE_READY\nread command\n"
+                        + "printf '%s\\n' CLIENT_STOPPED\n";
         Files.writeString(script, contents, StandardCharsets.UTF_8);
     }
 }

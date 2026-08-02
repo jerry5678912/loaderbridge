@@ -3,11 +3,13 @@ package dev.loaderbridge.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import dev.loaderbridge.api.BridgeEnvironment;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -60,6 +62,26 @@ class ForgeProcessScenarioSessionTest {
         try (var session = new ForgeProcessScenarioSession(instance, temporaryDirectory.resolve("artifacts"),
                 ignored -> fixtureCommand())) {
             assertThat(session.artifacts()).containsExactly(latestLog, crashReport);
+        }
+    }
+
+    @Test
+    void launchesTheFixedClientScriptForClientScenarios() throws Exception {
+        Path instance = Files.createDirectories(temporaryDirectory.resolve("client-instance"));
+        boolean windows = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+        Path script = instance.resolve(windows ? "run-client.bat" : "run-client.sh");
+        String contents = windows
+                ? "@echo off\r\necho CLIENT_TITLE_READY\r\nset /p command=\r\necho CLIENT_STOPPED\r\n"
+                : "#!/usr/bin/env sh\nprintf '%s\\n' CLIENT_TITLE_READY\nread command\n"
+                        + "printf '%s\\n' CLIENT_STOPPED\n";
+        Files.writeString(script, contents, StandardCharsets.UTF_8);
+
+        try (var session = new ForgeProcessScenarioSession(instance,
+                temporaryDirectory.resolve("client-artifacts"), BridgeEnvironment.CLIENT)) {
+            session.start(Duration.ofSeconds(5));
+
+            assertThat(session.awaitLog("CLIENT_TITLE_READY", Duration.ofSeconds(5))).isTrue();
+            assertThat(session.shutdown("CLIENT_STOPPED", Duration.ofSeconds(5))).isTrue();
         }
     }
 

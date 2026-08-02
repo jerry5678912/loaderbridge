@@ -28,8 +28,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - Native execution of ordinary Fabric `main` and dedicated `server`
   entrypoints on Forge, with `client` dispatch wired to Forge's client setup
   phase.
-- A server verification harness that launches Forge, waits for ready, requests
-  shutdown, and requires a clean world-save marker.
+- Side-aware scenario sessions using fixed server/client launch scripts, with
+  bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
   ranked search, release/dependency resolution, checksums, and verified caches.
 - Deterministic catalog snapshots with platform quotas, cross-site hash/source
@@ -44,7 +44,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 The adapter currently rejects mods that require mixins, access wideners, Fabric
 API, custom language adapters, recursively loaded nested JARs, Loader API calls
 outside the current shim, or native-library review. Member-style entrypoints,
-patch packs, client verification, and real-mod probes are not yet implemented.
+patch packs, real graphical client assertions, and real-mod probes are not yet
+implemented.
 These gaps produce stable diagnostics instead of a JAR that is falsely labeled
 compatible.
 
