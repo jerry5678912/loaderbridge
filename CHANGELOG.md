@@ -25,3 +25,5 @@ All notable user-facing changes will be recorded here.
   paginated file resolution, dependency mapping, and verified CDN downloads.
 - Added deterministic catalog freezing with platform-local ranking, latest-release
   selection, hash/source deduplication, top-up enforcement, and canonical JSON.
+- Added paginated multi-provider catalog collection and the credential-aware
+  `catalog freeze` CLI command.

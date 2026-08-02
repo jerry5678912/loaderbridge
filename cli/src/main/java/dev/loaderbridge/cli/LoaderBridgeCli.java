@@ -8,6 +8,9 @@ import dev.loaderbridge.api.BridgeRequest;
 import dev.loaderbridge.api.Diagnostic;
 import dev.loaderbridge.api.DiagnosticSeverity;
 import dev.loaderbridge.api.LoaderId;
+import dev.loaderbridge.api.repository.RepositoryProvider;
+import dev.loaderbridge.catalog.CatalogCollector;
+import dev.loaderbridge.catalog.CatalogSnapshotCodec;
 import dev.loaderbridge.integration.ForgeServerVerifier;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -28,7 +31,7 @@ import picocli.CommandLine.Parameters;
 @Command(name = "loaderbridge", mixinStandardHelpOptions = true,
         description = "Experimental Fabric-to-Forge compatibility scaffold.",
         subcommands = {LoaderBridgeCli.Inspect.class, LoaderBridgeCli.Prepare.class,
-                LoaderBridgeCli.Verify.class})
+                LoaderBridgeCli.Verify.class, LoaderBridgeCli.Catalog.class})
 public final class LoaderBridgeCli implements Runnable {
     static final int INVALID_INPUT = 2;
     static final int UNSUPPORTED = 3;
@@ -201,6 +204,65 @@ public final class LoaderBridgeCli implements Runnable {
             } catch (IOException exception) {
                 System.err.println("LB-VERIFY-002: " + exception.getMessage());
                 return LAUNCH_FAILURE;
+            }
+        }
+    }
+
+    @Command(name = "catalog", description = "Manage measured compatibility catalogs.",
+            subcommands = Catalog.Freeze.class)
+    static final class Catalog implements Runnable {
+        @Override
+        public void run() {
+            CommandLine.usage(this, System.out);
+        }
+
+        @Command(name = "freeze", description = "Resolve and freeze a deterministic catalog snapshot.")
+        static final class Freeze implements Callable<Integer> {
+            @Option(names = "--snapshot-id", required = true)
+            String snapshotId;
+
+            @Option(names = "--frozen-at", required = true,
+                    description = "Immutable input timestamp in ISO-8601 form.")
+            String frozenAt;
+
+            @Option(names = "--output", required = true)
+            Path output;
+
+            @Option(names = "--target", defaultValue = "1000")
+            int target;
+
+            @Option(names = "--per-repository", defaultValue = "500")
+            int perRepository;
+
+            @Override
+            public Integer call() {
+                if (target < 1 || perRepository < 1 || perRepository > target) {
+                    System.err.println("Catalog target and per-repository quota are invalid");
+                    return INVALID_INPUT;
+                }
+                java.time.Instant timestamp;
+                try {
+                    timestamp = java.time.Instant.parse(frozenAt);
+                } catch (java.time.format.DateTimeParseException exception) {
+                    System.err.println("Invalid --frozen-at timestamp: " + frozenAt);
+                    return INVALID_INPUT;
+                }
+                List<RepositoryProvider> providers = ServiceLoader.load(RepositoryProvider.class).stream()
+                        .map(ServiceLoader.Provider::get).toList();
+                if (providers.isEmpty()) {
+                    System.err.println("No repository providers are installed");
+                    return UNSUPPORTED;
+                }
+                try {
+                    var snapshot = new CatalogCollector(providers).collectAndFreeze(target,
+                            perRepository, snapshotId, timestamp);
+                    new CatalogSnapshotCodec().write(snapshot, output);
+                    System.out.println("Frozen " + snapshot.entries().size() + " projects to " + output);
+                    return 0;
+                } catch (IOException exception) {
+                    System.err.println("Catalog freeze failed: " + exception.getMessage());
+                    return UNSUPPORTED;
+                }
             }
         }
     }

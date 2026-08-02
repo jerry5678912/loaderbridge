@@ -12,6 +12,14 @@ import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
 
 class LoaderBridgeCliTest {
+
+    @Test
+    void rejectsInvalidCatalogFreezeInputsBeforeRepositoryAccess() {
+        int exitCode = new CommandLine(new LoaderBridgeCli()).execute("catalog", "freeze",
+                "--snapshot-id", "2026-08", "--frozen-at", "not-a-time", "--output", "snapshot.json");
+
+        assertThat(exitCode).isEqualTo(LoaderBridgeCli.INVALID_INPUT);
+    }
     @TempDir
     Path temporaryDirectory;
 

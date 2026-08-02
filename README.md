@@ -30,6 +30,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   phase.
 - A server verification harness that launches Forge, waits for ready, requests
   shutdown, and requires a clean world-save marker.
+- ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
+  ranked search, release/dependency resolution, checksums, and verified caches.
+- Deterministic catalog snapshots with platform quotas, cross-site hash/source
+  deduplication, top-up enforcement, and canonical JSON serialization.
 
 ## Intentionally gated
 
@@ -66,7 +70,16 @@ cli/build/install/cli/bin/cli verify \
   --timeout-seconds 120 \
   --expect-marker LOADERBRIDGE_FIXTURE_MAIN_READY \
   --expect-marker LOADERBRIDGE_FIXTURE_SERVER_READY
+
+CURSEFORGE_API_KEY=... cli/build/install/cli/bin/cli catalog freeze \
+  --snapshot-id 2026-08 \
+  --frozen-at 2026-08-01T00:00:00Z \
+  --output catalog-2026-08.json
 ```
+
+`catalog freeze` queries both official repositories. The CurseForge key is read
+only from the process environment, is sent only to CurseForge API metadata
+endpoints, and is never written to snapshots or sent to artifact CDNs.
 
 For verification, install the generated mod JAR, `forge-runtime`,
 `forge-transform-service`, and `fabric-loader-shim` in the Forge instance's
