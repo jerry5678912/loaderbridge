@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -20,9 +21,15 @@ public final class ForgeServerVerifier {
     private static final Object END_OF_OUTPUT = new Object();
 
     public VerificationResult verify(Path instance, Duration timeout, Consumer<String> output) throws IOException {
+        return verify(instance, timeout, output, List.of());
+    }
+
+    public VerificationResult verify(Path instance, Duration timeout, Consumer<String> output,
+            List<String> expectedMarkers) throws IOException {
         Objects.requireNonNull(instance, "instance");
         Objects.requireNonNull(timeout, "timeout");
         Objects.requireNonNull(output, "output");
+        Objects.requireNonNull(expectedMarkers, "expectedMarkers");
         if (timeout.isZero() || timeout.isNegative()) {
             throw new IllegalArgumentException("timeout must be positive");
         }
@@ -37,6 +44,7 @@ public final class ForgeServerVerifier {
         boolean reachedReady = false;
         boolean savedWorld = false;
         boolean stopSent = false;
+        var missingMarkers = new LinkedHashSet<>(expectedMarkers);
         long deadline = System.nanoTime() + timeout.toNanos();
         try (PrintWriter input = new PrintWriter(process.outputWriter(StandardCharsets.UTF_8), true)) {
             while (System.nanoTime() < deadline) {
@@ -47,6 +55,7 @@ public final class ForgeServerVerifier {
                 }
                 String line = (String) event;
                 output.accept(line);
+                missingMarkers.removeIf(line::contains);
                 if (line.contains("Done (") && line.contains("For help")) {
                     reachedReady = true;
                     if (!stopSent) {
@@ -83,6 +92,10 @@ public final class ForgeServerVerifier {
         if (!savedWorld || exitCode != 0) {
             return VerificationResult.failure(true, savedWorld, exitCode, "LB-VERIFY-006",
                     "Forge reached ready state but did not stop and save cleanly");
+        }
+        if (!missingMarkers.isEmpty()) {
+            return VerificationResult.failure(true, true, exitCode, "LB-VERIFY-008",
+                    "Forge stopped cleanly but expected markers were missing: " + missingMarkers);
         }
         return VerificationResult.success();
     }

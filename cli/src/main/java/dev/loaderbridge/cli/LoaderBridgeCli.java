@@ -172,6 +172,9 @@ public final class LoaderBridgeCli implements Runnable {
         @Option(names = "--timeout-seconds", defaultValue = "120")
         long timeoutSeconds;
 
+        @Option(names = "--expect-marker", description = "Require an output marker (repeatable).")
+        List<String> expectedMarkers = new ArrayList<>();
+
         @Override
         public Integer call() {
             if (!Files.isDirectory(instance)) {
@@ -188,7 +191,7 @@ public final class LoaderBridgeCli implements Runnable {
             }
             try {
                 var result = new ForgeServerVerifier().verify(instance, Duration.ofSeconds(timeoutSeconds),
-                        System.out::println);
+                        System.out::println, expectedMarkers);
                 if (result.succeeded()) {
                     System.out.println(result.diagnosticCode() + ": " + result.message());
                     return 0;

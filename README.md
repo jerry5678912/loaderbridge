@@ -25,7 +25,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - A ServiceLoader-discovered `BridgeAdapter`, a Forge language provider, a
   separate early transformation service, custom Forge mod container, and a
   small independently implemented Fabric Loader API shim.
-- Native execution of ordinary Fabric `main` entrypoints on Forge.
+- Native execution of ordinary Fabric `main` and dedicated `server`
+  entrypoints on Forge, with `client` dispatch wired to Forge's client setup
+  phase.
 - A server verification harness that launches Forge, waits for ready, requests
   shutdown, and requires a clean world-save marker.
 
@@ -33,15 +35,16 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 
 The adapter currently rejects mods that require mixins, access wideners, Fabric
 API, custom language adapters, recursively loaded nested JARs, Loader API calls
-outside the current shim, or native-library review. Client/server lifecycle
-entrypoints, patch packs, client verification, and real-mod probes are not yet
-implemented. These gaps produce stable diagnostics instead of a JAR that is
-falsely labeled compatible.
+outside the current shim, or native-library review. Member-style entrypoints,
+patch packs, client verification, and real-mod probes are not yet implemented.
+These gaps produce stable diagnostics instead of a JAR that is falsely labeled
+compatible.
 
 The current controlled server fixture has passed on Minecraft 1.21.1 with Forge
-52.1.0: Fabric `main` ran, Forge reached ready, the existing world reloaded, and
-all dimensions saved during a clean shutdown. This is a scaffold milestone,
-not evidence that arbitrary Fabric mods are compatible.
+52.1.0: Fabric `main` ran, Fabric `server` ran during sided setup, Forge reached
+ready, the existing world reloaded, and all dimensions saved during a clean
+shutdown. This is a scaffold milestone, not evidence that arbitrary Fabric mods
+are compatible.
 
 ## Build and use
 
@@ -60,7 +63,9 @@ cli/build/install/cli/bin/cli prepare \
 cli/build/install/cli/bin/cli verify \
   --instance path/to/installed-forge-server \
   --side server \
-  --timeout-seconds 120
+  --timeout-seconds 120 \
+  --expect-marker LOADERBRIDGE_FIXTURE_MAIN_READY \
+  --expect-marker LOADERBRIDGE_FIXTURE_SERVER_READY
 ```
 
 For verification, install the generated mod JAR, `forge-runtime`,

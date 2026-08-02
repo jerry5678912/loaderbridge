@@ -21,7 +21,8 @@ class ForgeServerVerifierTest {
         writeLaunchScript(true);
         List<String> output = new ArrayList<>();
 
-        VerificationResult result = new ForgeServerVerifier().verify(instance, Duration.ofSeconds(5), output::add);
+        VerificationResult result = new ForgeServerVerifier().verify(instance, Duration.ofSeconds(5), output::add,
+                List.of("LOADERBRIDGE_FIXTURE_MAIN_READY"));
 
         assertThat(result.succeeded()).isTrue();
         assertThat(output).anyMatch(line -> line.contains("LOADERBRIDGE_FIXTURE_MAIN_READY"));
@@ -35,6 +36,17 @@ class ForgeServerVerifierTest {
 
         assertThat(result.succeeded()).isFalse();
         assertThat(result.diagnosticCode()).isEqualTo("LB-VERIFY-005");
+    }
+
+    @Test
+    void rejectsCleanForgeRunMissingRequiredBridgeMarker() throws Exception {
+        writeLaunchScript(true);
+
+        VerificationResult result = new ForgeServerVerifier().verify(instance, Duration.ofSeconds(5), ignored -> { },
+                List.of("LOADERBRIDGE_FIXTURE_SERVER_READY"));
+
+        assertThat(result.succeeded()).isFalse();
+        assertThat(result.diagnosticCode()).isEqualTo("LB-VERIFY-008");
     }
 
     private void writeLaunchScript(boolean ready) throws Exception {

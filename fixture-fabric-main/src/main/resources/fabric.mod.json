@@ -7,6 +7,9 @@
   "entrypoints": {
     "main": [
       "dev.loaderbridge.fixture.MainFixture"
+    ],
+    "server": [
+      "dev.loaderbridge.fixture.ServerFixture"
     ]
   },
   "depends": {
