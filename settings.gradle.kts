@@ -18,6 +18,7 @@ rootProject.name = "loaderbridge"
 include(
     "bridge-api",
     "repository-modrinth",
+    "repository-curseforge",
     "fabric-metadata",
     "fabric-remap",
     "fabric-loader-shim",

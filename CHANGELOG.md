@@ -21,3 +21,5 @@ All notable user-facing changes will be recorded here.
   hashing, and pagination contracts for compatibility catalog providers.
 - Added a ServiceLoader-discovered Modrinth v2 provider with ranked Fabric
   search, version/dependency parsing, and checksum-addressed downloads.
+- Added an authenticated CurseForge provider with Fabric 1.21.1 discovery,
+  paginated file resolution, dependency mapping, and verified CDN downloads.
