@@ -119,4 +119,31 @@ class BridgeFabricLoaderTest {
         assertThat(container.getMetadata().getDepends().iterator().next().matches(Version.parse("1.21.1")))
                 .isTrue();
     }
+
+    @Test
+    void resolvesNestedContainmentRegardlessOfRegistrationOrder() throws Exception {
+        BridgeFabricLoader loader = BridgeFabricLoader.getInstance();
+        loader.resetForTests();
+        FabricMetadataParser parser = new FabricMetadataParser();
+        var childMetadata = parser.parse("""
+                {"schemaVersion":1,"id":"child","version":"1"}
+                """.getBytes(StandardCharsets.UTF_8));
+        var parentMetadata = parser.parse("""
+                {"schemaVersion":1,"id":"parent","version":"1"}
+                """.getBytes(StandardCharsets.UTF_8));
+        BridgeModContainer child = BridgeModContainer.create(
+                childMetadata, Path.of("child"), "parent", "META-INF/jars/child.jar");
+        BridgeModContainer parent = BridgeModContainer.create(parentMetadata, Path.of("parent"));
+
+        loader.registerMod(child);
+        assertThat(child.getContainingMod()).isEmpty();
+        loader.registerMod(parent);
+
+        assertThat(child.getContainingMod()).contains(parent);
+        assertThat(parent.getContainedMods()).containsExactly(child);
+        assertThat(child.getOrigin().getKind())
+                .isEqualTo(net.fabricmc.loader.api.metadata.ModOrigin.Kind.NESTED);
+        assertThat(child.getOrigin().getParentModId()).isEqualTo("parent");
+        assertThat(child.getOrigin().getParentSubLocation()).isEqualTo("META-INF/jars/child.jar");
+    }
 }

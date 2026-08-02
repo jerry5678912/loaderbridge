@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.ServiceLoader;
 import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -110,6 +111,17 @@ class FabricToForgeAdapterTest {
                 .containsExactlyInAnyOrder(
                         "nested_parent-1.0.0-loaderbridge.jar",
                         "nested_child-1.0.0-loaderbridge.jar");
+        Path childOutput = result.artifacts().stream()
+                .filter(path -> path.getFileName().toString().startsWith("nested_child-"))
+                .findFirst().orElseThrow();
+        try (JarFile jar = new JarFile(childOutput.toFile())) {
+            String bridgeMetadata = new String(
+                    jar.getInputStream(jar.getJarEntry("META-INF/loaderbridge.json")).readAllBytes(),
+                    StandardCharsets.UTF_8);
+            assertThat(bridgeMetadata).contains(
+                    "\"parentModId\": \"nested_parent\"",
+                    "\"parentSubLocation\": \"META-INF/jars/child.jar\"");
+        }
     }
 
     private static byte[] jarBytes(String metadata) throws Exception {

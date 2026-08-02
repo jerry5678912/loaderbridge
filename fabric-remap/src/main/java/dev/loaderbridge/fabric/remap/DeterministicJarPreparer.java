@@ -87,6 +87,10 @@ public final class DeterministicJarPreparer {
         root.addProperty("targetNamespace", manifest.targetNamespace());
         root.addProperty("modId", metadata.id());
         root.addProperty("modVersion", metadata.version());
+        if (manifest.parentModId() != null) {
+            root.addProperty("parentModId", manifest.parentModId());
+            root.addProperty("parentSubLocation", manifest.parentSubLocation());
+        }
         return new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
                 .toJson(root).getBytes(StandardCharsets.UTF_8);
     }

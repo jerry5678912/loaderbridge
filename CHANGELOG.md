@@ -71,3 +71,6 @@ All notable user-facing changes will be recorded here.
 - Added bounded recursive nested-JAR materialization, transformation, output,
   provenance reporting, and content-hash deduplication; Kotlin and Loader API
   requirements no longer trigger obsolete blanket preparation gates.
+- Preserved nested parent ID and sub-location in transformed manifests and
+  exposed order-independent containing/contained mod relationships with
+  Fabric-compatible nested origin behavior at runtime.

@@ -17,9 +17,16 @@ import net.fabricmc.loader.api.metadata.ModOrigin;
 import net.fabricmc.loader.api.metadata.version.VersionInterval;
 import net.fabricmc.loader.api.metadata.version.VersionPredicate;
 
-public record BridgeModContainer(ModMetadata metadata, List<Path> rootPaths) implements ModContainer {
+public record BridgeModContainer(
+        ModMetadata metadata,
+        List<Path> rootPaths,
+        String parentModId,
+        String parentSubLocation) implements ModContainer {
     public BridgeModContainer {
         rootPaths = List.copyOf(rootPaths);
+        if ((parentModId == null) != (parentSubLocation == null)) {
+            throw new IllegalArgumentException("Nested origin requires both parent mod ID and sub-location");
+        }
     }
 
     public static BridgeModContainer create(String id, String version, String name,
@@ -27,10 +34,15 @@ public record BridgeModContainer(ModMetadata metadata, List<Path> rootPaths) imp
         Version parsedVersion = new SimpleVersion(version);
         ModMetadata metadata = new SimpleMetadata(
                 id, aliases, parsedVersion, name, ModEnvironment.UNIVERSAL, List.of());
-        return new BridgeModContainer(metadata, List.of(root));
+        return new BridgeModContainer(metadata, List.of(root), null, null);
     }
 
     public static BridgeModContainer create(FabricModMetadata source, Path root) {
+        return create(source, root, null, null);
+    }
+
+    public static BridgeModContainer create(FabricModMetadata source, Path root,
+            String parentModId, String parentSubLocation) {
         ModMetadata metadata = new SimpleMetadata(
                 source.id(),
                 source.provides(),
@@ -38,7 +50,7 @@ public record BridgeModContainer(ModMetadata metadata, List<Path> rootPaths) imp
                 source.name(),
                 parseEnvironment(source.environment()),
                 dependencies(source.dependencies()));
-        return new BridgeModContainer(metadata, List.of(root));
+        return new BridgeModContainer(metadata, List.of(root), parentModId, parentSubLocation);
     }
 
     private static ModEnvironment parseEnvironment(String environment) {
@@ -67,15 +79,40 @@ public record BridgeModContainer(ModMetadata metadata, List<Path> rootPaths) imp
     @Override public ModMetadata getMetadata() { return metadata; }
     @Override public List<Path> getRootPaths() { return rootPaths; }
     @Override public ModOrigin getOrigin() {
+        if (parentModId != null) {
+            return new ModOrigin() {
+                @Override public Kind getKind() { return Kind.NESTED; }
+                @Override public List<Path> getPaths() {
+                    throw new UnsupportedOperationException("kind NESTED doesn't have paths");
+                }
+                @Override public String getParentModId() { return parentModId; }
+                @Override public String getParentSubLocation() { return parentSubLocation; }
+            };
+        }
         return new ModOrigin() {
             @Override public Kind getKind() { return Kind.PATH; }
             @Override public List<Path> getPaths() { return rootPaths; }
-            @Override public String getParentModId() { return null; }
-            @Override public String getParentSubLocation() { return null; }
+            @Override public String getParentModId() {
+                throw new UnsupportedOperationException("kind PATH doesn't have a parent mod");
+            }
+            @Override public String getParentSubLocation() {
+                throw new UnsupportedOperationException("kind PATH doesn't have a parent sub-location");
+            }
         };
     }
-    @Override public java.util.Optional<ModContainer> getContainingMod() { return java.util.Optional.empty(); }
-    @Override public Collection<ModContainer> getContainedMods() { return List.of(); }
+    @Override public java.util.Optional<ModContainer> getContainingMod() {
+        return parentModId == null
+                ? java.util.Optional.empty()
+                : BridgeFabricLoader.getInstance().getModContainer(parentModId);
+    }
+    @Override public Collection<ModContainer> getContainedMods() {
+        return BridgeFabricLoader.getInstance().getAllMods().stream()
+                .filter(BridgeModContainer.class::isInstance)
+                .map(BridgeModContainer.class::cast)
+                .filter(container -> metadata.getId().equals(container.parentModId()))
+                .map(ModContainer.class::cast)
+                .toList();
+    }
     @Override @Deprecated public Path getRootPath() { return rootPaths.getFirst(); }
     @Override @Deprecated public Path getPath(String file) { return getRootPath().resolve(file); }
 

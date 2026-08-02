@@ -37,8 +37,15 @@ public final class FabricModContainer extends ModContainer {
         Path metadataPath = info.getOwningFile().getFile().findResource("fabric.mod.json");
         Path root = metadataPath.getParent();
         try {
+            JsonObject bridgeMetadata = JsonParser.parseString(Files.readString(
+                    root.resolve("META-INF/loaderbridge.json"))).getAsJsonObject();
+            String parentModId = bridgeMetadata.has("parentModId")
+                    ? bridgeMetadata.get("parentModId").getAsString() : null;
+            String parentSubLocation = bridgeMetadata.has("parentSubLocation")
+                    ? bridgeMetadata.get("parentSubLocation").getAsString() : null;
             bridgeModContainer = BridgeModContainer.create(
-                    new FabricMetadataParser().parse(Files.readAllBytes(metadataPath)), root);
+                    new FabricMetadataParser().parse(Files.readAllBytes(metadataPath)), root,
+                    parentModId, parentSubLocation);
         } catch (IOException exception) {
             throw new IllegalStateException("LB-META-010: failed to register runtime metadata for "
                     + info.getModId(), exception);

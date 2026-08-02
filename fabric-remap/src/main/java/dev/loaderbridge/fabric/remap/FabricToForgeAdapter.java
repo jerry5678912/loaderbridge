@@ -115,7 +115,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         List<PreparationInput> inputs = new ArrayList<>();
         Set<String> seenArtifacts = new LinkedHashSet<>();
         for (Path source : request.inputArtifacts()) {
-            collectPreparationInputs(source, source.toString(), request.cacheDirectory(), inputs, seenArtifacts);
+            collectPreparationInputs(source, source.toString(), null, null,
+                    request.cacheDirectory(), inputs, seenArtifacts);
         }
         for (PreparationInput input : inputs) {
             Path source = input.path();
@@ -142,12 +143,19 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                         resolvedMinecraft.clientMappings().path(), request.cacheDirectory().resolve("remap-work"));
                 preparationInput = remapped;
             }
+            String containmentKey = input.parentModId() == null ? "root"
+                    : input.parentModId() + "!/" + input.parentSubLocation();
             String cacheKey = sha256((sourceHash + "|0.1.0|" + request.minecraftVersion() + "|"
-                    + request.hostVersion() + "|" + mappingKey).getBytes(StandardCharsets.UTF_8));
+                    + request.hostVersion() + "|" + mappingKey + "|" + containmentKey)
+                    .getBytes(StandardCharsets.UTF_8));
             Path cached = request.cacheDirectory().resolve(cacheKey + ".jar");
             if (!Files.exists(cached)) {
-                preparer.prepare(preparationInput, cached, metadata,
-                        PreparationManifest.pinned(request.minecraftVersion(), request.hostVersion()));
+                PreparationManifest manifest = PreparationManifest.pinned(
+                        request.minecraftVersion(), request.hostVersion());
+                if (input.parentModId() != null) {
+                    manifest = manifest.nested(input.parentModId(), input.parentSubLocation());
+                }
+                preparer.prepare(preparationInput, cached, metadata, manifest);
             }
             Path output = request.outputDirectory().resolve(metadata.id() + "-" + safe(metadata.version())
                     + "-loaderbridge.jar");
@@ -263,14 +271,16 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         tree.nested().forEach(child -> collectMetadata(child, destination));
     }
 
-    private void collectPreparationInputs(Path artifact, String source, Path cacheDirectory,
+    private void collectPreparationInputs(Path artifact, String source, String parentModId,
+            String parentSubLocation, Path cacheDirectory,
             List<PreparationInput> destination, Set<String> seenArtifacts) throws IOException {
         String hash = sha256(artifact);
         if (!seenArtifacts.add(hash)) {
             return;
         }
         FabricModMetadata metadata = inspector.inspect(artifact).root();
-        destination.add(new PreparationInput(artifact, source, metadata));
+        destination.add(new PreparationInput(
+                artifact, source, metadata, parentModId, parentSubLocation));
         if (metadata.nestedJars().isEmpty()) {
             return;
         }
@@ -300,6 +310,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                     Files.write(nestedArtifact, bytes);
                 }
                 collectPreparationInputs(nestedArtifact, source + "!/" + nestedLocation,
+                        metadata.id(), nestedLocation,
                         cacheDirectory, destination, seenArtifacts);
             }
         }
@@ -352,7 +363,12 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
     private record PreparedArtifact(String modId, String source, String sourceSha256, String output,
             String outputSha256, String cacheKey, String sourceNamespace) {}
 
-    private record PreparationInput(Path path, String source, FabricModMetadata metadata) {}
+    private record PreparationInput(
+            Path path,
+            String source,
+            FabricModMetadata metadata,
+            String parentModId,
+            String parentSubLocation) {}
 
     private record CompatibilityReport(String formatVersion, AdapterDescriptor adapter,
             List<ModInspection> mods, List<BridgeCapability> requiredCapabilities,
