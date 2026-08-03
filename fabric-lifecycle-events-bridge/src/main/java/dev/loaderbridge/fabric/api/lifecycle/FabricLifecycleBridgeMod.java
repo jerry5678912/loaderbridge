@@ -4,6 +4,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
@@ -14,6 +15,7 @@ import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.event.level.LevelEvent;
+import net.minecraftforge.event.entity.living.LivingEquipmentChangeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /** Connects Forge tick events to the binary-compatible Fabric callbacks. */
@@ -32,6 +34,7 @@ public final class FabricLifecycleBridgeMod {
         MinecraftForge.EVENT_BUS.addListener(this::onDataPackSync);
         MinecraftForge.EVENT_BUS.addListener(this::onLevelLoad);
         MinecraftForge.EVENT_BUS.addListener(this::onLevelUnload);
+        MinecraftForge.EVENT_BUS.addListener(this::onEquipmentChange);
     }
 
     private void onServerTickStart(TickEvent.ServerTickEvent.Pre event) {
@@ -98,5 +101,10 @@ public final class FabricLifecycleBridgeMod {
         if (event.getLevel() instanceof ServerLevel level && level.getServer() != null) {
             ServerWorldEvents.UNLOAD.invoker().onWorldUnload(level.getServer(), level);
         }
+    }
+
+    private void onEquipmentChange(LivingEquipmentChangeEvent event) {
+        ServerEntityEvents.EQUIPMENT_CHANGE.invoker().onChange(event.getEntity(), event.getSlot(),
+                event.getFrom(), event.getTo());
     }
 }

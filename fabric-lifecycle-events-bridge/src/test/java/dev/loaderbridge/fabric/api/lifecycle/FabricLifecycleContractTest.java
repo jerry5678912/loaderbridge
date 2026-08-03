@@ -8,6 +8,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import org.junit.jupiter.api.Test;
 
 class FabricLifecycleContractTest {
@@ -35,7 +36,7 @@ class FabricLifecycleContractTest {
 
         assertThat(descriptor.contractVersion()).isEqualTo("fabric-lifecycle-events-v1:2.6.0");
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("2.6.0+0865547519-loaderbridge.3");
+                .isEqualTo("2.6.0+0865547519-loaderbridge.4");
         assertThat(descriptor.providedModVersions())
                 .containsEntry("fabric-lifecycle-events-v1", "2.6.0+0865547519");
         assertThat(descriptor.requiredModules()).containsExactly("fabric-api-base-bridge");
@@ -44,6 +45,8 @@ class FabricLifecycleContractTest {
                 "net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents$TagsLoaded",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents$AfterSave",
+                "net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents",
+                "net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents$EquipmentChange",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents$Unload",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents",
@@ -116,5 +119,20 @@ class FabricLifecycleContractTest {
         ServerWorldEvents.UNLOAD.invoker().onWorldUnload(null, null);
 
         assertThat(calls).containsExactly("load", "unload");
+    }
+
+    @Test
+    void serverEntityEventsPreserveLoadUnloadAndEquipmentArguments() {
+        List<String> calls = new ArrayList<>();
+        ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> calls.add("load"));
+        ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> calls.add("unload"));
+        ServerEntityEvents.EQUIPMENT_CHANGE.register(
+                (entity, slot, previous, current) -> calls.add("equipment"));
+
+        ServerEntityEvents.ENTITY_LOAD.invoker().onLoad(null, null);
+        ServerEntityEvents.EQUIPMENT_CHANGE.invoker().onChange(null, null, null, null);
+        ServerEntityEvents.ENTITY_UNLOAD.invoker().onUnload(null, null);
+
+        assertThat(calls).containsExactly("load", "equipment", "unload");
     }
 }

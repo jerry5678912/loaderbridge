@@ -28,6 +28,36 @@ steps:
     timeout: PT1M
     parameters:
       contains: LOADERBRIDGE_FABRIC_LIFECYCLE_TAGS_READY
+  - id: summon_entity
+    action: send_command
+    timeout: PT1M
+    parameters:
+      command: 'execute in minecraft:overworld positioned 0 100 0 run summon minecraft:armor_stand ~ ~ ~ {Tags:["loaderbridge_entity_fixture"]}'
+  - id: entity_loaded
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_ENTITY_LOADED
+  - id: change_equipment
+    action: send_command
+    timeout: PT1M
+    parameters:
+      command: item replace entity @e[type=minecraft:armor_stand,tag=loaderbridge_entity_fixture,limit=1] armor.head with minecraft:diamond_helmet
+  - id: equipment_changed
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_EQUIPMENT_CHANGED
+  - id: remove_entity
+    action: send_command
+    timeout: PT1M
+    parameters:
+      command: kill @e[type=minecraft:armor_stand,tag=loaderbridge_entity_fixture]
+  - id: entity_unloaded
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_ENTITY_UNLOADED
   - id: datapack_reload
     action: send_command
     timeout: PT1M

@@ -4,10 +4,11 @@ This module targets the official
 `fabric-lifecycle-events-v1:2.6.0+0865547519` binary contract from Fabric API
 `0.116.15+1.21.1`. The implementation now provides the complete
 `ServerTickEvents`, `CommonLifecycleEvents`, `ServerLifecycleEvents`, and
-`ServerWorldEvents`
+`ServerWorldEvents`, and `ServerEntityEvents`
 classes. Forge events carry server lifecycle, datapack sync, tick, and tag
 callbacks. A version-pinned Mixin supplies Fabric's exact `MinecraftServer`
-save and datapack-reload hook points before the affected methods return.
+save/datapack-reload and server entity tracking hook points. Forge's equipment
+change event preserves the entity, slot, previous stack, and current stack.
 
 Authoritative references:
 
@@ -18,3 +19,4 @@ Authoritative references:
 - https://github.com/MinecraftForge/MinecraftForge/blob/1.21.x/src/main/java/net/minecraftforge/event/OnDatapackSyncEvent.java
 - https://github.com/MinecraftForge/MinecraftForge/tree/1.21.x/src/main/java/net/minecraftforge/event/server
 - https://github.com/MinecraftForge/MinecraftForge/blob/1.21.x/src/main/java/net/minecraftforge/event/level/LevelEvent.java
+- https://github.com/MinecraftForge/MinecraftForge/blob/1.21.x/src/main/java/net/minecraftforge/event/entity/living/LivingEquipmentChangeEvent.java

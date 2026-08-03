@@ -6,6 +6,9 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.Items;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 
 /** Verifies Forge-to-Fabric server and world tick ordering at runtime. */
@@ -18,6 +21,22 @@ public final class FabricLifecycleFixture implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
+            if (entity.getTags().contains("loaderbridge_entity_fixture")) {
+                System.out.println("LOADERBRIDGE_FABRIC_ENTITY_LOADED");
+            }
+        });
+        ServerEntityEvents.EQUIPMENT_CHANGE.register((entity, slot, previous, current) -> {
+            if (entity.getTags().contains("loaderbridge_entity_fixture")
+                    && slot == EquipmentSlot.HEAD && current.is(Items.DIAMOND_HELMET)) {
+                System.out.println("LOADERBRIDGE_FABRIC_EQUIPMENT_CHANGED");
+            }
+        });
+        ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
+            if (entity.getTags().contains("loaderbridge_entity_fixture")) {
+                System.out.println("LOADERBRIDGE_FABRIC_ENTITY_UNLOADED");
+            }
+        });
         ServerWorldEvents.LOAD.register((server, world) -> {
             if (WORLDS_LOADED.incrementAndGet() == 3) {
                 System.out.println("LOADERBRIDGE_FABRIC_WORLDS_LOADED");
