@@ -30,6 +30,10 @@ final class MixinStructuralPatchTransformer {
     private static final String DEFAULTED_REGISTRY = "net/minecraft/core/DefaultedRegistry";
     private static final String REGISTRY_ALIAS_BRIDGE =
             "dev/loaderbridge/fabric/api/registry/RegistryAliasBridge";
+    private static final String BLOCK_ENTITY_BUILDER =
+            "net/minecraft/world/level/block/entity/BlockEntityType$Builder";
+    private static final String BLOCK_ENTITY_TYPE =
+            "Lnet/minecraft/world/level/block/entity/BlockEntityType;";
     private static final String ADD_ALIAS_DESCRIPTOR = "(Lnet/minecraft/resources/ResourceLocation;"
             + "Lnet/minecraft/resources/ResourceLocation;)V";
     private static final Rule LEVEL_BLOCK_NOTIFICATION = new Rule(
@@ -58,7 +62,9 @@ final class MixinStructuralPatchTransformer {
         if (rules.isEmpty()) return input;
         ClassNode type = new ClassNode();
         new ClassReader(input).accept(type, 0);
-        boolean changed = addForgeBoatModelOverride(type) | rewriteFabricRegistryAliases(type);
+        boolean changed = addForgeBoatModelOverride(type)
+                | rewriteFabricRegistryAliases(type)
+                | rewriteFabricBlockEntityBuilderCalls(type);
         String target = mixinTarget(type.invisibleAnnotations);
         if (target == null) target = mixinTarget(type.visibleAnnotations);
         if (target == null && !changed) return input;
@@ -112,6 +118,24 @@ final class MixinStructuralPatchTransformer {
                 call.desc = "(L" + DEFAULTED_REGISTRY + ";"
                         + ADD_ALIAS_DESCRIPTOR.substring(1);
                 call.itf = false;
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
+    private static boolean rewriteFabricBlockEntityBuilderCalls(ClassNode type) {
+        boolean changed = false;
+        for (MethodNode method : type.methods) {
+            for (var instruction = method.instructions.getFirst(); instruction != null;
+                    instruction = instruction.getNext()) {
+                if (!(instruction instanceof MethodInsnNode call)
+                        || call.getOpcode() != Opcodes.INVOKEVIRTUAL
+                        || !call.owner.equals(BLOCK_ENTITY_BUILDER)
+                        || !call.name.equals("build")
+                        || !call.desc.equals("()" + BLOCK_ENTITY_TYPE)) continue;
+                method.instructions.insertBefore(call, new InsnNode(Opcodes.ACONST_NULL));
+                call.desc = "(Lcom/mojang/datafixers/types/Type;)" + BLOCK_ENTITY_TYPE;
                 changed = true;
             }
         }

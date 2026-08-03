@@ -16,6 +16,10 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added a version-scoped, bytecode-shape repair for Fabric's no-argument
+  `BlockEntityType.Builder.build()` ABI, supplying Forge 52.1.x's data-fixer
+  argument. This moves the Fabric-only Oxidized 1.8.4 probe from construction
+  failure to real copper-kiln registration, placement, save, and reload.
 - Added a same-repository-project catalog eligibility gate that queries the
   target loader and excludes projects with a native non-alpha Forge 1.21.1
   release; both Modrinth and CurseForge providers support this check. A frozen

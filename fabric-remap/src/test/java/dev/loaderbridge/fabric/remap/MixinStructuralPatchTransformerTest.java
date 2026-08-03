@@ -179,6 +179,34 @@ class MixinStructuralPatchTransformerTest {
                 .endsWith(")V:false");
     }
 
+    @Test
+    void suppliesForgeDataFixerArgumentToFabricBlockEntityBuilderCall() {
+        byte[] output = new MixinStructuralPatchTransformer("1.21.1", "52.1.0")
+                .transform(blockEntityBuilderCaller());
+        AtomicBoolean nullArgument = new AtomicBoolean();
+        AtomicReference<String> call = new AtomicReference<>();
+        new ClassReader(output).accept(new ClassVisitor(Opcodes.ASM9) {
+            @Override public MethodVisitor visitMethod(int access, String name, String descriptor,
+                    String signature, String[] exceptions) {
+                return new MethodVisitor(Opcodes.ASM9) {
+                    @Override public void visitInsn(int opcode) {
+                        if (opcode == Opcodes.ACONST_NULL) nullArgument.set(true);
+                    }
+
+                    @Override public void visitMethodInsn(int opcode, String owner, String name,
+                            String descriptor, boolean isInterface) {
+                        call.set(owner + ":" + name + descriptor);
+                    }
+                };
+            }
+        }, 0);
+
+        assertThat(nullArgument).isTrue();
+        assertThat(call.get()).isEqualTo("net/minecraft/world/level/block/entity/BlockEntityType$Builder:"
+                + "build(Lcom/mojang/datafixers/types/Type;)"
+                + "Lnet/minecraft/world/level/block/entity/BlockEntityType;");
+    }
+
     private static AnnotationVisitor nestedTarget(AtomicReference<String> target) {
         return new AnnotationVisitor(Opcodes.ASM9) {
             @Override
@@ -216,6 +244,24 @@ class MixinStructuralPatchTransformerTest {
                         + "Lnet/minecraft/resources/ResourceLocation;)V", true);
         method.visitInsn(Opcodes.RETURN);
         method.visitMaxs(3, 3);
+        method.visitEnd();
+        writer.visitEnd();
+        return writer.toByteArray();
+    }
+
+    private static byte[] blockEntityBuilderCaller() {
+        String builder = "net/minecraft/world/level/block/entity/BlockEntityType$Builder";
+        String result = "Lnet/minecraft/world/level/block/entity/BlockEntityType;";
+        ClassWriter writer = new ClassWriter(0);
+        writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, "fixture/BlockEntityBuilderCaller", null,
+                "java/lang/Object", null);
+        MethodVisitor method = writer.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC,
+                "build", "(L" + builder + ";)" + result, null, null);
+        method.visitCode();
+        method.visitVarInsn(Opcodes.ALOAD, 0);
+        method.visitMethodInsn(Opcodes.INVOKEVIRTUAL, builder, "build", "()" + result, false);
+        method.visitInsn(Opcodes.ARETURN);
+        method.visitMaxs(1, 1);
         method.visitEnd();
         writer.visitEnd();
         return writer.toByteArray();

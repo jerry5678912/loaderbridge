@@ -189,6 +189,12 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   deep graphical run registered `blockus:amethyst_bricks`, placed it, added its
   item to the player inventory, saved, reloaded, verified both persisted, and
   stopped cleanly. See [the pinned evidence](docs/real-mod-probes/blockus-2.9.18-1.21.1.md).
+- Oxidized `1.8.4` is the next pinned Fabric-only technology/content probe.
+  A generic Fabric-patched Minecraft ABI repair lets its SafLib dependency
+  register the real `oxidized:copper_kiln` block entity on Forge. Registration,
+  placement, inventory persistence, save, and reload pass; kiln processing and
+  its custom client recipe-book category remain unscored until their behavioral
+  scenario passes. See [the current evidence](docs/real-mod-probes/oxidized-1.8.4.md).
 - A controlled Fabric API base fixture passes automatic module installation,
   dedicated-server ready, world save, clean shutdown, and reload on Forge
   52.1.16.
