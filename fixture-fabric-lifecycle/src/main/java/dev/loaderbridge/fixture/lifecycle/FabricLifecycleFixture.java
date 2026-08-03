@@ -27,6 +27,7 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking;
 import net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 
@@ -57,6 +58,10 @@ public final class FabricLifecycleFixture implements ModInitializer {
                 FabricNetworkingPayload.PONG_CODEC);
         PayloadTypeRegistry.playS2C().register(FabricNetworkingPayload.PING_TYPE,
                 FabricNetworkingPayload.PING_CODEC);
+        PayloadTypeRegistry.configurationC2S().register(FabricNetworkingPayload.CONFIG_PONG_TYPE,
+                FabricNetworkingPayload.CONFIG_PONG_CODEC);
+        PayloadTypeRegistry.configurationS2C().register(FabricNetworkingPayload.CONFIG_PING_TYPE,
+                FabricNetworkingPayload.CONFIG_PING_CODEC);
         ServerPlayNetworking.registerGlobalReceiver(FabricNetworkingPayload.PONG_TYPE,
                 (payload, context) -> {
                     if (payload.value().equals("pong")) {
@@ -87,8 +92,21 @@ public final class FabricLifecycleFixture implements ModInitializer {
         });
         ServerConfigurationConnectionEvents.BEFORE_CONFIGURE.register((handler, server) ->
                 System.out.println("LOADERBRIDGE_FABRIC_SERVER_BEFORE_CONFIGURE"));
-        ServerConfigurationConnectionEvents.CONFIGURE.register((handler, server) ->
-                System.out.println("LOADERBRIDGE_FABRIC_SERVER_CONFIGURE"));
+        ServerConfigurationNetworking.registerGlobalReceiver(
+                FabricNetworkingPayload.CONFIG_PONG_TYPE, (payload, context) -> {
+                    if (payload.value().equals("config_pong")) {
+                        System.out.println("LOADERBRIDGE_FABRIC_CONFIG_SERVER_ROUNDTRIP");
+                    }
+                });
+        ServerConfigurationConnectionEvents.CONFIGURE.register((handler, server) -> {
+            System.out.println("LOADERBRIDGE_FABRIC_SERVER_CONFIGURE");
+            if (!ServerConfigurationNetworking.canSend(
+                    handler, FabricNetworkingPayload.CONFIG_PING_TYPE)) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_CONFIG_SERVER_CANNOT_SEND");
+            }
+            ServerConfigurationNetworking.send(handler, new FabricNetworkingPayload(
+                    FabricNetworkingPayload.CONFIG_PING_TYPE, "config_ping"));
+        });
         EntityTrackingEvents.START_TRACKING.register((entity, player) -> {
             if (entity.getTags().contains("loaderbridge_entity_fixture")) {
                 System.out.println("LOADERBRIDGE_FABRIC_TRACKING_STARTED");

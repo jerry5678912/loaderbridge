@@ -69,8 +69,8 @@ public final class ServerPlayNetworking {
 
     public static Set<ResourceLocation> getSendable(ServerGamePacketListenerImpl handler) {
         Objects.requireNonNull(handler, "Server play network handler cannot be null");
-        if (!NetworkBridgeRuntime.channel().isRemotePresent(handler.getConnection())) return Set.of();
-        return NetworkBridgeRuntime.playS2CChannels();
+        return NetworkBridgeRuntime.remoteChannels(handler.getConnection(),
+                NetworkBridgeRuntime.playS2CChannels());
     }
 
     public static boolean canSend(ServerPlayer player, ResourceLocation channelName) {

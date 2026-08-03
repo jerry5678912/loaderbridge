@@ -86,8 +86,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   `fabric-networking-api-v1:4.3.1+d30f6a7919`. It implements payload codecs,
   global and connection-scoped server receivers, client receivers, Fabric
   packet senders, channel queries, server play and server configuration
-  connection events, exact player lookup collections, server configuration
-  receivers/sending, and entity start/stop tracking callbacks over
+  connection events, exact player lookup collections, bidirectional
+  configuration receivers/sending, and entity start/stop tracking callbacks over
   Forge's payload channel without replacing Fabric payload objects in mod code.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.

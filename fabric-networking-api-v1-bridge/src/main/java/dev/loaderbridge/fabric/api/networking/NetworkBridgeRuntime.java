@@ -5,11 +5,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.concurrent.ConcurrentHashMap;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationNetworking;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -19,6 +21,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.Channel;
 import net.minecraftforge.network.ChannelBuilder;
 import net.minecraftforge.network.payload.PayloadConnection;
+import net.minecraftforge.network.NetworkContext;
 
 public final class NetworkBridgeRuntime {
     private static final Registry<FriendlyByteBuf> CONFIG_C2S = new Registry<>("configuration C2S");
@@ -31,6 +34,8 @@ public final class NetworkBridgeRuntime {
             CONFIG_SERVER_GLOBAL = new ConcurrentHashMap<>();
     private static final Map<ResourceLocation, ClientPlayNetworking.PlayPayloadHandler<?>> CLIENT_PLAY_GLOBAL =
             new ConcurrentHashMap<>();
+    private static final Map<ResourceLocation, ClientConfigurationNetworking.ConfigurationPayloadHandler<?>>
+            CONFIG_CLIENT_GLOBAL = new ConcurrentHashMap<>();
     private static volatile Channel<CustomPacketPayload> channel;
 
     public static PayloadTypeRegistry<FriendlyByteBuf> configurationC2S() { return CONFIG_C2S; }
@@ -87,6 +92,14 @@ public final class NetworkBridgeRuntime {
     public static Set<ResourceLocation> configurationC2SChannels() { return CONFIG_C2S.ids(); }
     public static Set<ResourceLocation> configurationS2CChannels() { return CONFIG_S2C.ids(); }
 
+    public static Set<ResourceLocation> remoteChannels(
+            net.minecraft.network.Connection connection, Set<ResourceLocation> candidates) {
+        if (connection.isMemoryConnection()) return Set.copyOf(candidates);
+        Set<ResourceLocation> remote = NetworkContext.get(connection).getRemoteChannels();
+        return candidates.stream().filter(remote::contains)
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
     public static boolean registerServerConfigurationReceiver(CustomPacketPayload.Type<?> type,
             ServerConfigurationNetworking.ConfigurationPacketHandler<?> handler) {
         Objects.requireNonNull(type, "Packet type cannot be null");
@@ -112,6 +125,31 @@ public final class NetworkBridgeRuntime {
         return Collections.unmodifiableSet(CONFIG_SERVER_GLOBAL.keySet());
     }
 
+    public static boolean registerClientConfigurationReceiver(CustomPacketPayload.Type<?> type,
+            ClientConfigurationNetworking.ConfigurationPayloadHandler<?> handler) {
+        Objects.requireNonNull(type, "Packet type cannot be null");
+        Objects.requireNonNull(handler, "Packet handler cannot be null");
+        if (!CONFIG_S2C.contains(type.id())) {
+            throw new IllegalArgumentException(
+                    "LB-NET-003: no configuration S2C codec registered for " + type.id());
+        }
+        return CONFIG_CLIENT_GLOBAL.putIfAbsent(type.id(), handler) == null;
+    }
+
+    public static ClientConfigurationNetworking.ConfigurationPayloadHandler<?>
+            unregisterClientConfigurationReceiver(ResourceLocation id) {
+        return CONFIG_CLIENT_GLOBAL.remove(id);
+    }
+
+    public static ClientConfigurationNetworking.ConfigurationPayloadHandler<?>
+            clientConfigurationReceiver(ResourceLocation id) {
+        return CONFIG_CLIENT_GLOBAL.get(id);
+    }
+
+    public static Set<ResourceLocation> clientConfigurationReceivers() {
+        return Collections.unmodifiableSet(CONFIG_CLIENT_GLOBAL.keySet());
+    }
+
     public static synchronized void finalizeRegistrations() {
         if (channel != null) return;
         PayloadConnection<CustomPacketPayload> builder = ChannelBuilder
@@ -123,7 +161,8 @@ public final class NetworkBridgeRuntime {
                 NetworkBridgeRuntime::dispatchPlay);
         CONFIG_C2S.addTo(builder.configuration().flow(PacketFlow.SERVERBOUND), false,
                 NetworkBridgeRuntime::dispatchServerConfiguration);
-        CONFIG_S2C.addTo(builder.configuration().flow(PacketFlow.CLIENTBOUND), false, null);
+        CONFIG_S2C.addTo(builder.configuration().flow(PacketFlow.CLIENTBOUND), false,
+                NetworkBridgeRuntime::dispatchClientConfiguration);
         channel = buildable.build();
         CONFIG_C2S.freeze();
         CONFIG_S2C.freeze();
@@ -157,6 +196,17 @@ public final class NetworkBridgeRuntime {
                     "LB-NET-006: serverbound configuration payload has no configuration listener");
         }
         ServerConfigurationNetworking.dispatch(payload, handler);
+    }
+
+    private static void dispatchClientConfiguration(CustomPacketPayload payload,
+            net.minecraftforge.event.network.CustomPayloadEvent.Context forgeContext) {
+        var listener = forgeContext.getConnection().getPacketListener();
+        if (!(listener instanceof net.minecraft.client.multiplayer.ClientConfigurationPacketListenerImpl
+                handler)) {
+            throw new IllegalStateException(
+                    "LB-NET-006: clientbound configuration payload has no configuration listener");
+        }
+        ClientConfigurationNetworking.dispatch(payload, handler);
     }
 
     @FunctionalInterface

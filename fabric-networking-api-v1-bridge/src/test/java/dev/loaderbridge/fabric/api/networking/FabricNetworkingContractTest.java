@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationNetworking;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -27,7 +28,7 @@ class FabricNetworkingContractTest {
         var descriptor = new FabricNetworkingBridgeProvider().descriptor();
         assertThat(descriptor.contractVersion()).isEqualTo("fabric-networking-api-v1:4.3.1");
         assertThat(descriptor.implementationVersion()).isEqualTo(
-                "4.3.1+d30f6a7919-loaderbridge.3");
+                "4.3.1+d30f6a7919-loaderbridge.4");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrder(
                 "net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents",
                 "net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents$StartTracking",
@@ -35,6 +36,15 @@ class FabricNetworkingContractTest {
                 "net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking",
                 "net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking$Context",
                 "net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking$PlayPayloadHandler",
+                "net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationConnectionEvents",
+                "net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationConnectionEvents$Complete",
+                "net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationConnectionEvents$Disconnect",
+                "net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationConnectionEvents$Init",
+                "net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationConnectionEvents$Ready",
+                "net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationConnectionEvents$Start",
+                "net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationNetworking",
+                "net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationNetworking$ConfigurationPayloadHandler",
+                "net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationNetworking$Context",
                 "net.fabricmc.fabric.api.networking.v1.PacketByteBufs",
                 "net.fabricmc.fabric.api.networking.v1.PacketSender",
                 "net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry",
@@ -72,6 +82,27 @@ class FabricNetworkingContractTest {
                 (payload, context) -> { })).isFalse();
         assertThat(ServerConfigurationNetworking.getGlobalReceivers()).contains(id);
         assertThat(ServerConfigurationNetworking.unregisterGlobalReceiver(id)).isNotNull();
+    }
+
+    @Test
+    void clientConfigurationReceiverRequiresCodecAndSupportsGlobalRegistration() {
+        ResourceLocation id = ResourceLocation.fromNamespaceAndPath(
+                "loaderbridge", "client_configuration_contract_"
+                        + Long.toUnsignedString(System.nanoTime()));
+        CustomPacketPayload.Type<TestPayload> type = new CustomPacketPayload.Type<>(id);
+
+        assertThatThrownBy(() -> ClientConfigurationNetworking.registerGlobalReceiver(type,
+                (payload, context) -> { }))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("LB-NET-003");
+
+        PayloadTypeRegistry.configurationS2C().register(type, CONFIG_CODEC);
+        assertThat(ClientConfigurationNetworking.registerGlobalReceiver(type,
+                (payload, context) -> { })).isTrue();
+        assertThat(ClientConfigurationNetworking.registerGlobalReceiver(type,
+                (payload, context) -> { })).isFalse();
+        assertThat(ClientConfigurationNetworking.getGlobalReceivers()).contains(id);
+        assertThat(ClientConfigurationNetworking.unregisterGlobalReceiver(type)).isNotNull();
     }
 
     @Test

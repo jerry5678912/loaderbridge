@@ -9,6 +9,10 @@
     "ServerConfigurationPacketListenerMixin",
     "TrackedEntityAccessor"
   ],
+  "client": [
+    "ClientCommonPacketListenerAccessor",
+    "ClientConfigurationPacketListenerMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }

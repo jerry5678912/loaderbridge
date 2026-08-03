@@ -71,8 +71,8 @@ public final class ServerConfigurationNetworking {
 
     public static Set<ResourceLocation> getSendable(ServerConfigurationPacketListenerImpl handler) {
         Objects.requireNonNull(handler, "Server configuration network handler cannot be null");
-        if (!NetworkBridgeRuntime.channel().isRemotePresent(handler.getConnection())) return Set.of();
-        return NetworkBridgeRuntime.configurationS2CChannels();
+        return NetworkBridgeRuntime.remoteChannels(handler.getConnection(),
+                NetworkBridgeRuntime.configurationS2CChannels());
     }
 
     public static boolean canSend(ServerConfigurationPacketListenerImpl handler,

@@ -18,6 +18,15 @@ public final class FabricNetworkingBridgeProvider implements RuntimeBridgeModule
             "net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking",
             "net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking$Context",
             "net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking$PlayPayloadHandler",
+            "net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationConnectionEvents",
+            "net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationConnectionEvents$Complete",
+            "net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationConnectionEvents$Disconnect",
+            "net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationConnectionEvents$Init",
+            "net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationConnectionEvents$Ready",
+            "net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationConnectionEvents$Start",
+            "net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationNetworking",
+            "net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationNetworking$ConfigurationPayloadHandler",
+            "net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationNetworking$Context",
             "net.fabricmc.fabric.api.networking.v1.PacketByteBufs",
             "net.fabricmc.fabric.api.networking.v1.PacketSender",
             "net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry",
@@ -38,7 +47,7 @@ public final class FabricNetworkingBridgeProvider implements RuntimeBridgeModule
 
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-networking-api-v1-bridge", "fabric-networking-api-v1:4.3.1",
-            "4.3.1+d30f6a7919-loaderbridge.3", BridgeCapability.FABRIC_API,
+            "4.3.1+d30f6a7919-loaderbridge.4", BridgeCapability.FABRIC_API,
             PUBLIC_TYPES, Map.of("fabric-networking-api-v1", "4.3.1+d30f6a7919"),
             Set.of("fabric-api-base-bridge"));
 

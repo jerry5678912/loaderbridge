@@ -60,14 +60,14 @@ public final class ClientPlayNetworking {
 
     public static Set<ResourceLocation> getSendable() {
         ClientPacketListener listener = requireConnection();
-        if (!NetworkBridgeRuntime.channel().isRemotePresent(listener.getConnection())) return Set.of();
-        return NetworkBridgeRuntime.playC2SChannels();
+        return NetworkBridgeRuntime.remoteChannels(listener.getConnection(),
+                NetworkBridgeRuntime.playC2SChannels());
     }
 
     public static boolean canSend(ResourceLocation channelName) {
         ClientPacketListener listener = Minecraft.getInstance().getConnection();
-        return listener != null && NetworkBridgeRuntime.channel().isRemotePresent(listener.getConnection())
-                && NetworkBridgeRuntime.playC2SChannels().contains(channelName);
+        return listener != null && NetworkBridgeRuntime.remoteChannels(listener.getConnection(),
+                NetworkBridgeRuntime.playC2SChannels()).contains(channelName);
     }
 
     public static boolean canSend(CustomPacketPayload.Type<?> type) { return canSend(type.id()); }
