@@ -20,6 +20,9 @@
     "loaderbridge:fixture_api": [
       "dev.loaderbridge.fixture.FixtureApiProvider"
     ],
+    "loaderbridge:constructor": [
+      "dev.loaderbridge.fixture.FixtureApiProvider::<init>"
+    ],
     "server": [
       "dev.loaderbridge.fixture.ServerFixture"
     ],

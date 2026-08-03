@@ -16,6 +16,9 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added Fabric default-language-adapter constructor entrypoints (`Class::<init>`)
+  and reflection-backed typed member handles that remain usable across Forge's
+  named game/plugin module layers.
 - Exposed Forge's ordered Minecraft launch input paths as the Fabric builtin
   `minecraft` container roots, including multi-path client/common layouts,
   instead of using the unrelated game directory placeholder.

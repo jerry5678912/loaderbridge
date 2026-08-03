@@ -6,9 +6,15 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.fabricmc.loader.api.LanguageAdapter;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class BridgeDefaultLanguageAdapterTest {
+    @BeforeEach
+    void resetInvocations() {
+        FixtureEntrypoint.INVOCATIONS.set(0);
+    }
+
     @Test
     void createsClassFieldStaticMethodAndInstanceMethodEntrypoints() throws Exception {
         var provider = BridgeModContainer.create("fixture", "1", "Fixture", List.of(), Path.of("."));
@@ -20,6 +26,22 @@ class BridgeDefaultLanguageAdapterTest {
         adapter.create(provider, FixtureEntrypoint.class.getName() + "::instanceRun", Runnable.class).run();
 
         assertThat(FixtureEntrypoint.INVOCATIONS).hasValue(4);
+    }
+
+    @Test
+    void createsConstructorMemberEntrypoints() throws Exception {
+        var provider = BridgeModContainer.create("fixture", "1", "Fixture", List.of(), Path.of("."));
+
+        FixtureFactory factory = LanguageAdapter.getDefault().create(provider,
+                FixtureEntrypoint.class.getName() + "::<init>", FixtureFactory.class);
+
+        factory.create().run();
+        assertThat(FixtureEntrypoint.INVOCATIONS).hasValue(1);
+    }
+
+    @FunctionalInterface
+    public interface FixtureFactory {
+        FixtureEntrypoint create();
     }
 
     public static final class FixtureEntrypoint implements Runnable {

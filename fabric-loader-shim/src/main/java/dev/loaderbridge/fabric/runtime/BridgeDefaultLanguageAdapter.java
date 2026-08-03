@@ -3,9 +3,14 @@ package dev.loaderbridge.fabric.runtime;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandleProxies;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import net.fabricmc.loader.api.LanguageAdapter;
@@ -45,15 +50,17 @@ public final class BridgeDefaultLanguageAdapter implements LanguageAdapter {
         }
 
         String member = parts[1];
-        List<Method> methods = Arrays.stream(owner.getDeclaredMethods())
-                .filter(method -> method.getName().equals(member))
-                .toList();
+        List<Executable> executables = new ArrayList<>(Arrays.stream(owner.getDeclaredMethods())
+                .filter(method -> method.getName().equals(member)).toList());
+        if (member.equals("<init>")) {
+            executables.addAll(Arrays.asList(owner.getDeclaredConstructors()));
+        }
         try {
             Field field = owner.getDeclaredField(member);
             if (!Modifier.isStatic(field.getModifiers())) {
                 throw new LanguageAdapterException("Field " + value + " must be static!");
             }
-            if (!methods.isEmpty()) {
+            if (!executables.isEmpty()) {
                 throw new LanguageAdapterException("Ambiguous " + value + " - refers to both field and method!");
             }
             if (!type.isAssignableFrom(field.getType())) {
@@ -70,24 +77,68 @@ public final class BridgeDefaultLanguageAdapter implements LanguageAdapter {
             throw new LanguageAdapterException("Cannot proxy method " + value + " to non-interface type "
                     + type.getName() + "!");
         }
-        if (methods.isEmpty()) {
+        if (executables.isEmpty()) {
             throw new LanguageAdapterException("Could not find " + value + "!");
         }
-        if (methods.size() > 1) {
+        if (executables.size() > 1) {
             throw new LanguageAdapterException("Found multiple method entries of name " + value + "!");
         }
 
-        Method method = methods.getFirst();
+        Executable executable = executables.getFirst();
         Object receiver = null;
         try {
-            if (!Modifier.isStatic(method.getModifiers())) {
+            if (executable instanceof Method method
+                    && !Modifier.isStatic(method.getModifiers())) {
                 receiver = owner.getDeclaredConstructor().newInstance();
             }
-            MethodHandle handle = MethodHandles.lookup().unreflect(method);
-            if (receiver != null) handle = handle.bindTo(receiver);
+            MethodHandle handle = reflectionHandle(executable, receiver);
             return type.cast(MethodHandleProxies.asInterfaceInstance(type, handle));
-        } catch (ReflectiveOperationException | IllegalArgumentException exception) {
+        } catch (Exception exception) {
             throw new LanguageAdapterException(exception);
+        }
+    }
+
+    private static MethodHandle reflectionHandle(Executable executable, Object receiver)
+            throws NoSuchMethodException, IllegalAccessException {
+        if (!Modifier.isPublic(executable.getModifiers())
+                || !Modifier.isPublic(executable.getDeclaringClass().getModifiers())) {
+            throw new IllegalAccessException("Entrypoint member is not public: " + executable);
+        }
+        MethodHandles.Lookup lookup = MethodHandles.lookup();
+        if (executable instanceof Method method) {
+            MethodHandle handle = lookup.findStatic(BridgeDefaultLanguageAdapter.class,
+                    "invokeMethod", MethodType.methodType(
+                            Object.class, Method.class, Object.class, Object[].class));
+            handle = MethodHandles.insertArguments(handle, 0, method, receiver)
+                    .asCollector(Object[].class, method.getParameterCount());
+            return handle.asType(MethodType.methodType(
+                    method.getReturnType(), method.getParameterTypes()));
+        }
+        Constructor<?> constructor = (Constructor<?>) executable;
+        MethodHandle handle = lookup.findStatic(BridgeDefaultLanguageAdapter.class,
+                "invokeConstructor", MethodType.methodType(
+                        Object.class, Constructor.class, Object[].class));
+        handle = MethodHandles.insertArguments(handle, 0, constructor)
+                .asCollector(Object[].class, constructor.getParameterCount());
+        return handle.asType(MethodType.methodType(
+                constructor.getDeclaringClass(), constructor.getParameterTypes()));
+    }
+
+    private static Object invokeMethod(Method method, Object receiver, Object[] arguments)
+            throws Throwable {
+        try {
+            return method.invoke(receiver, arguments);
+        } catch (InvocationTargetException exception) {
+            throw exception.getCause();
+        }
+    }
+
+    private static Object invokeConstructor(Constructor<?> constructor, Object[] arguments)
+            throws Throwable {
+        try {
+            return constructor.newInstance(arguments);
+        } catch (InvocationTargetException exception) {
+            throw exception.getCause();
         }
     }
 }

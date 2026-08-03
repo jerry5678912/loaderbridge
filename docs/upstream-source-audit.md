@@ -51,6 +51,13 @@ the ordered paths returned by the public launch handler. LoaderBridge now feeds
 that same Forge path list to the Fabric-compatible builtin container, preserving
 multi-path layouts without trying to reconstruct them from filenames or module
 internals.
+Fabric's default language adapter recognizes `Class::<init>` alongside class,
+field, and method entrypoints and adapts the selected executable to the requested
+functional interface. Forge separates the bridge plugin and transformed mods
+into named layers, so a direct lookup from the bridge module cannot always read
+the target mod module. LoaderBridge preserves the typed method-handle behavior
+with public reflection-backed handles, avoiding private module mutation while
+supporting the complete standard member set.
 
 ## Exact 1.21.1 authority
 

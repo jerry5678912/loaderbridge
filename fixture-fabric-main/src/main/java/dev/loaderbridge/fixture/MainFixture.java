@@ -19,6 +19,13 @@ public final class MainFixture implements ModInitializer {
                 || !custom.getFirst().getEntrypoint().value().equals("custom-entrypoint")) {
             throw new IllegalStateException("custom Fabric entrypoint contract failed");
         }
+        var constructor = loader.getEntrypoints(
+                "loaderbridge:constructor", FixtureApiFactory.class);
+        if (constructor.size() != 1
+                || !constructor.getFirst().create().value().equals("custom-entrypoint")) {
+            throw new IllegalStateException("constructor Fabric entrypoint contract failed");
+        }
+        System.out.println("LOADERBRIDGE_FIXTURE_CONSTRUCTOR_ENTRYPOINT_READY");
         if (!loader.getRawGameVersion().equals("1.21.1")) {
             throw new IllegalStateException(
                     "unexpected raw game version: " + loader.getRawGameVersion());
