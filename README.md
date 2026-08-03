@@ -118,6 +118,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   rollback and commit propagation, outer-close notifications, lifecycle state,
   and snapshot participants. Automatic bytecode selection and the graphical
   client prove nested rollback and final commit during Fabric initialization.
+  The generic `Storage`/`StorageView` core adds empty storage, capability flags,
+  filtered non-empty iteration, version guards, and transactional insert/extract;
+  the client verifies aborted and committed mutations before world loading.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -168,7 +171,7 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 ## Intentionally gated
 
 The adapter currently rejects Fabric API surfaces outside the implemented
-modules, including Transfer API storage/item/fluid surfaces, unknown custom
+modules, including Transfer API slotted/base/item/fluid surfaces, unknown custom
 language adapters, Loader API calls outside the current
 shim, and mods requiring unreviewed native-library behavior. Signed patch packs,
 broad semantic graphical assertions, and catalog-wide compatibility measurement

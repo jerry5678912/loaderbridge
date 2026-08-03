@@ -10,6 +10,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import org.junit.jupiter.api.Test;
 
 class TransactionContractTest {
@@ -17,7 +19,7 @@ class TransactionContractTest {
     void providerAdvertisesOnlyImplementedTransactionSurface() {
         var descriptor = new FabricTransferApiBridgeProvider().descriptor();
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("5.4.4+7b3d111d19-loaderbridge.1");
+                .isEqualTo("5.4.4+7b3d111d19-loaderbridge.2");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrderElementsOf(Set.of(
                 "net.fabricmc.fabric.api.transfer.v1.transaction.Transaction",
                 "net.fabricmc.fabric.api.transfer.v1.transaction.Transaction$Lifecycle",
@@ -25,7 +27,9 @@ class TransactionContractTest {
                 "net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext$CloseCallback",
                 "net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext$OuterCloseCallback",
                 "net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext$Result",
-                "net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant"));
+                "net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant",
+                "net.fabricmc.fabric.api.transfer.v1.storage.Storage",
+                "net.fabricmc.fabric.api.transfer.v1.storage.StorageView"));
     }
 
     @Test
@@ -107,6 +111,40 @@ class TransactionContractTest {
             assertThat(wrongThread.get()).isInstanceOf(IllegalStateException.class);
             nested.abort();
         }
+    }
+
+    @Test
+    void emptyStorageAndNonEmptyIterationMatchContract() {
+        Storage<String> empty = Storage.empty();
+        assertThat(empty.supportsInsertion()).isFalse();
+        assertThat(empty.supportsExtraction()).isFalse();
+        assertThat(empty.iterator()).isExhausted();
+
+        Storage<String> views = new Storage<>() {
+            private final List<StorageView<String>> values = List.of(
+                    view("", 0), view("energy", 4));
+
+            @Override public long insert(String resource, long amount, TransactionContext tx) { return 0; }
+            @Override public long extract(String resource, long amount, TransactionContext tx) { return 0; }
+            @Override public java.util.Iterator<StorageView<String>> iterator() { return values.iterator(); }
+        };
+        assertThat(views.nonEmptyViews()).extracting(StorageView::getResource)
+                .containsExactly("energy");
+        try (Transaction transaction = Transaction.openOuter()) {
+            assertThat(transaction.nestingDepth()).isZero();
+            assertThatThrownBy(views::getVersion).isInstanceOf(IllegalStateException.class);
+        }
+        assertThat(Storage.<String>asClass()).isEqualTo(Storage.class);
+    }
+
+    private static StorageView<String> view(String resource, long amount) {
+        return new StorageView<>() {
+            @Override public long extract(String requested, long maximum, TransactionContext tx) { return 0; }
+            @Override public boolean isResourceBlank() { return resource.isEmpty(); }
+            @Override public String getResource() { return resource; }
+            @Override public long getAmount() { return amount; }
+            @Override public long getCapacity() { return 10; }
+        };
     }
 
     private static final class CounterParticipant extends SnapshotParticipant<Integer> {

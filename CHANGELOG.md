@@ -20,6 +20,9 @@ All notable user-facing changes will be recorded here.
   outer/nested transactions, rollback and commit propagation, LIFO close and
   outer-close callbacks, snapshot participants, automatic bytecode selection,
   contract tests, and a real Forge client initialization fixture.
+- Added generic Fabric `Storage` and `StorageView` contracts with immutable empty
+  storage, capability flags, filtered iteration, version guards, automatic
+  selection, and real-client transactional insert/extract rollback and commit.
 
 - Added the initial Fabric Registry Sync v0 bridge with custom static registry
   builders, MODDED/SYNCED attributes, registry-local entry/remap events,

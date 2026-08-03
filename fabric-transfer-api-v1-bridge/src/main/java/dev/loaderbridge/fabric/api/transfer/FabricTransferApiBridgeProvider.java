@@ -15,7 +15,7 @@ public final class FabricTransferApiBridgeProvider implements RuntimeBridgeModul
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-transfer-api-v1-bridge",
             "fabric-transfer-api-v1:5.4.4",
-            "5.4.4+7b3d111d19-loaderbridge.1",
+            "5.4.4+7b3d111d19-loaderbridge.2",
             BridgeCapability.FABRIC_API,
             Set.of(
                     "net.fabricmc.fabric.api.transfer.v1.transaction.Transaction",
@@ -24,7 +24,9 @@ public final class FabricTransferApiBridgeProvider implements RuntimeBridgeModul
                     "net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext$CloseCallback",
                     "net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext$OuterCloseCallback",
                     "net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext$Result",
-                    "net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant"),
+                    "net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant",
+                    "net.fabricmc.fabric.api.transfer.v1.storage.Storage",
+                    "net.fabricmc.fabric.api.transfer.v1.storage.StorageView"),
             Map.of("fabric-transfer-api-v1", "5.4.4+7b3d111d19"),
             Set.of());
 

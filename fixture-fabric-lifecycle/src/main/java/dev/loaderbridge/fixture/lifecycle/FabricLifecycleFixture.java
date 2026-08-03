@@ -52,6 +52,8 @@ import net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.resources.ResourceKey;
@@ -138,6 +140,29 @@ public final class FabricLifecycleFixture implements ModInitializer {
             throw new IllegalStateException("LOADERBRIDGE_FABRIC_TRANSFER_TRANSACTION_FAILED");
         }
         System.out.println("LOADERBRIDGE_FABRIC_TRANSFER_TRANSACTION_READY");
+        TransactionalStorage storage = new TransactionalStorage();
+        try (Transaction aborted = Transaction.openOuter()) {
+            if (storage.insert("energy", 80, aborted) != 80) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_TRANSFER_INSERT_FAILED");
+            }
+        }
+        try (Transaction committed = Transaction.openOuter()) {
+            storage.insert("energy", 70, committed);
+            committed.commit();
+        }
+        try (Transaction aborted = Transaction.openOuter()) {
+            storage.extract("energy", 20, aborted);
+        }
+        try (Transaction committed = Transaction.openOuter()) {
+            storage.extract("energy", 30, committed);
+            committed.commit();
+        }
+        if (storage.getAmount() != 40
+                || !storage.nonEmptyIterator().hasNext()
+                || Storage.<String>empty().supportsInsertion()) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_TRANSFER_STORAGE_FAILED");
+        }
+        System.out.println("LOADERBRIDGE_FABRIC_TRANSFER_STORAGE_READY");
         DynamicRegistrySetupCallback.EVENT.register(view -> {
             if (view.getOptional(DYNAMIC_REGISTRY_KEY).isEmpty()) return;
             if (view.asDynamicRegistryManager().registry(DYNAMIC_REGISTRY_KEY).isEmpty()
@@ -494,6 +519,68 @@ public final class FabricLifecycleFixture implements ModInitializer {
         @Override
         protected void onFinalCommit() {
             commits++;
+        }
+    }
+
+    private static final class TransactionalStorage extends SnapshotParticipant<Long>
+            implements Storage<String>, StorageView<String> {
+        private long amount;
+
+        @Override
+        public long insert(String resource, long maximum, TransactionContext transaction) {
+            if (!"energy".equals(resource) || maximum < 0) return 0;
+            long inserted = Math.min(maximum, getCapacity() - amount);
+            if (inserted > 0) {
+                updateSnapshots(transaction);
+                amount += inserted;
+            }
+            return inserted;
+        }
+
+        @Override
+        public long extract(String resource, long maximum, TransactionContext transaction) {
+            if (!"energy".equals(resource) || maximum < 0) return 0;
+            long extracted = Math.min(maximum, amount);
+            if (extracted > 0) {
+                updateSnapshots(transaction);
+                amount -= extracted;
+            }
+            return extracted;
+        }
+
+        @Override
+        public java.util.Iterator<StorageView<String>> iterator() {
+            return java.util.Collections.<StorageView<String>>singleton(this).iterator();
+        }
+
+        @Override
+        public boolean isResourceBlank() {
+            return amount == 0;
+        }
+
+        @Override
+        public String getResource() {
+            return "energy";
+        }
+
+        @Override
+        public long getAmount() {
+            return amount;
+        }
+
+        @Override
+        public long getCapacity() {
+            return 100;
+        }
+
+        @Override
+        protected Long createSnapshot() {
+            return amount;
+        }
+
+        @Override
+        protected void readSnapshot(Long snapshot) {
+            amount = snapshot;
         }
     }
 }
