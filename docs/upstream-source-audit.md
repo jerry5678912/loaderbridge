@@ -29,6 +29,12 @@ registrations have completed by then, while the later registry-dependent
 The supplied public `FabricLoader` interface also exposed the previously missing
 `getRawGameVersion()` binary contract; Forge runtime now obtains it from
 `META-INF/loaderbridge.json`.
+The pinned `0.16.14` Maven artifact is also resolved only on the test classpath.
+An ASM contract test inventories all public types in `net.fabricmc.api`,
+`net.fabricmc.loader.api`, and the public version-exception superclass, then
+requires the shim JAR to preserve their JVM names, inheritance, static shape,
+and member descriptors. This makes public API drift an automatic build failure;
+the moving supplied `master` source remains behavioral reference material.
 The supplied discovery implementation creates `java` from
 `java.specification.version`, marks Java and Minecraft metadata as `builtin`,
 and gives Minecraft a dependency on the Java class version it requires. Fabric

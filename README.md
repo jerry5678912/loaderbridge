@@ -275,6 +275,11 @@ macOS; they do not establish Windows/Linux parity or a 95% result.
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,
 tilde ranges, caret ranges, and the special trailing-dash range boundary.
+It resolves the official Apache-2.0 Fabric Loader 0.16.14 artifact as a
+test-only reference and compares every public API type, superclass, interface,
+field, constructor, and method descriptor against the packaged shim. Extra
+forward-compatible methods are allowed, but a missing or linkage-incompatible
+pinned symbol fails the build.
 
 ## Build and use
 

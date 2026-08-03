@@ -2,10 +2,19 @@ plugins {
     `java-library`
 }
 
+val fabricLoaderReference by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
 dependencies {
     implementation(project(":bridge-api"))
     implementation(project(":fabric-metadata"))
     implementation("com.google.code.gson:gson:2.10.1")
+    testImplementation("org.ow2.asm:asm:9.7.1")
+    fabricLoaderReference("net.fabricmc:fabric-loader:0.16.14") {
+        isTransitive = false
+    }
 }
 
 tasks.jar {
@@ -23,5 +32,10 @@ tasks.jar {
 
 tasks.test {
     dependsOn(tasks.jar)
+    inputs.files(fabricLoaderReference)
     systemProperty("loaderbridge.shimJar", tasks.jar.flatMap { it.archiveFile }.get().asFile.absolutePath)
+    systemProperty(
+        "loaderbridge.fabricLoaderReferenceJar",
+        fabricLoaderReference.singleFile.absolutePath,
+    )
 }
