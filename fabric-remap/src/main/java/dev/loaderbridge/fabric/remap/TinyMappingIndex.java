@@ -15,12 +15,16 @@ final class TinyMappingIndex {
     private static final int MAX_LINES = 500_000;
     private static final Pattern TYPE = Pattern.compile("L([^;]+);");
     private final Map<String, String> classes;
+    private final Map<String, String> reverseClasses;
     private final Map<Member, String> fields;
     private final Map<Member, String> methods;
 
     private TinyMappingIndex(Map<String, String> classes, Map<Member, String> fields,
             Map<Member, String> methods) {
         this.classes = Map.copyOf(classes);
+        Map<String, String> reverse = new LinkedHashMap<>();
+        classes.forEach((source, target) -> reverse.put(target, source));
+        this.reverseClasses = Map.copyOf(reverse);
         this.fields = Map.copyOf(fields);
         this.methods = Map.copyOf(methods);
     }
@@ -55,6 +59,24 @@ final class TinyMappingIndex {
     }
 
     String translateReference(String reference) {
+        return translateReference(reference, null);
+    }
+
+    String translateReference(String reference, String inferredOwner) {
+        if (!reference.startsWith("L") && inferredOwner != null) {
+            int methodDescriptor = reference.indexOf('(');
+            if (methodDescriptor > 0) {
+                String name = reference.substring(0, methodDescriptor);
+                String descriptor = reference.substring(methodDescriptor);
+                return mapMethod(inferredOwner, name, descriptor) + mapDescriptor(descriptor);
+            }
+            int fieldDescriptor = reference.indexOf(':');
+            if (fieldDescriptor > 0) {
+                String name = reference.substring(0, fieldDescriptor);
+                String descriptor = reference.substring(fieldDescriptor + 1);
+                return mapField(inferredOwner, name, descriptor) + ":" + mapDescriptor(descriptor);
+            }
+        }
         if (!reference.startsWith("L")) return mapDescriptor(reference);
         int separator = reference.indexOf(';');
         if (separator < 2) return reference;
@@ -77,6 +99,33 @@ final class TinyMappingIndex {
             return "L" + targetOwner + ";" + targetName + ":" + mapDescriptor(descriptor);
         }
         return "L" + targetOwner + ";" + remainder;
+    }
+
+    String mapClass(String name) {
+        return classes.getOrDefault(name, name);
+    }
+
+    String sourceClass(String runtimeName) {
+        return reverseClasses.getOrDefault(runtimeName, runtimeName);
+    }
+
+    String sourceDescriptor(String runtimeDescriptor) {
+        Matcher matcher = TYPE.matcher(runtimeDescriptor);
+        StringBuilder output = new StringBuilder();
+        while (matcher.find()) {
+            matcher.appendReplacement(output, Matcher.quoteReplacement(
+                    "L" + reverseClasses.getOrDefault(matcher.group(1), matcher.group(1)) + ";"));
+        }
+        matcher.appendTail(output);
+        return output.toString();
+    }
+
+    String mapField(String owner, String name, String descriptor) {
+        return fields.getOrDefault(new Member(owner, name, descriptor), name);
+    }
+
+    String mapMethod(String owner, String name, String descriptor) {
+        return methods.getOrDefault(new Member(owner, name, descriptor), name);
     }
 
     static String unqualified(String reference) {

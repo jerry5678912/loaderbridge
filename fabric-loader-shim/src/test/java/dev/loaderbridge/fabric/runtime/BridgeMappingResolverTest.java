@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.net.URLClassLoader;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -53,5 +54,27 @@ class BridgeMappingResolverTest {
         assertThatThrownBy(() -> resolver.install(mappings))
                 .isInstanceOf(java.io.IOException.class)
                 .hasMessageContaining("LB-MAP-001");
+    }
+
+    @Test
+    void discoversMappingsFromTranslatedModResourcesBeforeContainersAreConstructed() throws Exception {
+        Path resource = temporaryDirectory.resolve("META-INF/loaderbridge/mappings.tiny");
+        Files.createDirectories(resource.getParent());
+        Files.writeString(resource, """
+                tiny\t2\t0\tintermediary\tnamed
+                c\tnet/minecraft/class_2688\tnet/minecraft/world/level/block/state/StateHolder
+                \tf\tLjava/util/Map;\tfield_24739\tvalues
+                """);
+        ClassLoader original = Thread.currentThread().getContextClassLoader();
+        try (URLClassLoader translatedModLayer = new URLClassLoader(
+                new java.net.URL[] { temporaryDirectory.toUri().toURL() }, null)) {
+            Thread.currentThread().setContextClassLoader(translatedModLayer);
+            BridgeMappingResolver resolver = new BridgeMappingResolver();
+
+            assertThat(resolver.mapFieldName("intermediary", "net.minecraft.class_2688",
+                    "field_24739", "Ljava/util/Map;")).isEqualTo("values");
+        } finally {
+            Thread.currentThread().setContextClassLoader(original);
+        }
     }
 }

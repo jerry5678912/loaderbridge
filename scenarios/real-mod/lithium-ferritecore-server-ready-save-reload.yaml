@@ -1,0 +1,31 @@
+schemaVersion: 1
+id: lithium_ferritecore_server_ready_save_reload
+description: Proves translated Lithium and FerriteCore coexist through server ready, save, reload, and shutdown.
+side: server
+mods:
+  - lithium
+  - ferritecore
+steps:
+  - id: start
+    action: start_instance
+    timeout: PT3M
+  - id: ready
+    action: wait_for_log
+    timeout: PT3M
+    parameters:
+      contains: "Done ("
+  - id: save
+    action: save
+    timeout: PT1M
+    parameters:
+      marker: All dimensions are saved
+  - id: reload
+    action: reload
+    timeout: PT3M
+    parameters:
+      marker: "Done ("
+  - id: shutdown
+    action: shutdown
+    timeout: PT1M
+    parameters:
+      marker: All dimensions are saved

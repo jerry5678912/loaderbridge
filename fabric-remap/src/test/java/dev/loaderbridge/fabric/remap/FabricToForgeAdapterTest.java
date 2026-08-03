@@ -47,7 +47,7 @@ class FabricToForgeAdapterTest {
         assertThat(result.artifacts()).hasSize(1).allMatch(Files::exists);
         assertThat(Files.readString(result.report())).contains("fixture", "main");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
-                .contains("sourceSha256", "outputSha256", "\"adapterVersion\": \"0.3.6\"",
+                .contains("sourceSha256", "outputSha256", "\"adapterVersion\": \"0.3.11\"",
                         "adapterArtifactSha256");
         try (JarFile jar = new JarFile(result.artifacts().getFirst().toFile())) {
             assertThat(jar.getEntry("pack.mcmeta")).isNotNull();
@@ -58,7 +58,7 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
-    void gatesCapabilitiesThatAreInventoriedButNotImplemented() throws Exception {
+    void inventoriesImplementedMixinAccessWidenerAndNestedJarCapabilities() throws Exception {
         Path nested = temporaryDirectory.resolve("nested.jar");
         try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(nested))) {
             jar.putNextEntry(new JarEntry("fabric.mod.json"));
@@ -84,11 +84,12 @@ class FabricToForgeAdapterTest {
 
         var plan = new FabricToForgeAdapter().plan(request);
 
-        assertThat(plan.canPrepare()).isFalse();
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.requiredCapabilities()).contains(
+                BridgeCapability.MIXINS, BridgeCapability.ACCESS_WIDENERS,
+                BridgeCapability.NESTED_JARS);
         assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
-                .contains("LB-AW-001")
-                .doesNotContain("LB-MIXIN-001")
-                .doesNotContain("LB-NESTED-001");
+                .doesNotContain("LB-AW-001", "LB-MIXIN-001", "LB-NESTED-001");
     }
 
     @Test

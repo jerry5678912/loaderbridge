@@ -73,7 +73,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         return new AdapterDescriptor("fabric-to-forge", "1", FABRIC, FORGE, "=1.21.1", "[52.1.0,53)",
                 List.of(BridgeCapability.METADATA, BridgeCapability.DEPENDENCY_RESOLUTION,
                         BridgeCapability.REMAPPING, BridgeCapability.MIXINS,
-                        BridgeCapability.MIXIN_EXTRAS));
+                        BridgeCapability.MIXIN_EXTRAS, BridgeCapability.ACCESS_WIDENERS));
     }
 
     @Override
@@ -143,7 +143,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             Path runtimeMappings = null;
             String mappingKey = "namespace-neutral";
             boolean needsMappingResolver = inventory.loaderApiClasses().contains(
-                    "net.fabricmc.loader.api.MappingResolver");
+                    "net.fabricmc.loader.api.MappingResolver") || metadata.accessWidener().isPresent();
             if (namespace == SourceNamespace.INTERMEDIARY || needsMappingResolver) {
                 if (resolvedMinecraft == null) {
                     resolvedMinecraft = minecraftArtifacts.resolve(request.minecraftVersion(),
@@ -218,8 +218,6 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         }
         if (metadata.accessWidener().isPresent()) {
             required.add(BridgeCapability.ACCESS_WIDENERS);
-            diagnostics.add(unsupported("LB-AW-001", metadata.id(), artifact,
-                    "Access-widener transformation is not implemented in this scaffold build"));
         }
         if (!metadata.nestedJars().isEmpty()) {
             required.add(BridgeCapability.NESTED_JARS);

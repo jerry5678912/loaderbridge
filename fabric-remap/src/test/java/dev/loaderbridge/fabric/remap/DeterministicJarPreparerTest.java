@@ -14,6 +14,9 @@ import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 
 class DeterministicJarPreparerTest {
     @TempDir
@@ -150,6 +153,41 @@ class DeterministicJarPreparerTest {
     }
 
     @Test
+    void remapsAndRegistersAccessWidenerWithoutChangingOriginalResource() throws Exception {
+        Path source = temporaryDirectory.resolve("access-widener-mod.jar");
+        String original = "accessWidener v1 intermediary\n"
+                + "accessible class net/minecraft/class_1\n"
+                + "mutable field net/minecraft/class_1 field_1 I\n";
+        writeJar(source, Map.of(
+                "fabric.mod.json", """
+                        {"schemaVersion":1,"id":"aw_mod","version":"1",
+                         "accessWidener":"fixture.accesswidener"}
+                        """,
+                "fixture.accesswidener", original));
+        Path mappings = temporaryDirectory.resolve("aw-runtime.tiny");
+        Files.writeString(mappings, "tiny\t2\t0\tintermediary\tnamed\n"
+                + "c\tnet/minecraft/class_1\tnet/minecraft/Example\n"
+                + "\tf\tI\tfield_1\tvalue\n");
+        Path output = temporaryDirectory.resolve("access-widener-output.jar");
+
+        new DeterministicJarPreparer().prepare(source, output,
+                new FabricModInspector().inspect(source).root(),
+                PreparationManifest.pinned("1.21.1", "52.1.0"), mappings);
+
+        try (JarFile jar = new JarFile(output.toFile())) {
+            assertThat(read(jar, "fixture.accesswidener")).isEqualTo(original);
+            String generated = jar.getManifest().getMainAttributes()
+                    .getValue("LoaderBridge-Access-Widener");
+            assertThat(generated).startsWith("META-INF/loaderbridge/access-wideners/")
+                    .endsWith(".accesswidener");
+            assertThat(read(jar, generated)).contains(
+                    "accessWidener\tv1\tofficial",
+                    "accessible\tclass\tnet/minecraft/Example",
+                    "mutable\tfield\tnet/minecraft/Example\tvalue\tI");
+        }
+    }
+
+    @Test
     void createsSideScopedMixinWrapperWithoutChangingOriginalConfig() throws Exception {
         Path source = temporaryDirectory.resolve("client-mixin-mod.jar");
         String original = """
@@ -199,6 +237,35 @@ class DeterministicJarPreparerTest {
                     .isEqualTo("Lnet/minecraft/Example;run()V");
             assertThat(refmapJson.get("run()V").getAsString())
                     .isEqualTo("Lnet/minecraft/Example;run()V");
+        }
+    }
+
+    @Test
+    void discoversSingleMixinTargetForUnqualifiedRefmapEntries() throws Exception {
+        ClassWriter writer = new ClassWriter(0);
+        writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT,
+                "fixture/mixin/AccessorMixin", null, "java/lang/Object", null);
+        var annotation = writer.visitAnnotation("Lorg/spongepowered/asm/mixin/Mixin;", false);
+        var values = annotation.visitArray("value");
+        values.visit(null, Type.getObjectType("net/minecraft/class_1"));
+        values.visitEnd();
+        annotation.visitEnd();
+        writer.visitEnd();
+        Path source = temporaryDirectory.resolve("target-owner.jar");
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(source))) {
+            JarEntry entry = new JarEntry("fixture/mixin/AccessorMixin.class");
+            jar.putNextEntry(entry);
+            jar.write(writer.toByteArray());
+            jar.closeEntry();
+        }
+        var config = com.google.gson.JsonParser.parseString("""
+                {"package":"fixture.mixin","mixins":["AccessorMixin"]}
+                """).getAsJsonObject();
+
+        try (JarFile jar = new JarFile(source.toFile())) {
+            assertThat(DeterministicJarPreparer.mixinTargetOwners(jar, config))
+                    .containsEntry("fixture/mixin/AccessorMixin", "net/minecraft/class_1")
+                    .containsEntry("fixture.mixin.AccessorMixin", "net/minecraft/class_1");
         }
     }
 

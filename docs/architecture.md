@@ -35,6 +35,13 @@ container can register and invoke ordinary `main` class entrypoints.
 
 Forge 52.1.0 excludes any JAR advertising `ITransformationService` from normal
 mod and language-provider discovery. LoaderBridge therefore packages the
-language provider and transformation service separately. The transformation
-service is deliberately empty until mixin configurations and access-widener
-transformers can be registered early enough to be correct.
+language provider and transformation service separately. During discovery, the
+transformation service scans only translated JARs declaring LoaderBridge access
+wideners, validates bounded archive resources, merges their rules, and registers
+a ModLauncher transformer before target classes are defined.
+
+Mixin configuration resources are registered through Forge's existing Mixin
+0.8.7 installation. Preprocessing maps intermediary targets and selectors to
+the official runtime namespace, disables redundant runtime remapping, and
+applies versioned structural repairs only when bytecode and mapping predicates
+match. No second Mixin runtime is installed.

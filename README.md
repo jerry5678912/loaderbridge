@@ -51,6 +51,12 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - Annotation-aware MixinExtras detection with automatic, checksum-pinned
   installation of the official Forge game-library artifact; a controlled
   `@ModifyReturnValue` passed both server launches, save, and reload.
+- Offline Mixin repair for official-runtime selectors, shared refmaps, nested
+  string targets, `@Shadow` members, and safely relocatable constructor hooks.
+  Rules match bytecode and mapping structure rather than mod IDs or filenames.
+- Fabric access-widener v1/v2 remapping and early Forge transformation for
+  accessible, extendable, mutable, and transitive class/member rules, with
+  bounded resource loading and stable malformed-target diagnostics.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -66,13 +72,16 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - A standalone ForgeGradle client laboratory that launches Forge 52.1.0,
   reaches the real title screen, opens or creates a disposable world, saves all
   dimensions, disconnects, reloads the world, and stops cleanly.
+- Pinned real-mod probes for Lithium 0.14.3 and FerriteCore 7.0.3. Both pass
+  client and dedicated-server ready, world save, clean shutdown, and reload on
+  Forge 52.1.0 and 52.1.16 in the current macOS laboratory.
 
 ## Intentionally gated
 
-The adapter currently rejects access wideners, Fabric API, unknown custom
-language adapters, Loader API calls outside
-the current shim, or native-library review. Patch packs, broad semantic graphical assertions,
-and real-mod probes are not yet implemented.
+The adapter currently rejects Fabric API modules, unknown custom language
+adapters, Loader API calls outside the current shim, and mods requiring
+unreviewed native-library behavior. Signed patch packs, broad semantic graphical
+assertions, and catalog-wide compatibility measurement are not yet implemented.
 These gaps produce stable diagnostics instead of a JAR that is falsely labeled
 compatible.
 
@@ -82,8 +91,9 @@ Fabric `preLaunch` and `main` ran on both sides, the correct Fabric `client` or
 completed world save, shutdown, and reload cycles. The server scenario repeated
 the complete cycle through two Forge launches and emitted a passing structured
 report. This is controlled-fixture evidence, not evidence that arbitrary Fabric
-mods are compatible. Catalog-wide M2 measurement remains pending the frozen
-1,000-project catalog.
+mods are compatible. Catalog-wide measurement remains pending the frozen
+1,000-project catalog. The real-mod probes above establish the M3/M4 reference
+gates on macOS; they do not establish Windows/Linux parity or a 95% result.
 
 ## Build and use
 

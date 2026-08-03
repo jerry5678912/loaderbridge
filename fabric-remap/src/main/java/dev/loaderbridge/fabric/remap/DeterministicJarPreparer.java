@@ -30,6 +30,10 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.AnnotationNode;
+import org.objectweb.asm.tree.ClassNode;
 
 /** Produces the deterministic packaging envelope around transformed bytecode. */
 public final class DeterministicJarPreparer {
@@ -74,11 +78,16 @@ public final class DeterministicJarPreparer {
         try (JarFile input = new JarFile(source.toFile(), false);
                 JarOutputStream output = new JarOutputStream(Files.newOutputStream(destination))) {
             Set<String> names = new HashSet<>();
-            boolean augmentManifest = !metadata.mixins().isEmpty();
+            boolean augmentManifest = !metadata.mixins().isEmpty() || metadata.accessWidener().isPresent();
             MixinPackaging mixins = prepareMixins(
                     input, metadata, manifest.sourceNamespace(), runtimeMappings);
+            AccessWidenerPackaging accessWidener = prepareAccessWidener(
+                    input, metadata, manifest.sourceNamespace(), runtimeMappings);
+            TinyMappingIndex bytecodeMappings = manifest.sourceNamespace().equals("intermediary")
+                    && runtimeMappings != null ? TinyMappingIndex.read(runtimeMappings) : null;
             if (augmentManifest) {
-                put(output, "META-INF/MANIFEST.MF", mixinManifest(input, mixins.configs()));
+                put(output, "META-INF/MANIFEST.MF", bridgeManifest(
+                        input, mixins.configs(), accessWidener.resource()));
                 names.add("META-INF/MANIFEST.MF");
             }
             List<JarEntry> entries = input.stream()
@@ -95,7 +104,17 @@ public final class DeterministicJarPreparer {
                     throw new UnsafeJarException("Duplicate JAR entry: " + entry.getName());
                 }
                 try (InputStream bytes = input.getInputStream(entry)) {
-                    put(output, entry.getName(), readBounded(bytes));
+                    byte[] content = readBounded(bytes);
+                    if (manifest.targetNamespace().equals("official")
+                            && entry.getName().endsWith(".class")) {
+                        content = new MixinStructuralPatchTransformer(
+                                manifest.minecraftVersion(), manifest.forgeVersion()).transform(content);
+                        if (bytecodeMappings != null) {
+                            content = new MixinShadowMemberRemapper(bytecodeMappings).transform(content);
+                        }
+                        content = new MixinRuntimeRemapDisabler().transform(content);
+                    }
+                    put(output, entry.getName(), content);
                 }
             }
             if (!names.contains("pack.mcmeta")) {
@@ -108,6 +127,9 @@ public final class DeterministicJarPreparer {
             }
             for (Map.Entry<String, byte[]> generated : mixins.generatedResources().entrySet()) {
                 put(output, generated.getKey(), generated.getValue());
+            }
+            if (accessWidener.resource() != null) {
+                put(output, accessWidener.resource(), accessWidener.bytes());
             }
             put(output, "META-INF/loaderbridge.json", bridgeMetadata(metadata, manifest));
             put(output, "META-INF/mods.toml", forgeMetadata(metadata));
@@ -170,6 +192,14 @@ public final class DeterministicJarPreparer {
         Map<String, byte[]> generated = new java.util.TreeMap<>();
         TinyMappingIndex mappingIndex = sourceNamespace.equals("intermediary")
                 && runtimeMappings != null ? TinyMappingIndex.read(runtimeMappings) : null;
+        Map<String, String> allMixinTargetOwners = new LinkedHashMap<>();
+        if (mappingIndex != null) {
+            for (var declaredMixin : metadata.mixins()) {
+                validateMixinConfig(declaredMixin.config());
+                allMixinTargetOwners.putAll(mixinTargetOwners(
+                        input, readMixinConfig(input, declaredMixin.config())));
+            }
+        }
         for (var mixin : metadata.mixins()) {
             validateMixinConfig(mixin.config());
             JsonObject config = readMixinConfig(input, mixin.config());
@@ -199,7 +229,8 @@ public final class DeterministicJarPreparer {
                 String refmap = refmapValue.getAsString();
                 validateMixinConfig(refmap);
                 byte[] translated = new MixinRefmapTransformer().transform(
-                        readResource(input, refmap, "LB-MIXIN-REFMAP-004"), mappingIndex, refmap);
+                        readResource(input, refmap, "LB-MIXIN-REFMAP-004"), mappingIndex, refmap,
+                        allMixinTargetOwners);
                 String translatedName = "META-INF/loaderbridge/mixins/"
                         + sha256("refmap\u0000" + refmap) + ".refmap.json";
                 generated.put(translatedName, translated);
@@ -219,6 +250,66 @@ public final class DeterministicJarPreparer {
         }
         return new MixinPackaging(configs.stream().distinct().sorted().toList(),
                 java.util.Collections.unmodifiableMap(new LinkedHashMap<>(generated)));
+    }
+
+    static Map<String, String> mixinTargetOwners(JarFile input, JsonObject config)
+            throws IOException {
+        String packageName = config.has("package") ? config.get("package").getAsString() : "";
+        Set<String> names = new java.util.LinkedHashSet<>();
+        collectMixinNames(config.get("mixins"), names);
+        collectMixinNames(config.get("client"), names);
+        collectMixinNames(config.get("server"), names);
+        Map<String, String> owners = new LinkedHashMap<>();
+        for (String name : names) {
+            String binaryName = packageName.isEmpty() || name.startsWith(packageName + ".")
+                    ? name : packageName + "." + name;
+            JarEntry entry = input.getJarEntry(binaryName.replace('.', '/') + ".class");
+            if (entry == null) continue;
+            ClassNode node = new ClassNode();
+            try (InputStream stream = input.getInputStream(entry)) {
+                new ClassReader(stream).accept(node, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG
+                        | ClassReader.SKIP_FRAMES);
+            }
+            Set<String> targets = new java.util.LinkedHashSet<>();
+            collectMixinTargets(node.visibleAnnotations, targets);
+            collectMixinTargets(node.invisibleAnnotations, targets);
+            if (targets.size() == 1) {
+                String owner = targets.iterator().next();
+                owners.put(binaryName, owner);
+                owners.put(binaryName.replace('.', '/'), owner);
+            }
+        }
+        return Map.copyOf(owners);
+    }
+
+    private static void collectMixinNames(JsonElement value, Set<String> names)
+            throws UnsafeJarException {
+        if (value == null) return;
+        if (!value.isJsonArray()) throw new UnsafeJarException("LB-MIXIN-003: Mixin list must be an array");
+        for (JsonElement element : value.getAsJsonArray()) {
+            if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()) {
+                names.add(element.getAsString());
+            }
+        }
+    }
+
+    private static void collectMixinTargets(List<AnnotationNode> annotations, Set<String> targets) {
+        if (annotations == null) return;
+        for (AnnotationNode annotation : annotations) {
+            if (!annotation.desc.equals("Lorg/spongepowered/asm/mixin/Mixin;")
+                    || annotation.values == null) continue;
+            for (int index = 0; index < annotation.values.size(); index += 2) {
+                String key = (String) annotation.values.get(index);
+                Object value = annotation.values.get(index + 1);
+                if (key.equals("value") && value instanceof List<?> values) {
+                    values.stream().filter(Type.class::isInstance).map(Type.class::cast)
+                            .map(Type::getInternalName).forEach(targets::add);
+                } else if (key.equals("targets") && value instanceof List<?> values) {
+                    values.stream().filter(String.class::isInstance).map(String.class::cast)
+                            .map(target -> target.replace('.', '/')).forEach(targets::add);
+                }
+            }
+        }
     }
 
     private static JsonObject readMixinConfig(JarFile input, String name) throws IOException {
@@ -261,7 +352,24 @@ public final class DeterministicJarPreparer {
         }
     }
 
-    private static byte[] mixinManifest(JarFile input, List<String> configs)
+    private static AccessWidenerPackaging prepareAccessWidener(JarFile input,
+            FabricModMetadata metadata, String sourceNamespace, Path runtimeMappings) throws IOException {
+        if (metadata.accessWidener().isEmpty()) {
+            return new AccessWidenerPackaging(null, null);
+        }
+        String original = metadata.accessWidener().orElseThrow();
+        validateResourceName(original, "access widener");
+        byte[] bytes = readResource(input, original, "LB-AW-004");
+        TinyMappingIndex mappings = sourceNamespace.equals("intermediary") && runtimeMappings != null
+                ? TinyMappingIndex.read(runtimeMappings) : null;
+        byte[] transformed = new AccessWidenerResourceTransformer().transform(bytes, mappings);
+        String generated = "META-INF/loaderbridge/access-wideners/"
+                + sha256("access-widener\u0000" + original) + ".accesswidener";
+        return new AccessWidenerPackaging(generated, transformed);
+    }
+
+    private static byte[] bridgeManifest(JarFile input, List<String> configs,
+            String accessWidener)
             throws IOException {
         Manifest manifest = new Manifest();
         JarEntry existing = input.getJarEntry("META-INF/MANIFEST.MF");
@@ -273,17 +381,26 @@ public final class DeterministicJarPreparer {
         if (manifest.getMainAttributes().getValue("Manifest-Version") == null) {
             manifest.getMainAttributes().putValue("Manifest-Version", "1.0");
         }
-        manifest.getMainAttributes().putValue("MixinConfigs", String.join(",", configs));
+        if (!configs.isEmpty()) {
+            manifest.getMainAttributes().putValue("MixinConfigs", String.join(",", configs));
+        }
+        if (accessWidener != null) {
+            manifest.getMainAttributes().putValue("LoaderBridge-Access-Widener", accessWidener);
+        }
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         manifest.write(output);
         return output.toByteArray();
     }
 
     private static void validateMixinConfig(String config) throws UnsafeJarException {
+        validateResourceName(config, "Mixin configuration");
+    }
+
+    private static void validateResourceName(String config, String kind) throws UnsafeJarException {
         if (config.isBlank() || config.startsWith("/") || config.contains("\\")
                 || config.contains("\t") || config.contains("\r") || config.contains("\n")
                 || List.of(config.split("/")).contains("..")) {
-            throw new UnsafeJarException("Unsafe Mixin configuration resource: " + config);
+            throw new UnsafeJarException("Unsafe " + kind + " resource: " + config);
         }
     }
 
@@ -366,7 +483,8 @@ public final class DeterministicJarPreparer {
     private static boolean isGeneratedEntry(String name) {
         return name.equals("META-INF/mods.toml") || name.equals("META-INF/loaderbridge.json")
                 || name.equals("META-INF/loaderbridge/mappings.tiny")
-                || name.startsWith("META-INF/loaderbridge/mixins/");
+                || name.startsWith("META-INF/loaderbridge/mixins/")
+                || name.startsWith("META-INF/loaderbridge/access-wideners/");
     }
 
     private static boolean isInvalidatedSignature(String name) {
@@ -389,4 +507,6 @@ public final class DeterministicJarPreparer {
     }
 
     private record MixinPackaging(List<String> configs, Map<String, byte[]> generatedResources) {}
+
+    private record AccessWidenerPackaging(String resource, byte[] bytes) {}
 }

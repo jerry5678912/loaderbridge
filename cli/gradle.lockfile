@@ -4,6 +4,7 @@
 com.google.code.gson:gson:2.10.1=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 info.picocli:picocli:4.7.6=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 net.bytebuddy:byte-buddy:1.15.11=testCompileClasspath,testRuntimeClasspath
+net.fabricmc:access-widener:2.1.0=runtimeClasspath,testRuntimeClasspath
 net.fabricmc:intermediary:1.21.1=runtimeClasspath,testRuntimeClasspath
 net.fabricmc:mapping-io:0.6.1=runtimeClasspath,testRuntimeClasspath
 net.fabricmc:tiny-remapper:0.10.4=runtimeClasspath,testRuntimeClasspath

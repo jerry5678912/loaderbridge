@@ -7,6 +7,7 @@ import com.google.gson.JsonParser;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -62,6 +63,25 @@ class MixinRefmapTransformerTest {
                 }}}
                 """.getBytes(StandardCharsets.UTF_8), mappings(), "collision.refmap.json"))
                 .hasMessageContaining("LB-MIXIN-REFMAP-003");
+    }
+
+    @Test
+    void translatesUnqualifiedAccessorEntriesUsingTheMixinTarget() throws Exception {
+        byte[] translated = new MixinRefmapTransformer().transform("""
+                {"mappings":{"fixture/ServerMixin":{
+                  "argument":"field_1:Lnet/minecraft/class_2;",
+                  "run":"method_1(Lnet/minecraft/class_2;)V"
+                }}}
+                """.getBytes(StandardCharsets.UTF_8), mappings(), "accessor.refmap.json",
+                Map.of("fixture/ServerMixin", "net/minecraft/Example"));
+
+        var values = JsonParser.parseString(new String(translated, StandardCharsets.UTF_8))
+                .getAsJsonObject().getAsJsonObject("mappings")
+                .getAsJsonObject("fixture/ServerMixin");
+        assertThat(values.get("argument").getAsString())
+                .isEqualTo("argument:Lnet/minecraft/Argument;");
+        assertThat(values.get("run").getAsString())
+                .isEqualTo("run(Lnet/minecraft/Argument;)V");
     }
 
     private TinyMappingIndex mappings() throws Exception {
