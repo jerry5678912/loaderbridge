@@ -26,6 +26,7 @@ import net.minecraft.world.level.GameRules;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 
@@ -84,6 +85,10 @@ public final class FabricLifecycleFixture implements ModInitializer {
                 }
             }
         });
+        ServerConfigurationConnectionEvents.BEFORE_CONFIGURE.register((handler, server) ->
+                System.out.println("LOADERBRIDGE_FABRIC_SERVER_BEFORE_CONFIGURE"));
+        ServerConfigurationConnectionEvents.CONFIGURE.register((handler, server) ->
+                System.out.println("LOADERBRIDGE_FABRIC_SERVER_CONFIGURE"));
         EntityTrackingEvents.START_TRACKING.register((entity, player) -> {
             if (entity.getTags().contains("loaderbridge_entity_fixture")) {
                 System.out.println("LOADERBRIDGE_FABRIC_TRACKING_STARTED");

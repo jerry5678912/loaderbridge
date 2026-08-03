@@ -5,7 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -16,13 +18,16 @@ class FabricNetworkingContractTest {
     private static final StreamCodec<RegistryFriendlyByteBuf, TestPayload> CODEC = StreamCodec.of(
             (buffer, payload) -> buffer.writeUtf(payload.value()),
             buffer -> new TestPayload(buffer.readUtf()));
+    private static final StreamCodec<FriendlyByteBuf, TestPayload> CONFIG_CODEC = StreamCodec.of(
+            (buffer, payload) -> buffer.writeUtf(payload.value()),
+            buffer -> new TestPayload(buffer.readUtf()));
 
     @Test
     void providerAdvertisesOnlyImplementedOfficialTypes() {
         var descriptor = new FabricNetworkingBridgeProvider().descriptor();
         assertThat(descriptor.contractVersion()).isEqualTo("fabric-networking-api-v1:4.3.1");
         assertThat(descriptor.implementationVersion()).isEqualTo(
-                "4.3.1+d30f6a7919-loaderbridge.2");
+                "4.3.1+d30f6a7919-loaderbridge.3");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrder(
                 "net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents",
                 "net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents$StartTracking",
@@ -34,6 +39,12 @@ class FabricNetworkingContractTest {
                 "net.fabricmc.fabric.api.networking.v1.PacketSender",
                 "net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry",
                 "net.fabricmc.fabric.api.networking.v1.PlayerLookup",
+                "net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents",
+                "net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents$Configure",
+                "net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents$Disconnect",
+                "net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking",
+                "net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking$ConfigurationPacketHandler",
+                "net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking$Context",
                 "net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents",
                 "net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents$Disconnect",
                 "net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents$Init",
@@ -41,6 +52,26 @@ class FabricNetworkingContractTest {
                 "net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking",
                 "net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking$Context",
                 "net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking$PlayPayloadHandler");
+    }
+
+    @Test
+    void configurationReceiverRequiresCodecAndSupportsGlobalRegistration() {
+        ResourceLocation id = ResourceLocation.fromNamespaceAndPath(
+                "loaderbridge", "configuration_contract_" + Long.toUnsignedString(System.nanoTime()));
+        CustomPacketPayload.Type<TestPayload> type = new CustomPacketPayload.Type<>(id);
+
+        assertThatThrownBy(() -> ServerConfigurationNetworking.registerGlobalReceiver(type,
+                (payload, context) -> { }))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("LB-NET-003");
+
+        PayloadTypeRegistry.configurationC2S().register(type, CONFIG_CODEC);
+        assertThat(ServerConfigurationNetworking.registerGlobalReceiver(type,
+                (payload, context) -> { })).isTrue();
+        assertThat(ServerConfigurationNetworking.registerGlobalReceiver(type,
+                (payload, context) -> { })).isFalse();
+        assertThat(ServerConfigurationNetworking.getGlobalReceivers()).contains(id);
+        assertThat(ServerConfigurationNetworking.unregisterGlobalReceiver(id)).isNotNull();
     }
 
     @Test

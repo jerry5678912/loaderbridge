@@ -22,6 +22,12 @@ public final class FabricNetworkingBridgeProvider implements RuntimeBridgeModule
             "net.fabricmc.fabric.api.networking.v1.PacketSender",
             "net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry",
             "net.fabricmc.fabric.api.networking.v1.PlayerLookup",
+            "net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents",
+            "net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents$Configure",
+            "net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents$Disconnect",
+            "net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking",
+            "net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking$ConfigurationPacketHandler",
+            "net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking$Context",
             "net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents",
             "net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents$Disconnect",
             "net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents$Init",
@@ -32,7 +38,7 @@ public final class FabricNetworkingBridgeProvider implements RuntimeBridgeModule
 
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-networking-api-v1-bridge", "fabric-networking-api-v1:4.3.1",
-            "4.3.1+d30f6a7919-loaderbridge.2", BridgeCapability.FABRIC_API,
+            "4.3.1+d30f6a7919-loaderbridge.3", BridgeCapability.FABRIC_API,
             PUBLIC_TYPES, Map.of("fabric-networking-api-v1", "4.3.1+d30f6a7919"),
             Set.of("fabric-api-base-bridge"));
 

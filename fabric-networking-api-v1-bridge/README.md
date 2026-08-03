@@ -14,13 +14,14 @@ Implemented in this release:
 - server play init, join, and disconnect events;
 - server/world/chunk/proximity/entity player lookup helpers;
 - entity start/stop tracking callbacks backed by Forge tracking events;
+- server configuration C2S receivers, S2C sending, channel queries, packet
+  senders, and configure/disconnect lifecycle events;
 - content-based automatic module selection with stable duplicate, late, and
   missing-codec diagnostics.
 
-Configuration-stage and login-stage contracts remain
-intentionally unadvertised until implemented. Referencing one of those types
-therefore fails planning with `LB-FAPI-001` instead of producing a partially
-compatible launch.
+Client configuration-stage and login-stage contracts remain intentionally
+unadvertised until implemented. Referencing one of those types therefore fails
+planning with `LB-FAPI-001` instead of producing a partially compatible launch.
 
 Reference sources:
 

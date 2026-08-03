@@ -1,0 +1,33 @@
+package net.fabricmc.fabric.api.networking.v1;
+
+import net.fabricmc.fabric.api.event.Event;
+import net.fabricmc.fabric.api.event.EventFactory;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerConfigurationPacketListenerImpl;
+
+public final class ServerConfigurationConnectionEvents {
+    public static final Event<Configure> BEFORE_CONFIGURE = EventFactory.createArrayBacked(
+            Configure.class, callbacks -> (handler, server) -> {
+                for (Configure callback : callbacks) callback.onSendConfiguration(handler, server);
+            });
+    public static final Event<Configure> CONFIGURE = EventFactory.createArrayBacked(
+            Configure.class, callbacks -> (handler, server) -> {
+                for (Configure callback : callbacks) callback.onSendConfiguration(handler, server);
+            });
+    public static final Event<Disconnect> DISCONNECT = EventFactory.createArrayBacked(
+            Disconnect.class, callbacks -> (handler, server) -> {
+                for (Disconnect callback : callbacks) callback.onConfigureDisconnect(handler, server);
+            });
+
+    @FunctionalInterface
+    public interface Configure {
+        void onSendConfiguration(ServerConfigurationPacketListenerImpl handler, MinecraftServer server);
+    }
+
+    @FunctionalInterface
+    public interface Disconnect {
+        void onConfigureDisconnect(ServerConfigurationPacketListenerImpl handler, MinecraftServer server);
+    }
+
+    private ServerConfigurationConnectionEvents() { }
+}

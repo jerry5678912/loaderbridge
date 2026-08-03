@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -26,6 +27,8 @@ public final class NetworkBridgeRuntime {
     private static final Registry<RegistryFriendlyByteBuf> PLAY_S2C = new Registry<>("play S2C");
     private static final Map<ResourceLocation, ServerPlayNetworking.PlayPayloadHandler<?>> PLAY_GLOBAL =
             new ConcurrentHashMap<>();
+    private static final Map<ResourceLocation, ServerConfigurationNetworking.ConfigurationPacketHandler<?>>
+            CONFIG_SERVER_GLOBAL = new ConcurrentHashMap<>();
     private static final Map<ResourceLocation, ClientPlayNetworking.PlayPayloadHandler<?>> CLIENT_PLAY_GLOBAL =
             new ConcurrentHashMap<>();
     private static volatile Channel<CustomPacketPayload> channel;
@@ -81,6 +84,33 @@ public final class NetworkBridgeRuntime {
 
     public static Set<ResourceLocation> playC2SChannels() { return PLAY_C2S.ids(); }
     public static Set<ResourceLocation> playS2CChannels() { return PLAY_S2C.ids(); }
+    public static Set<ResourceLocation> configurationC2SChannels() { return CONFIG_C2S.ids(); }
+    public static Set<ResourceLocation> configurationS2CChannels() { return CONFIG_S2C.ids(); }
+
+    public static boolean registerServerConfigurationReceiver(CustomPacketPayload.Type<?> type,
+            ServerConfigurationNetworking.ConfigurationPacketHandler<?> handler) {
+        Objects.requireNonNull(type, "Packet type cannot be null");
+        Objects.requireNonNull(handler, "Packet handler cannot be null");
+        if (!CONFIG_C2S.contains(type.id())) {
+            throw new IllegalArgumentException(
+                    "LB-NET-003: no configuration C2S codec registered for " + type.id());
+        }
+        return CONFIG_SERVER_GLOBAL.putIfAbsent(type.id(), handler) == null;
+    }
+
+    public static ServerConfigurationNetworking.ConfigurationPacketHandler<?>
+            unregisterServerConfigurationReceiver(ResourceLocation id) {
+        return CONFIG_SERVER_GLOBAL.remove(id);
+    }
+
+    public static ServerConfigurationNetworking.ConfigurationPacketHandler<?>
+            serverConfigurationReceiver(ResourceLocation id) {
+        return CONFIG_SERVER_GLOBAL.get(id);
+    }
+
+    public static Set<ResourceLocation> serverConfigurationReceivers() {
+        return Collections.unmodifiableSet(CONFIG_SERVER_GLOBAL.keySet());
+    }
 
     public static synchronized void finalizeRegistrations() {
         if (channel != null) return;
@@ -88,10 +118,12 @@ public final class NetworkBridgeRuntime {
                 .named(ResourceLocation.fromNamespaceAndPath("loaderbridge", "fabric_networking"))
                 .optional().payloadChannel();
         var buildable = builder.play().flow(PacketFlow.SERVERBOUND);
-        PLAY_C2S.addTo(buildable, true);
-        PLAY_S2C.addTo(builder.play().flow(PacketFlow.CLIENTBOUND), true);
-        CONFIG_C2S.addTo(builder.configuration().flow(PacketFlow.SERVERBOUND), false);
-        CONFIG_S2C.addTo(builder.configuration().flow(PacketFlow.CLIENTBOUND), false);
+        PLAY_C2S.addTo(buildable, true, NetworkBridgeRuntime::dispatchPlay);
+        PLAY_S2C.addTo(builder.play().flow(PacketFlow.CLIENTBOUND), true,
+                NetworkBridgeRuntime::dispatchPlay);
+        CONFIG_C2S.addTo(builder.configuration().flow(PacketFlow.SERVERBOUND), false,
+                NetworkBridgeRuntime::dispatchServerConfiguration);
+        CONFIG_S2C.addTo(builder.configuration().flow(PacketFlow.CLIENTBOUND), false, null);
         channel = buildable.build();
         CONFIG_C2S.freeze();
         CONFIG_S2C.freeze();
@@ -115,6 +147,22 @@ public final class NetworkBridgeRuntime {
             if (player == null) throw new IllegalStateException("LB-NET-005: serverbound play payload has no player");
             ServerPlayNetworking.dispatch(payload, player);
         }
+    }
+
+    private static void dispatchServerConfiguration(CustomPacketPayload payload,
+            net.minecraftforge.event.network.CustomPayloadEvent.Context forgeContext) {
+        var listener = forgeContext.getConnection().getPacketListener();
+        if (!(listener instanceof net.minecraft.server.network.ServerConfigurationPacketListenerImpl handler)) {
+            throw new IllegalStateException(
+                    "LB-NET-006: serverbound configuration payload has no configuration listener");
+        }
+        ServerConfigurationNetworking.dispatch(payload, handler);
+    }
+
+    @FunctionalInterface
+    private interface PayloadDispatcher {
+        void dispatch(CustomPacketPayload payload,
+                net.minecraftforge.event.network.CustomPayloadEvent.Context context);
     }
 
     private static final class Registry<B extends FriendlyByteBuf> implements PayloadTypeRegistry<B> {
@@ -145,11 +193,14 @@ public final class NetworkBridgeRuntime {
         @SuppressWarnings("unchecked")
         synchronized void addTo(
                 net.minecraftforge.network.payload.PayloadFlow<B, CustomPacketPayload> flow,
-                boolean dispatch) {
+                boolean enqueue, PayloadDispatcher dispatcher) {
             for (var value : entries.values()) {
                 var entry = (CustomPacketPayload.TypeAndCodec<B, CustomPacketPayload>) value;
                 flow.add(entry.type(), entry.codec(), (payload, context) -> {
-                    if (dispatch) context.enqueueWork(() -> dispatchPlay(payload, context));
+                    if (dispatcher != null) {
+                        if (enqueue) context.enqueueWork(() -> dispatcher.dispatch(payload, context));
+                        else dispatcher.dispatch(payload, context);
+                    }
                     context.setPacketHandled(true);
                 });
             }
