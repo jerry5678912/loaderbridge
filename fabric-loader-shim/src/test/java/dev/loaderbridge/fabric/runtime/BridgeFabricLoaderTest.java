@@ -214,6 +214,21 @@ class BridgeFabricLoaderTest {
     }
 
     @Test
+    void preservesEveryHostMinecraftRootInForgeOrder() {
+        BridgeFabricLoader loader = BridgeFabricLoader.getInstance();
+        loader.resetForTests();
+        Path first = Path.of("build/minecraft-client").toAbsolutePath().normalize();
+        Path second = Path.of("build/minecraft-common").toAbsolutePath().normalize();
+
+        loader.configureHost(EnvType.CLIENT, Path.of("build/host-game"), "1.21.1", false,
+                List.of(first, second));
+
+        assertThat(loader.getModContainer("minecraft")).get()
+                .extracting(net.fabricmc.loader.api.ModContainer::getRootPaths)
+                .isEqualTo(List.of(first, second));
+    }
+
+    @Test
     void exposesParsedAliasesEnvironmentAndDependencyKindsAtRuntime() throws Exception {
         var parsed = new FabricMetadataParser().parse("""
                 {

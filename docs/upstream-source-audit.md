@@ -45,6 +45,12 @@ timings: a structural transformer copies the argument array at the start of
 each Minecraft `main(String[])`, the Forge client initialization boundary
 publishes `Minecraft.getInstance()`, and `ServerAboutToStartEvent` publishes the
 constructed dedicated server. No private ModLauncher fields are accessed.
+Fabric's builtin Minecraft candidate retains every ordered `gameJars` path as
+its container roots. Forge's `MinecraftLocator` builds its Minecraft mod from
+the ordered paths returned by the public launch handler. LoaderBridge now feeds
+that same Forge path list to the Fabric-compatible builtin container, preserving
+multi-path layouts without trying to reconstruct them from filenames or module
+internals.
 
 ## Exact 1.21.1 authority
 

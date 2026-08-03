@@ -65,18 +65,29 @@ public final class BridgeFabricLoader implements FabricLoader {
 
     public void configureHost(EnvType type, Path gameDir, String gameVersion,
             boolean development) {
+        configureHost(type, gameDir, gameVersion, development, List.of(gameDir));
+    }
+
+    public void configureHost(EnvType type, Path gameDir, String gameVersion,
+            boolean development, Collection<Path> minecraftRoots) {
         environment = type;
         gameDirectory = gameDir.toAbsolutePath().normalize();
         rawGameVersion = java.util.Objects.requireNonNull(gameVersion, "gameVersion");
         developmentEnvironment = development;
-        registerRuntimeContainers(gameVersion);
+        List<Path> normalizedMinecraftRoots = minecraftRoots.stream()
+                .map(path -> path.toAbsolutePath().normalize())
+                .toList();
+        if (normalizedMinecraftRoots.isEmpty()) {
+            throw new IllegalArgumentException("Minecraft roots cannot be empty");
+        }
+        registerRuntimeContainers(gameVersion, normalizedMinecraftRoots);
     }
 
     public void publishGameInstance(Object game) {
         gameInstance = java.util.Objects.requireNonNull(game, "game");
     }
 
-    private void registerRuntimeContainers(String gameVersion) {
+    private void registerRuntimeContainers(String gameVersion, List<Path> minecraftRoots) {
         String javaVersion = System.getProperty("java.specification.version").replaceFirst("^1\\.", "");
         Path javaRoot = Path.of(System.getProperty("java.home")).toAbsolutePath().normalize();
         Path loaderRoot = implementationRoot();
@@ -87,7 +98,7 @@ public final class BridgeFabricLoader implements FabricLoader {
             mods.put("java", BridgeModContainer.createBuiltin(
                     "java", javaVersion, System.getProperty("java.vm.name"), javaRoot));
             mods.put("minecraft", BridgeModContainer.createBuiltin(
-                    "minecraft", gameVersion, "Minecraft", gameDirectory,
+                    "minecraft", gameVersion, "Minecraft", minecraftRoots,
                     Map.of("java", List.of(">="
                             + FabricLoaderCompatibility.MINECRAFT_JAVA_VERSION))));
         }

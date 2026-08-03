@@ -46,9 +46,18 @@ public record BridgeModContainer(
 
     public static BridgeModContainer createBuiltin(String id, String version, String name,
             Path root, Map<String, List<String>> requiredDependencies) {
+        return createBuiltin(id, version, name, List.of(root), requiredDependencies);
+    }
+
+    public static BridgeModContainer createBuiltin(String id, String version, String name,
+            Collection<Path> roots, Map<String, List<String>> requiredDependencies) {
         List<ModDependency> dependencies = new ArrayList<>();
         addDependencies(dependencies, ModDependency.Kind.DEPENDS, requiredDependencies);
-        return create(id, version, name, List.of(), "builtin", root, dependencies);
+        Version parsedVersion = parseVersion(version);
+        ModMetadata metadata = new SimpleMetadata(
+                "builtin", id, List.of(), parsedVersion, name, ModEnvironment.UNIVERSAL,
+                dependencies, "", List.of(), List.of(), Map.of(), List.of(), Map.of(), Map.of());
+        return new BridgeModContainer(metadata, List.copyOf(roots), null, null);
     }
 
     private static BridgeModContainer create(String id, String version, String name,

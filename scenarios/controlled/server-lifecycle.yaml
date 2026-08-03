@@ -33,6 +33,11 @@ steps:
     timeout: PT30S
     parameters:
       contains: LOADERBRIDGE_FIXTURE_BUILTIN_MODS_READY
+  - id: fixture_builtin_roots
+    action: wait_for_log
+    timeout: PT30S
+    parameters:
+      contains: LOADERBRIDGE_FIXTURE_BUILTIN_ROOTS_READY
   - id: fixture_launch_arguments
     action: wait_for_log
     timeout: PT30S

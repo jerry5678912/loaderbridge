@@ -16,6 +16,9 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Exposed Forge's ordered Minecraft launch input paths as the Fabric builtin
+  `minecraft` container roots, including multi-path client/common layouts,
+  instead of using the unrelated game directory placeholder.
 - Captured the exact final client/server Minecraft argument arrays through a
   structural ModLauncher transformer, preserving Fabric's sensitive-argument
   sanitization contract without private reflection. Published the real client

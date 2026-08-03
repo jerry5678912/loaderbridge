@@ -27,6 +27,14 @@ public final class MainFixture implements ModInitializer {
         assertRuntimeContainer(loader, "java", "builtin",
                 System.getProperty("java.specification.version").replaceFirst("^1\\.", ""));
         assertRuntimeContainer(loader, "fabricloader", "fabric", "0.16.14");
+        var minecraftRoots = loader.getModContainer("minecraft").orElseThrow().getRootPaths();
+        if (minecraftRoots.isEmpty()
+                || minecraftRoots.stream().anyMatch(loader.getGameDir()::equals)) {
+            throw new IllegalStateException(
+                    "Minecraft builtin roots do not describe Forge's game inputs: "
+                            + minecraftRoots);
+        }
+        System.out.println("LOADERBRIDGE_FIXTURE_BUILTIN_ROOTS_READY");
         String[] arguments = loader.getLaunchArguments(false);
         boolean expectedArguments = loader.getEnvironmentType() == net.fabricmc.api.EnvType.CLIENT
                 ? java.util.List.of(arguments).contains("--gameDir")

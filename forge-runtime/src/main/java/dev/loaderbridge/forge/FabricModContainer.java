@@ -21,6 +21,7 @@ import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.fml.ModContainer;
 import net.minecraftforge.fml.event.IModBusEvent;
 import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.minecraftforge.fml.loading.FMLLoader;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.forgespi.language.IModInfo;
 import net.minecraftforge.forgespi.language.ModFileScanData;
@@ -59,9 +60,14 @@ public final class FabricModContainer extends ModContainer {
         }
         net.fabricmc.api.EnvType environment = FMLEnvironment.dist.isClient()
                 ? net.fabricmc.api.EnvType.CLIENT : net.fabricmc.api.EnvType.SERVER;
+        List<Path> minecraftRoots = FMLLoader.getLaunchHandler().getMinecraftPaths();
+        if (minecraftRoots.isEmpty()) {
+            throw new IllegalStateException(
+                    "LB-LOADER-ROOT-001: Forge reported no Minecraft input paths");
+        }
         BridgeFabricLoader.getInstance().configureHost(
                 environment, FMLPaths.GAMEDIR.get(), minecraftVersion,
-                !FMLEnvironment.production);
+                !FMLEnvironment.production, minecraftRoots);
         if (environment == net.fabricmc.api.EnvType.SERVER) {
             FabricServerGameInstanceRegistration.install(gameClassLoader);
         }
