@@ -34,6 +34,7 @@ include(
     "fabric-remap",
     "fabric-loader-shim",
     "fabric-api-base-bridge",
+    "fabric-command-api-v2-bridge",
     "fabric-lifecycle-events-bridge",
     "forge-runtime",
     "forge-transform-service",
@@ -41,5 +42,6 @@ include(
     "cli",
     "fixture-fabric-main",
     "fixture-fabric-api-base",
+    "fixture-fabric-command",
     "fixture-fabric-lifecycle",
 )

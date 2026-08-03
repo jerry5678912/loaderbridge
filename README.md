@@ -65,6 +65,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   `fabric-lifecycle-events-v1:2.6.0+0865547519`. It maps Fabric server/world
   start and end tick callbacks onto Forge events and automatically pulls in
   its API-base dependency.
+- A separately versioned Command API v2 bridge matching
+  `fabric-command-api-v2:2.2.28+6ced4dd919`. Fabric server command callbacks
+  receive Forge's live dispatcher, registry build context, and dedicated or
+  integrated command environment without wrapper substitution.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -89,6 +93,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - A controlled Fabric lifecycle fixture passes automatic base+lifecycle module
   installation, ordered server/world tick callbacks, dedicated-server ready,
   world save, clean shutdown, and reload on Forge 52.1.16.
+- A controlled Fabric command fixture registers and executes a real Brigadier
+  command before and after a Forge 52.1.16 dedicated-server restart, with world
+  save and clean shutdown.
 
 ## Intentionally gated
 

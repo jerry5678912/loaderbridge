@@ -12,6 +12,9 @@ dependencies {
     runtimeOnly(project(":fabric-api-base-bridge")) {
         isTransitive = false
     }
+    runtimeOnly(project(":fabric-command-api-v2-bridge")) {
+        isTransitive = false
+    }
     runtimeOnly(project(":fabric-lifecycle-events-bridge")) {
         isTransitive = false
     }

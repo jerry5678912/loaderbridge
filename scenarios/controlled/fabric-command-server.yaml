@@ -1,0 +1,45 @@
+schemaVersion: 1
+id: fabric_command_server
+description: Proves a Fabric-registered Brigadier command across save, restart, and reload.
+side: server
+mods:
+  - loaderbridge_fabric_command_fixture
+steps:
+  - id: start
+    action: start_instance
+    timeout: PT3M
+  - id: command
+    action: send_command
+    timeout: PT1M
+    parameters:
+      command: loaderbridge_fabric_command
+  - id: command_executed
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_COMMAND_EXECUTED
+  - id: save
+    action: save
+    timeout: PT1M
+    parameters:
+      marker: All dimensions are saved
+  - id: reload
+    action: reload
+    timeout: PT3M
+    parameters:
+      marker: Done
+  - id: command_after_reload
+    action: send_command
+    timeout: PT1M
+    parameters:
+      command: loaderbridge_fabric_command
+  - id: command_executed_after_reload
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_COMMAND_EXECUTED
+  - id: shutdown
+    action: shutdown
+    timeout: PT1M
+    parameters:
+      marker: All dimensions are saved

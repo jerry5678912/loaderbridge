@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "loaderbridge_fabric_command_fixture",
+  "version": "1.0.0",
+  "name": "LoaderBridge Fabric Command Fixture",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["dev.loaderbridge.fixture.command.FabricCommandFixture"]
+  },
+  "depends": {
+    "minecraft": "1.21.1",
+    "fabricloader": ">=0.16.0",
+    "fabric-command-api-v2": ">=2.2.28"
+  }
+}

@@ -264,6 +264,35 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsCommandBridgeAndItsBaseDependency() throws Exception {
+        Path source = referencedMod("command_api", "fabric-command-api-v2", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
+            method.visitFieldInsn(Opcodes.GETSTATIC,
+                    "net/fabricmc/fabric/api/command/v2/CommandRegistrationCallback",
+                    "EVENT", "Lnet/fabricmc/fabric/api/event/Event;");
+            method.visitInsn(Opcodes.POP);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(1, 1);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "command-api");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains(
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
+                        "fabric-command-api-v2-bridge-2.2.28_6ced4dd919-loaderbridge.1.jar");
+        assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
+                .contains("fabric-api-base-bridge", "fabric-command-api-v2-bridge");
+    }
+
+    @Test
     void rejectsOverlappingRuntimeBridgeModules() {
         RuntimeBridgeModuleProvider first = moduleProvider("first", "example.Shared", "example-api");
         RuntimeBridgeModuleProvider second = moduleProvider("second", "example.Shared", "other-api");
