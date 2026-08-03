@@ -2,6 +2,7 @@ package dev.loaderbridge.fixture.lifecycle;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 
@@ -12,6 +13,11 @@ public final class FabricLifecycleFixture implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        CommonLifecycleEvents.TAGS_LOADED.register((registries, client) -> {
+            if (!client) {
+                System.out.println("LOADERBRIDGE_FABRIC_LIFECYCLE_TAGS_READY");
+            }
+        });
         ServerTickEvents.START_SERVER_TICK.register(server -> STATE.compareAndSet(0, 1));
         ServerTickEvents.START_WORLD_TICK.register(world -> STATE.compareAndSet(1, 2));
         ServerTickEvents.END_WORLD_TICK.register(world -> STATE.compareAndSet(2, 3));

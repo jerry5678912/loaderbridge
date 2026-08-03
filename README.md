@@ -61,10 +61,11 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   `fabric-api-base:0.4.42+6573ed8c19`: events, ordered phases, TriState, and
   utility constants. ServiceLoader selection is driven by bytecode references
   and declared dependencies, then recorded in the lock and report.
-- A separately versioned lifecycle bridge matching the server-tick surface of
+- A separately versioned lifecycle bridge matching the complete server-tick
+  and common tag-loading surfaces of
   `fabric-lifecycle-events-v1:2.6.0+0865547519`. It maps Fabric server/world
-  start and end tick callbacks onto Forge events and automatically pulls in
-  its API-base dependency.
+  start/end tick callbacks and tag updates onto Forge events, and automatically
+  pulls in its API-base dependency.
 - A separately versioned Command API v2 bridge matching
   `fabric-command-api-v2:2.2.28+6ced4dd919`. Fabric server command callbacks
   receive Forge's live dispatcher, registry build context, and dedicated or

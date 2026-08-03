@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
+import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import org.junit.jupiter.api.Test;
 
@@ -35,8 +36,22 @@ class FabricLifecycleContractTest {
                 .containsEntry("fabric-lifecycle-events-v1", "2.6.0+0865547519");
         assertThat(descriptor.requiredModules()).containsExactly("fabric-api-base-bridge");
         assertThat(descriptor.providedClasses()).contains(
+                "net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents",
+                "net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents$TagsLoaded",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents$StartTick",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents$EndWorldTick");
+    }
+
+    @Test
+    void commonTagsLoadedEventPreservesRegistryAndClientFlag() {
+        List<String> calls = new ArrayList<>();
+        CommonLifecycleEvents.TAGS_LOADED.register((registries, client) ->
+                calls.add(registries + ":" + client));
+
+        CommonLifecycleEvents.TAGS_LOADED.invoker().onTagsLoaded(null, false);
+        CommonLifecycleEvents.TAGS_LOADED.invoker().onTagsLoaded(null, true);
+
+        assertThat(calls).containsExactly("null:false", "null:true");
     }
 }

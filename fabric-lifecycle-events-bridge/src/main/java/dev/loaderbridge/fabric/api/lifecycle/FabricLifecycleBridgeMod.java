@@ -1,9 +1,11 @@
 package dev.loaderbridge.fabric.api.lifecycle;
 
+import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.TagsUpdatedEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /** Connects Forge tick events to the binary-compatible Fabric callbacks. */
@@ -14,6 +16,7 @@ public final class FabricLifecycleBridgeMod {
         MinecraftForge.EVENT_BUS.addListener(this::onServerTickEnd);
         MinecraftForge.EVENT_BUS.addListener(this::onLevelTickStart);
         MinecraftForge.EVENT_BUS.addListener(this::onLevelTickEnd);
+        MinecraftForge.EVENT_BUS.addListener(this::onTagsUpdated);
     }
 
     private void onServerTickStart(TickEvent.ServerTickEvent.Pre event) {
@@ -34,5 +37,10 @@ public final class FabricLifecycleBridgeMod {
         if (event.level instanceof ServerLevel serverLevel) {
             ServerTickEvents.END_WORLD_TICK.invoker().onEndTick(serverLevel);
         }
+    }
+
+    private void onTagsUpdated(TagsUpdatedEvent event) {
+        boolean client = event.getUpdateCause() == TagsUpdatedEvent.UpdateCause.CLIENT_PACKET_RECEIVED;
+        CommonLifecycleEvents.TAGS_LOADED.invoker().onTagsLoaded(event.getRegistryAccess(), client);
     }
 }

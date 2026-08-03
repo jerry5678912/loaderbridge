@@ -13,6 +13,11 @@ steps:
     timeout: PT3M
     parameters:
       contains: LOADERBRIDGE_FABRIC_LIFECYCLE_TICKS_READY
+  - id: tags_ready
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_LIFECYCLE_TAGS_READY
   - id: save
     action: save
     timeout: PT1M
@@ -23,6 +28,11 @@ steps:
     timeout: PT3M
     parameters:
       marker: LOADERBRIDGE_FABRIC_LIFECYCLE_TICKS_READY
+  - id: tags_ready_after_reload
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_LIFECYCLE_TAGS_READY
   - id: shutdown
     action: shutdown
     timeout: PT1M
