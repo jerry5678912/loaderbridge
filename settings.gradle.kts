@@ -42,6 +42,7 @@ include(
     "fabric-api-lookup-api-v1-bridge",
     "fabric-registry-sync-v0-bridge",
     "fabric-networking-api-v1-bridge",
+    "fabric-transfer-api-v1-bridge",
     "forge-runtime",
     "forge-transform-service",
     "integration-harness",

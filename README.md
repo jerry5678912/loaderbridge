@@ -112,6 +112,12 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   `SKIP_WHEN_EMPTY` filters registry payload and tag synchronization. Forge owns
   the connection registry handshake; the controlled client proves static and
   dynamic registration through save and reload.
+- An initial Transfer API v1 bridge matching
+  `fabric-transfer-api-v1:5.4.4+7b3d111d19`. Its transaction foundation
+  implements thread-confined outer and nested scopes, LIFO close callbacks,
+  rollback and commit propagation, outer-close notifications, lifecycle state,
+  and snapshot participants. Automatic bytecode selection and the graphical
+  client prove nested rollback and final commit during Fabric initialization.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -162,7 +168,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 ## Intentionally gated
 
 The adapter currently rejects Fabric API surfaces outside the implemented
-modules, unknown custom language adapters, Loader API calls outside the current
+modules, including Transfer API storage/item/fluid surfaces, unknown custom
+language adapters, Loader API calls outside the current
 shim, and mods requiring unreviewed native-library behavior. Signed patch packs,
 broad semantic graphical assertions, and catalog-wide compatibility measurement
 are not yet implemented.

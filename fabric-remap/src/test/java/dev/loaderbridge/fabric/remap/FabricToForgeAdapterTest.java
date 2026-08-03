@@ -361,6 +361,33 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsTransferTransactionBridgeFromBytecode() throws Exception {
+        Path source = referencedMod("transfer_transaction", "fabric-transfer-api-v1", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
+            method.visitMethodInsn(Opcodes.INVOKESTATIC,
+                    "net/fabricmc/fabric/api/transfer/v1/transaction/Transaction", "openOuter",
+                    "()Lnet/fabricmc/fabric/api/transfer/v1/transaction/Transaction;", true);
+            method.visitInsn(Opcodes.POP);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(1, 1);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "transfer-transaction");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains("fabric-transfer-api-v1-bridge-5.4.4_7b3d111d19-loaderbridge.1.jar");
+        assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
+                .contains("fabric-transfer-api-v1-bridge");
+    }
+
+    @Test
     void automaticallySelectsResourceLoaderBridgeAndItsBaseDependency() throws Exception {
         Path source = referencedMod("resource_loader_api", "fabric-resource-loader-v0", writer -> {
             var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);

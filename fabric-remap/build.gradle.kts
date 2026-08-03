@@ -39,4 +39,7 @@ dependencies {
     testRuntimeOnly(project(":fabric-networking-api-v1-bridge")) {
         isTransitive = false
     }
+    testRuntimeOnly(project(":fabric-transfer-api-v1-bridge")) {
+        isTransitive = false
+    }
 }

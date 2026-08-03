@@ -49,6 +49,9 @@ import net.fabricmc.fabric.api.event.registry.DynamicRegistrySetupCallback;
 import net.fabricmc.fabric.api.event.registry.RegistryAttribute;
 import net.fabricmc.fabric.api.event.registry.RegistryAttributeHolder;
 import net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback;
+import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
+import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.resources.ResourceKey;
@@ -118,6 +121,23 @@ public final class FabricLifecycleFixture implements ModInitializer {
     @Override
     @SuppressWarnings("deprecation")
     public void onInitialize() {
+        TransactionFixture transactionFixture = new TransactionFixture();
+        try (Transaction outer = Transaction.openOuter()) {
+            transactionFixture.set(1, outer);
+            try (Transaction nested = outer.openNested()) {
+                transactionFixture.set(2, nested);
+                nested.commit();
+            }
+        }
+        try (Transaction committed = Transaction.openOuter()) {
+            transactionFixture.set(3, committed);
+            committed.commit();
+        }
+        if (transactionFixture.value != 3 || transactionFixture.commits != 1
+                || Transaction.isOpen()) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_TRANSFER_TRANSACTION_FAILED");
+        }
+        System.out.println("LOADERBRIDGE_FABRIC_TRANSFER_TRANSACTION_READY");
         DynamicRegistrySetupCallback.EVENT.register(view -> {
             if (view.getOptional(DYNAMIC_REGISTRY_KEY).isEmpty()) return;
             if (view.asDynamicRegistryManager().registry(DYNAMIC_REGISTRY_KEY).isEmpty()
@@ -450,5 +470,30 @@ public final class FabricLifecycleFixture implements ModInitializer {
 
     private static boolean isTestChunk(net.minecraft.world.level.chunk.LevelChunk chunk) {
         return chunk.getPos().x == TEST_CHUNK && chunk.getPos().z == TEST_CHUNK;
+    }
+
+    private static final class TransactionFixture extends SnapshotParticipant<Integer> {
+        private int value;
+        private int commits;
+
+        private void set(int next, TransactionContext transaction) {
+            updateSnapshots(transaction);
+            value = next;
+        }
+
+        @Override
+        protected Integer createSnapshot() {
+            return value;
+        }
+
+        @Override
+        protected void readSnapshot(Integer snapshot) {
+            value = snapshot;
+        }
+
+        @Override
+        protected void onFinalCommit() {
+            commits++;
+        }
     }
 }

@@ -16,6 +16,11 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added the first Fabric Transfer API v1 bridge slice with thread-confined
+  outer/nested transactions, rollback and commit propagation, LIFO close and
+  outer-close callbacks, snapshot participants, automatic bytecode selection,
+  contract tests, and a real Forge client initialization fixture.
+
 - Added the initial Fabric Registry Sync v0 bridge with custom static registry
   builders, MODDED/SYNCED attributes, registry-local entry/remap events,
   automatic module selection, and real Forge client save/reload coverage.
