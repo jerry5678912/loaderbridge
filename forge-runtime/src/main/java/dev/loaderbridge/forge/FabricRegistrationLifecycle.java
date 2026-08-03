@@ -10,6 +10,8 @@ import net.minecraftforge.eventbus.api.Event;
 final class FabricRegistrationLifecycle {
     private static final String COMMON_SETUP_EVENT =
             "net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent";
+    private static final String CLIENT_RECIPE_BOOK_EVENT =
+            "net.minecraftforge.client.event.RegisterRecipeBookCategoriesEvent";
     private static final Coordinator MAIN_ENTRYPOINTS = new Coordinator();
 
     private FabricRegistrationLifecycle() {
@@ -23,11 +25,17 @@ final class FabricRegistrationLifecycle {
         MAIN_ENTRYPOINTS.registerClient(entrypoints);
     }
 
-    static boolean invokeIfCommonSetupEvent(Event event) {
-        return MAIN_ENTRYPOINTS.invokeIfCommonSetupEvent(event.getClass().getName(),
+    static boolean invokeIfInitializationEvent(Event event) {
+        return MAIN_ENTRYPOINTS.invokeIfInitializationEvent(event.getClass().getName(),
                 () -> openForgeRegistryWindow(event),
-                () -> FabricClientModelRegistration.captureBeforeEntrypoints(event),
-                () -> FabricClientModelRegistration.captureAfterEntrypoints(event));
+                () -> {
+                    FabricClientModelRegistration.captureBeforeEntrypoints(event);
+                    FabricClientRecipeBookRegistration.captureBeforeEntrypoints(event);
+                },
+                () -> {
+                    FabricClientModelRegistration.captureAfterEntrypoints(event);
+                    FabricClientRecipeBookRegistration.captureAfterEntrypoints(event);
+                });
     }
 
     static final class Coordinator {
@@ -51,15 +59,18 @@ final class FabricRegistrationLifecycle {
             pendingClient.add(entrypoints);
         }
 
-        synchronized boolean invokeIfCommonSetupEvent(String eventName,
+        synchronized boolean invokeIfInitializationEvent(String eventName,
                 Runnable openRegistryWindow) {
-            return invokeIfCommonSetupEvent(eventName, openRegistryWindow, () -> { }, () -> { });
+            return invokeIfInitializationEvent(
+                    eventName, openRegistryWindow, () -> { }, () -> { });
         }
 
-        synchronized boolean invokeIfCommonSetupEvent(String eventName,
+        synchronized boolean invokeIfInitializationEvent(String eventName,
                 Runnable openRegistryWindow, Runnable beforeEntrypoints,
                 Runnable afterEntrypoints) {
-            if (!COMMON_SETUP_EVENT.equals(eventName) || invoked) {
+            boolean supportedEvent = COMMON_SETUP_EVENT.equals(eventName)
+                    || CLIENT_RECIPE_BOOK_EVENT.equals(eventName);
+            if (!supportedEvent || invoked) {
                 return false;
             }
             invoked = true;

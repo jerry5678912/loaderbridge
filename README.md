@@ -195,9 +195,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   block and inventory model/texture resolution, placement, clay-and-coal kiln
   processing into a brick, machine-output persistence, save, and reload pass.
   A generic late-item model bridge loads and caches models for items registered
-  by Fabric entrypoints after Forge constructs its item renderer. Its custom
-  client recipe-book categories still produce warnings and remain a narrower
-  known UI gap. See
+  by Fabric entrypoints after Forge constructs its item renderer. A generic
+  cooking-recipe bridge also maps newly registered Fabric cooking types to
+  Forge's vanilla food, block, or miscellaneous recipe-book categories. See
   [the current evidence](docs/real-mod-probes/oxidized-1.8.4.md).
 - A controlled Fabric API base fixture passes automatic module installation,
   dedicated-server ready, world save, clean shutdown, and reload on Forge

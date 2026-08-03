@@ -30,12 +30,18 @@ shows:
   stores it under the logical inventory model ID.
 - `ItemRenderer` snapshots the item registry in its constructor and later
   rebuilds baked models from that item-to-model table.
+- `ForgeHooksClient.initClientHooks` initializes `RecipeBookManager` while mod
+  loading can still be proceeding, and `RegisterRecipeBookCategoriesEvent` is
+  the last supported point for installing custom recipe-category finders.
 
 Running all Fabric entrypoints during Forge construction was tested and
 rejected: Oxidized reads Forge's `swim_speed` attribute while creating entity
 attributes, but that holder is not bound until Forge's registry population.
-LoaderBridge therefore retains the post-registry entrypoint window and repairs
-the client model discovery/cache boundary generically.
+LoaderBridge therefore retains a post-registry entrypoint window. On the
+client, the first recipe-book registration event runs Fabric `main` and
+`client`, captures recipe types they add, and registers generic finders on that
+same event. Common setup remains the fallback and server path. The bridge also
+repairs the client model discovery/cache boundary generically.
 
 ## Behavioral proof
 
@@ -43,4 +49,5 @@ The Oxidized probe now rejects missing block models, missing inventory models,
 and missing textures before it performs its machine scenario. It then places
 the kiln, processes clay and coal into a brick, saves, reloads, and verifies the
 block, inventory item, and machine output. The separate custom recipe-book
-category warning is still open and is not hidden by this result.
+check now passes: the run registers one finder for
+`oxidized:kiln_smelting`, and Forge emits no unknown-category warning.

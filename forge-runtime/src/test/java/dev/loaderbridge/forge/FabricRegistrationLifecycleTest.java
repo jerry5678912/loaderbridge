@@ -16,17 +16,31 @@ class FabricRegistrationLifecycleTest {
         coordinator.registerMain(() -> order.add("main-two"));
         coordinator.registerClient(() -> order.add("client-two"));
 
-        assertThat(coordinator.invokeIfCommonSetupEvent(
+        assertThat(coordinator.invokeIfInitializationEvent(
                 "net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent",
                 () -> order.add("wrong-open"))).isFalse();
-        assertThat(coordinator.invokeIfCommonSetupEvent(
+        assertThat(coordinator.invokeIfInitializationEvent(
                 "net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent",
                 () -> order.add("open"))).isTrue();
-        assertThat(coordinator.invokeIfCommonSetupEvent(
+        assertThat(coordinator.invokeIfInitializationEvent(
                 "net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent",
                 () -> order.add("open-again"))).isFalse();
 
         assertThat(order).containsExactly(
                 "open", "main-one", "main-two", "client-one", "client-two");
+    }
+
+    @Test
+    void clientRecipeBookEventCanInitializeBeforeItsSnapshot() {
+        var coordinator = new FabricRegistrationLifecycle.Coordinator();
+        List<String> order = new ArrayList<>();
+        coordinator.registerMain(() -> order.add("main"));
+        coordinator.registerClient(() -> order.add("client"));
+
+        assertThat(coordinator.invokeIfInitializationEvent(
+                "net.minecraftforge.client.event.RegisterRecipeBookCategoriesEvent",
+                () -> order.add("open"))).isTrue();
+
+        assertThat(order).containsExactly("open", "main", "client");
     }
 }

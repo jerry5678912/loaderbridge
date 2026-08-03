@@ -129,10 +129,11 @@ public final class FabricModContainer extends ModContainer {
         }
         String eventName = event.getClass().getName();
         Path metadataPath = modInfo.getOwningFile().getFile().findResource("fabric.mod.json");
-        if (FabricRegistrationLifecycle.invokeIfCommonSetupEvent(event)) {
+        FabricRegistrationLifecycle.invokeIfInitializationEvent(event);
+        if (FabricClientModelRegistration.registerIfModelEvent(event)) {
             return;
         }
-        if (FabricClientModelRegistration.registerIfModelEvent(event)) {
+        if (FabricClientRecipeBookRegistration.registerIfEvent(event)) {
             return;
         }
         if (eventName.equals("net.minecraftforge.fml.event.lifecycle.FMLDedicatedServerSetupEvent")

@@ -1,7 +1,7 @@
 # Oxidized 1.8.4 real-mod probe
 
-Status: block and inventory visuals plus core technology behavior pass; custom
-recipe-book category warnings remain.
+Status: block and inventory visuals, cooking recipe-book classification, and
+core technology behavior pass.
 
 ## Pinned source
 
@@ -60,7 +60,7 @@ The fresh preparation lock SHA-256 is
 Transformed third-party JARs and machine-specific lock paths are not committed
 or redistributed.
 
-## Remaining client UI gap
+## Graphical and recipe-book proof
 
 The deep scenario placed the kiln, inserted `minecraft:clay_ball` and
 `minecraft:coal`, waited for the real block entity to produce
@@ -75,6 +75,11 @@ models through Forge's model events, aliases the normal `models/item/` resource
 to its logical inventory model ID, and updates the item renderer's early cache.
 It does not match Oxidized's filename or mod ID.
 
-The client still logs unknown `oxidized:kiln_smelting` recipe-book categories.
-That does not prevent server recipe processing, but recipe-book presentation is
-a known unpassed UI behavior and remains a separate compatibility repair.
+LoaderBridge also snapshots the recipe-type registry around Fabric entrypoint
+execution and registers a Forge recipe-book finder for each newly added type.
+For cooking recipes it preserves the recipe's `FOOD`, `BLOCKS`, or `MISC`
+classification by selecting the corresponding vanilla furnace category. The
+repaired run registered the `oxidized:kiln_smelting` finder before Forge built
+its client lookup and emitted no unknown-category warning. Non-cooking custom
+recipe types deliberately remain unsupported rather than being assigned a
+misleading category.

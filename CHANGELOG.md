@@ -16,6 +16,14 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added generic recipe-book category discovery for Fabric cooking recipe types.
+  LoaderBridge snapshots actual recipe-type registry additions around Fabric
+  entrypoints and maps `AbstractCookingRecipe` instances to Forge's vanilla
+  food, block, or miscellaneous furnace categories without mod-ID matching.
+- Moved client Fabric initialization to Forge's recipe-book registration event,
+  with common setup retained as the fallback. This keeps initialization after
+  registry population while allowing custom cooking categories to be present
+  before Forge freezes its recipe-book lookup table.
 - Added a generic late-Fabric-item model bridge based on Forge's
   `RegisterAdditional`, `ModifyBakingResult`, and `BakingCompleted` model
   events. It snapshots actual registry additions, loads `models/item/`
