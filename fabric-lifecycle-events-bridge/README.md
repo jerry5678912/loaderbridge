@@ -2,9 +2,11 @@
 
 This module targets the official
 `fabric-lifecycle-events-v1:2.6.0+0865547519` binary contract from Fabric API
-`0.116.15+1.21.1`. The implementation provides all four server tick callbacks
-through Forge's pre/post server and level tick events, plus the complete common
-tag-loading callback through Forge's tag-update event.
+`0.116.15+1.21.1`. The implementation now provides the complete
+`ServerTickEvents`, `CommonLifecycleEvents`, and `ServerLifecycleEvents`
+classes. Forge events carry server lifecycle, datapack sync, tick, and tag
+callbacks. A version-pinned Mixin supplies Fabric's exact `MinecraftServer`
+save and datapack-reload hook points before the affected methods return.
 
 Authoritative references:
 
@@ -12,3 +14,5 @@ Authoritative references:
 - https://github.com/FabricMC/fabric-api/tree/0.116.15%2B1.21.1/fabric-lifecycle-events-v1
 - https://github.com/MinecraftForge/MinecraftForge/blob/1.21.x/src/main/java/net/minecraftforge/event/TickEvent.java
 - https://github.com/MinecraftForge/MinecraftForge/blob/1.21.x/src/main/java/net/minecraftforge/event/TagsUpdatedEvent.java
+- https://github.com/MinecraftForge/MinecraftForge/blob/1.21.x/src/main/java/net/minecraftforge/event/OnDatapackSyncEvent.java
+- https://github.com/MinecraftForge/MinecraftForge/tree/1.21.x/src/main/java/net/minecraftforge/event/server

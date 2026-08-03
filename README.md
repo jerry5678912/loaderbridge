@@ -61,11 +61,12 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   `fabric-api-base:0.4.42+6573ed8c19`: events, ordered phases, TriState, and
   utility constants. ServiceLoader selection is driven by bytecode references
   and declared dependencies, then recorded in the lock and report.
-- A separately versioned lifecycle bridge matching the complete server-tick
-  and common tag-loading surfaces of
+- A separately versioned lifecycle bridge matching the complete server-tick,
+  common tag-loading, and server lifecycle surfaces of
   `fabric-lifecycle-events-v1:2.6.0+0865547519`. It maps Fabric server/world
-  start/end tick callbacks and tag updates onto Forge events, and automatically
-  pulls in its API-base dependency.
+  tick, tag, server state, datapack sync, reload, and save callbacks through
+  Forge events plus a version-pinned early Mixin, and automatically pulls in
+  its API-base dependency.
 - A separately versioned Command API v2 bridge matching
   `fabric-command-api-v2:2.2.28+6ced4dd919`. Fabric server command callbacks
   receive Forge's live dispatcher, registry build context, and dedicated or
@@ -92,8 +93,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   dedicated-server ready, world save, clean shutdown, and reload on Forge
   52.1.16.
 - A controlled Fabric lifecycle fixture passes automatic base+lifecycle module
-  installation, ordered server/world tick callbacks, dedicated-server ready,
-  world save, clean shutdown, and reload on Forge 52.1.16.
+  installation, ordered server/world tick callbacks, tag loading, server state,
+  datapack reload, before/after save, dedicated-server ready, clean shutdown,
+  and process reload on Forge 52.1.16.
 - A controlled Fabric command fixture registers and executes a real Brigadier
   command before and after a Forge 52.1.16 dedicated-server restart, with world
   save and clean shutdown.

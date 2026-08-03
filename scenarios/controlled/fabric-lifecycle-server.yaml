@@ -13,16 +13,46 @@ steps:
     timeout: PT3M
     parameters:
       contains: LOADERBRIDGE_FABRIC_LIFECYCLE_TICKS_READY
+  - id: server_lifecycle_ready
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_SERVER_LIFECYCLE_READY
   - id: tags_ready
     action: wait_for_log
     timeout: PT1M
     parameters:
       contains: LOADERBRIDGE_FABRIC_LIFECYCLE_TAGS_READY
+  - id: datapack_reload
+    action: send_command
+    timeout: PT1M
+    parameters:
+      command: reload
+  - id: datapack_reload_started
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_RELOAD_STARTED
+  - id: datapack_reload_finished
+    action: wait_for_log
+    timeout: PT2M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_RELOAD_FINISHED
   - id: save
     action: save
     timeout: PT1M
     parameters:
       marker: All dimensions are saved
+  - id: save_started
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_SAVE_STARTED:true:true
+  - id: save_finished
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_SAVE_FINISHED:true:true
   - id: reload
     action: reload
     timeout: PT3M
@@ -38,3 +68,8 @@ steps:
     timeout: PT1M
     parameters:
       marker: All dimensions are saved
+  - id: stopped
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_SERVER_STOPPED

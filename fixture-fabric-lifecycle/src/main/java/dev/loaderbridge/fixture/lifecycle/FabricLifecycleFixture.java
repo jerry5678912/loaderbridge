@@ -4,15 +4,44 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 
 /** Verifies Forge-to-Fabric server and world tick ordering at runtime. */
 public final class FabricLifecycleFixture implements ModInitializer {
     private static final AtomicInteger STATE = new AtomicInteger();
+    private static final AtomicInteger SERVER_STATE = new AtomicInteger();
     private static final AtomicBoolean REPORTED = new AtomicBoolean();
 
     @Override
     public void onInitialize() {
+        ServerLifecycleEvents.SERVER_STARTING.register(server -> SERVER_STATE.compareAndSet(0, 1));
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            if (SERVER_STATE.compareAndSet(1, 2)) {
+                System.out.println("LOADERBRIDGE_FABRIC_SERVER_LIFECYCLE_READY");
+            }
+        });
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            if (SERVER_STATE.compareAndSet(2, 3)) {
+                System.out.println("LOADERBRIDGE_FABRIC_SERVER_STOPPING");
+            }
+        });
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            if (SERVER_STATE.compareAndSet(3, 4)) {
+                System.out.println("LOADERBRIDGE_FABRIC_SERVER_STOPPED");
+            }
+        });
+        ServerLifecycleEvents.START_DATA_PACK_RELOAD.register((server, resources) ->
+                System.out.println("LOADERBRIDGE_FABRIC_RELOAD_STARTED"));
+        ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resources, success) -> {
+            if (success) {
+                System.out.println("LOADERBRIDGE_FABRIC_RELOAD_FINISHED");
+            }
+        });
+        ServerLifecycleEvents.BEFORE_SAVE.register((server, flush, force) ->
+                System.out.println("LOADERBRIDGE_FABRIC_SAVE_STARTED:" + flush + ":" + force));
+        ServerLifecycleEvents.AFTER_SAVE.register((server, flush, force) ->
+                System.out.println("LOADERBRIDGE_FABRIC_SAVE_FINISHED:" + flush + ":" + force));
         CommonLifecycleEvents.TAGS_LOADED.register((registries, client) -> {
             if (!client) {
                 System.out.println("LOADERBRIDGE_FABRIC_LIFECYCLE_TAGS_READY");

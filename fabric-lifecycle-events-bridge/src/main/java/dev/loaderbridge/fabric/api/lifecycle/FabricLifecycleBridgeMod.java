@@ -1,11 +1,17 @@
 package dev.loaderbridge.fabric.api.lifecycle;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.TagsUpdatedEvent;
+import net.minecraftforge.event.OnDatapackSyncEvent;
+import net.minecraftforge.event.server.ServerAboutToStartEvent;
+import net.minecraftforge.event.server.ServerStartedEvent;
+import net.minecraftforge.event.server.ServerStoppedEvent;
+import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /** Connects Forge tick events to the binary-compatible Fabric callbacks. */
@@ -17,6 +23,11 @@ public final class FabricLifecycleBridgeMod {
         MinecraftForge.EVENT_BUS.addListener(this::onLevelTickStart);
         MinecraftForge.EVENT_BUS.addListener(this::onLevelTickEnd);
         MinecraftForge.EVENT_BUS.addListener(this::onTagsUpdated);
+        MinecraftForge.EVENT_BUS.addListener(this::onServerStarting);
+        MinecraftForge.EVENT_BUS.addListener(this::onServerStarted);
+        MinecraftForge.EVENT_BUS.addListener(this::onServerStopping);
+        MinecraftForge.EVENT_BUS.addListener(this::onServerStopped);
+        MinecraftForge.EVENT_BUS.addListener(this::onDataPackSync);
     }
 
     private void onServerTickStart(TickEvent.ServerTickEvent.Pre event) {
@@ -42,5 +53,34 @@ public final class FabricLifecycleBridgeMod {
     private void onTagsUpdated(TagsUpdatedEvent event) {
         boolean client = event.getUpdateCause() == TagsUpdatedEvent.UpdateCause.CLIENT_PACKET_RECEIVED;
         CommonLifecycleEvents.TAGS_LOADED.invoker().onTagsLoaded(event.getRegistryAccess(), client);
+    }
+
+    private void onServerStarting(ServerAboutToStartEvent event) {
+        ServerLifecycleEvents.SERVER_STARTING.invoker().onServerStarting(event.getServer());
+    }
+
+    private void onServerStarted(ServerStartedEvent event) {
+        ServerLifecycleEvents.SERVER_STARTED.invoker().onServerStarted(event.getServer());
+    }
+
+    private void onServerStopping(ServerStoppingEvent event) {
+        ServerLifecycleEvents.SERVER_STOPPING.invoker().onServerStopping(event.getServer());
+    }
+
+    private void onServerStopped(ServerStoppedEvent event) {
+        ServerLifecycleEvents.SERVER_STOPPED.invoker().onServerStopped(event.getServer());
+    }
+
+    private void onDataPackSync(OnDatapackSyncEvent event) {
+        boolean joined = event.getPlayer() != null;
+        dispatchDataPackSync(event.getPlayers(), joined);
+    }
+
+    static void dispatchDataPackSync(Iterable<net.minecraft.server.level.ServerPlayer> players,
+            boolean joined) {
+        for (var player : players) {
+            ServerLifecycleEvents.SYNC_DATA_PACK_CONTENTS.invoker()
+                    .onSyncDataPackContents(player, joined);
+        }
     }
 }

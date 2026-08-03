@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.ArrayList;
 import java.util.List;
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import org.junit.jupiter.api.Test;
 
@@ -32,12 +33,16 @@ class FabricLifecycleContractTest {
         var descriptor = new FabricLifecycleBridgeProvider().descriptor();
 
         assertThat(descriptor.contractVersion()).isEqualTo("fabric-lifecycle-events-v1:2.6.0");
+        assertThat(descriptor.implementationVersion())
+                .isEqualTo("2.6.0+0865547519-loaderbridge.2");
         assertThat(descriptor.providedModVersions())
                 .containsEntry("fabric-lifecycle-events-v1", "2.6.0+0865547519");
         assertThat(descriptor.requiredModules()).containsExactly("fabric-api-base-bridge");
         assertThat(descriptor.providedClasses()).contains(
                 "net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents$TagsLoaded",
+                "net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents",
+                "net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents$AfterSave",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents$StartTick",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents$EndWorldTick");
@@ -53,5 +58,48 @@ class FabricLifecycleContractTest {
         CommonLifecycleEvents.TAGS_LOADED.invoker().onTagsLoaded(null, true);
 
         assertThat(calls).containsExactly("null:false", "null:true");
+    }
+
+    @Test
+    void serverLifecycleEventsPreserveOrderArgumentsAndReloadOutcome() {
+        List<String> calls = new ArrayList<>();
+        ServerLifecycleEvents.SERVER_STARTING.register(server -> calls.add("starting"));
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> calls.add("started"));
+        ServerLifecycleEvents.START_DATA_PACK_RELOAD.register(
+                (server, resources) -> calls.add("reload-start"));
+        ServerLifecycleEvents.END_DATA_PACK_RELOAD.register(
+                (server, resources, success) -> calls.add("reload-end:" + success));
+        ServerLifecycleEvents.BEFORE_SAVE.register(
+                (server, flush, force) -> calls.add("save-start:" + flush + ":" + force));
+        ServerLifecycleEvents.AFTER_SAVE.register(
+                (server, flush, force) -> calls.add("save-end:" + flush + ":" + force));
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> calls.add("stopping"));
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> calls.add("stopped"));
+
+        ServerLifecycleEvents.SERVER_STARTING.invoker().onServerStarting(null);
+        ServerLifecycleEvents.SERVER_STARTED.invoker().onServerStarted(null);
+        ServerLifecycleEvents.START_DATA_PACK_RELOAD.invoker().startDataPackReload(null, null);
+        ServerLifecycleEvents.END_DATA_PACK_RELOAD.invoker().endDataPackReload(null, null, true);
+        ServerLifecycleEvents.BEFORE_SAVE.invoker().onBeforeSave(null, true, false);
+        ServerLifecycleEvents.AFTER_SAVE.invoker().onAfterSave(null, true, false);
+        ServerLifecycleEvents.SERVER_STOPPING.invoker().onServerStopping(null);
+        ServerLifecycleEvents.SERVER_STOPPED.invoker().onServerStopped(null);
+
+        assertThat(calls).containsExactly("starting", "started", "reload-start", "reload-end:true",
+                "save-start:true:false", "save-end:true:false", "stopping", "stopped");
+    }
+
+    @Test
+    void datapackSyncDispatchPreservesJoinedFlagForEverySelectedPlayer() {
+        List<Boolean> joinedValues = new ArrayList<>();
+        ServerLifecycleEvents.SYNC_DATA_PACK_CONTENTS.register(
+                (player, joined) -> joinedValues.add(joined));
+
+        FabricLifecycleBridgeMod.dispatchDataPackSync(
+                java.util.Arrays.asList(null, null), false);
+        FabricLifecycleBridgeMod.dispatchDataPackSync(
+                java.util.Collections.singletonList(null), true);
+
+        assertThat(joinedValues).containsExactly(false, false, true);
     }
 }
