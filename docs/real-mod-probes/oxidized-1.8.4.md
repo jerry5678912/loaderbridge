@@ -1,7 +1,7 @@
 # Oxidized 1.8.4 real-mod probe
 
-Status: content registration and persistence pass; technology behavior is not
-yet scored.
+Status: core technology behavior passes; custom recipe-book category warnings
+remain.
 
 ## Pinned source
 
@@ -42,8 +42,11 @@ The repaired graphical run emitted:
 LOADERBRIDGE_CLIENT_TITLE_READY
 LOADERBRIDGE_CLIENT_WORLD_READY
 LOADERBRIDGE_CONTENT_REGISTRY_READY=oxidized:copper_kiln
-LOADERBRIDGE_CONTENT_BLOCK_PLACED=-53, 66, 15
+LOADERBRIDGE_CONTENT_BLOCK_PLACED=4, 130, -4
+LOADERBRIDGE_MACHINE_INPUT_READY=minecraft:clay_ball
+LOADERBRIDGE_MACHINE_OUTPUT_READY=minecraft:brick
 LOADERBRIDGE_CLIENT_WORLD_SAVED
+LOADERBRIDGE_MACHINE_OUTPUT_RELOADED=minecraft:brick
 LOADERBRIDGE_CONTENT_BLOCK_RELOADED=oxidized:copper_kiln
 LOADERBRIDGE_CONTENT_ITEM_RELOADED=oxidized:copper_kiln
 LOADERBRIDGE_CLIENT_WORLD_RELOADED
@@ -55,10 +58,13 @@ The fresh preparation lock SHA-256 is
 Transformed third-party JARs and machine-specific lock paths are not committed
 or redistributed.
 
-## Remaining technology gate
+## Remaining client UI gap
 
-This does not yet prove the copper kiln processes recipes. The client also logs
-unknown custom kiln recipe-book categories. Oxidized therefore remains a
-partial technology probe until a deep scenario inserts fuel and input, observes
-the expected output, saves, and verifies the resulting machine/world state
-after reload.
+The deep scenario placed the kiln, inserted `minecraft:clay_ball` and
+`minecraft:coal`, waited for the real block entity to produce
+`minecraft:brick`, saved, and verified that output in the reloaded machine.
+This proves the mod's core kiln behavior rather than startup alone.
+
+The client still logs unknown `oxidized:kiln_smelting` recipe-book categories.
+That does not prevent server recipe processing, but recipe-book presentation is
+a known unpassed UI behavior and remains a separate compatibility repair.

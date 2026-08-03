@@ -19,7 +19,12 @@ All notable user-facing changes will be recorded here.
 - Added a version-scoped, bytecode-shape repair for Fabric's no-argument
   `BlockEntityType.Builder.build()` ABI, supplying Forge 52.1.x's data-fixer
   argument. This moves the Fabric-only Oxidized 1.8.4 probe from construction
-  failure to real copper-kiln registration, placement, save, and reload.
+  failure to real copper-kiln registration, placement, recipe processing,
+  output persistence, save, and reload.
+- Extended the graphical client laboratory with a registry-driven three-slot
+  machine scenario. It can insert configured input and fuel, wait for real
+  server-tick output, and verify that output after world reload without linking
+  the probe to a tested mod's classes.
 - Added a same-repository-project catalog eligibility gate that queries the
   target loader and excludes projects with a native non-alpha Forge 1.21.1
   release; both Modrinth and CurseForge providers support this check. A frozen

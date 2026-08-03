@@ -23,6 +23,8 @@ import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.Container;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.fml.common.Mod;
@@ -34,13 +36,24 @@ public final class ClientLabProbeMod {
     private static final String WORLD_ID = System.getProperty(
             "loaderbridge.probe.world", "loaderbridge-m1-world");
     private static final String CONTENT_BLOCK_ID = System.getProperty("loaderbridge.probe.block", "");
+    private static final String MACHINE_INPUT_ID =
+            System.getProperty("loaderbridge.probe.machine.input", "");
+    private static final String MACHINE_FUEL_ID =
+            System.getProperty("loaderbridge.probe.machine.fuel", "");
+    private static final String MACHINE_OUTPUT_ID =
+            System.getProperty("loaderbridge.probe.machine.output", "");
+    private static final long MACHINE_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(30);
 
     private final AtomicReference<Phase> phase = new AtomicReference<>(Phase.WAITING_FOR_TITLE);
     private final AtomicReference<String> lastScreen = new AtomicReference<>();
     private final AtomicReference<BackupConfirmScreen> handledBackupScreen = new AtomicReference<>();
     private final AtomicBoolean reportedLoadWarnings = new AtomicBoolean();
+    private final AtomicBoolean machineCheckQueued = new AtomicBoolean();
     private BlockPos contentPosition;
     private Block contentBlock;
+    private Container machineContainer;
+    private Item machineExpectedOutput;
+    private long machineDeadline;
     private final ScheduledExecutorService readinessPoller = Executors.newSingleThreadScheduledExecutor(runnable -> {
         Thread thread = new Thread(runnable, "loaderbridge-client-ready-probe");
         thread.setDaemon(true);
@@ -117,15 +130,17 @@ public final class ClientLabProbeMod {
                 var server = minecraft.getSingleplayerServer();
                 server.execute(() -> {
                     if (!prepareContentProbe(minecraft)) return;
-                    server.saveEverything(false, true, true);
-                    System.out.println("LOADERBRIDGE_CLIENT_WORLD_SAVED");
-                    server.halt(false);
-                    minecraft.execute(() -> {
-                        minecraft.disconnect(new TitleScreen());
-                        phase.set(Phase.WAITING_FOR_RELOAD_TITLE);
-                    });
+                    if (machineContainer == null) saveFirstWorld(minecraft);
                 });
             }
+            return;
+        }
+
+        if (current == Phase.SAVING_FIRST && machineContainer != null
+                && machineCheckQueued.compareAndSet(false, true)) {
+            var server = minecraft.getSingleplayerServer();
+            if (server != null) server.execute(() -> checkMachineProbe(minecraft));
+            else machineCheckQueued.set(false);
             return;
         }
 
@@ -190,7 +205,69 @@ public final class ClientLabProbeMod {
         }
         System.out.println("LOADERBRIDGE_CONTENT_REGISTRY_READY=" + CONTENT_BLOCK_ID);
         System.out.println("LOADERBRIDGE_CONTENT_BLOCK_PLACED=" + contentPosition.toShortString());
+        return prepareMachineProbe(minecraft, server);
+    }
+
+    private boolean prepareMachineProbe(Minecraft minecraft,
+            net.minecraft.client.server.IntegratedServer server) {
+        boolean anyConfigured = !MACHINE_INPUT_ID.isBlank()
+                || !MACHINE_FUEL_ID.isBlank() || !MACHINE_OUTPUT_ID.isBlank();
+        boolean allConfigured = !MACHINE_INPUT_ID.isBlank()
+                && !MACHINE_FUEL_ID.isBlank() && !MACHINE_OUTPUT_ID.isBlank();
+        if (!anyConfigured) return true;
+        if (!allConfigured) {
+            fail(minecraft, "machine probe requires input, fuel, and output item IDs");
+            return false;
+        }
+        var input = item(MACHINE_INPUT_ID);
+        var fuel = item(MACHINE_FUEL_ID);
+        var output = item(MACHINE_OUTPUT_ID);
+        var blockEntity = server.overworld().getBlockEntity(contentPosition);
+        if (input == null || fuel == null || output == null) {
+            fail(minecraft, "machine probe item is not registered");
+            return false;
+        }
+        if (!(blockEntity instanceof Container container) || container.getContainerSize() < 3) {
+            fail(minecraft, "content block does not expose a three-slot machine container");
+            return false;
+        }
+        container.setItem(0, new ItemStack(input));
+        container.setItem(1, new ItemStack(fuel));
+        container.setChanged();
+        machineContainer = container;
+        machineExpectedOutput = output;
+        machineDeadline = System.nanoTime() + MACHINE_TIMEOUT_NANOS;
+        System.out.println("LOADERBRIDGE_MACHINE_INPUT_READY=" + MACHINE_INPUT_ID);
         return true;
+    }
+
+    private void checkMachineProbe(Minecraft minecraft) {
+        if (machineContainer.getItem(2).is(machineExpectedOutput)) {
+            System.out.println("LOADERBRIDGE_MACHINE_OUTPUT_READY=" + MACHINE_OUTPUT_ID);
+            saveFirstWorld(minecraft);
+            return;
+        }
+        if (System.nanoTime() >= machineDeadline) {
+            minecraft.execute(() -> fail(minecraft,
+                    "machine did not produce expected output: " + MACHINE_OUTPUT_ID));
+            return;
+        }
+        machineCheckQueued.set(false);
+    }
+
+    private void saveFirstWorld(Minecraft minecraft) {
+        var server = minecraft.getSingleplayerServer();
+        if (server == null) {
+            minecraft.execute(() -> fail(minecraft, "integrated server disappeared before save"));
+            return;
+        }
+        server.saveEverything(false, true, true);
+        System.out.println("LOADERBRIDGE_CLIENT_WORLD_SAVED");
+        server.halt(false);
+        minecraft.execute(() -> {
+            minecraft.disconnect(new TitleScreen());
+            phase.set(Phase.WAITING_FOR_RELOAD_TITLE);
+        });
     }
 
     private boolean verifyContentProbe(Minecraft minecraft) {
@@ -211,9 +288,27 @@ public final class ClientLabProbeMod {
             fail(minecraft, "content item did not survive inventory save and reload: " + CONTENT_BLOCK_ID);
             return false;
         }
+        if (machineExpectedOutput != null) {
+            var blockEntity = server.overworld().getBlockEntity(contentPosition);
+            if (!(blockEntity instanceof Container container)
+                    || container.getContainerSize() < 3
+                    || !container.getItem(2).is(machineExpectedOutput)) {
+                fail(minecraft, "machine output did not survive save and reload: " + MACHINE_OUTPUT_ID);
+                return false;
+            }
+            System.out.println("LOADERBRIDGE_MACHINE_OUTPUT_RELOADED=" + MACHINE_OUTPUT_ID);
+        }
         System.out.println("LOADERBRIDGE_CONTENT_BLOCK_RELOADED=" + CONTENT_BLOCK_ID);
         System.out.println("LOADERBRIDGE_CONTENT_ITEM_RELOADED=" + CONTENT_BLOCK_ID);
         return true;
+    }
+
+    private static Item item(String id) {
+        ResourceLocation location = ResourceLocation.tryParse(id);
+        if (location == null) return null;
+        return BuiltInRegistries.ITEM.getOptional(location)
+                .filter(candidate -> candidate != net.minecraft.world.item.Items.AIR)
+                .orElse(null);
     }
 
     private void openOrCreateWorld(Minecraft minecraft) {
