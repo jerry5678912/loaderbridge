@@ -57,4 +57,5 @@ include(
     "fixture-fabric-api-base",
     "fixture-fabric-command",
     "fixture-fabric-lifecycle",
+    "fixture-fabric-nested-child",
 )

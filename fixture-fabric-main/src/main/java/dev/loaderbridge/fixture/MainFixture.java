@@ -34,6 +34,13 @@ public final class MainFixture implements ModInitializer {
         }
         kotlinEntrypoints.forEach(Runnable::run);
         System.out.println("LOADERBRIDGE_FIXTURE_KOTLIN_ADAPTER_READY");
+        var nestedChild = loader.getModContainer("loaderbridge_nested_child").orElseThrow();
+        var parent = loader.getModContainer("loaderbridge_fixture").orElseThrow();
+        if (nestedChild.getContainingMod().orElseThrow() != parent
+                || !parent.getContainedMods().contains(nestedChild)) {
+            throw new IllegalStateException("nested Fabric child was not registered");
+        }
+        System.out.println("LOADERBRIDGE_FIXTURE_NESTED_CONTAINMENT_READY");
         if (!loader.getRawGameVersion().equals("1.21.1")) {
             throw new IllegalStateException(
                     "unexpected raw game version: " + loader.getRawGameVersion());

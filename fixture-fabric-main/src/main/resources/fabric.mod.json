@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "name": "LoaderBridge Main Fixture",
   "environment": "*",
+  "jars": [
+    {"file": "META-INF/jars/loaderbridge-nested-child.jar"}
+  ],
   "mixins": [
     {
       "config": "loaderbridge.fixture.mixins.json",

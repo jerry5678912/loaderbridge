@@ -25,6 +25,7 @@ The engine is split so a future GUI can call the same Java API as the CLI.
 | `integration-harness` | Pinned disposable Forge installation, scenario execution, reload, bounded commands, and artifacts |
 | `cli` | ServiceLoader discovery and machine-oriented commands/exit codes |
 | `fixture-fabric-main` | Controlled Fabric `main` entrypoint probe |
+| `fixture-fabric-nested-child` | Fabric child mod embedded in the main fixture for recursive preprocessing and runtime containment probes |
 | `fixture-fabric-api-base` | Controlled automatic API-module selection and runtime probe |
 | `fixture-fabric-command` | Controlled Fabric callback registration and real Brigadier command execution probe |
 | `fixture-fabric-lifecycle` | Controlled automatic lifecycle+base selection and ordered server tick probe |

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "loaderbridge_nested_child",
+  "version": "1.0.0",
+  "name": "LoaderBridge Nested Child Fixture",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["dev.loaderbridge.fixture.nested.NestedChildFixture"]
+  },
+  "depends": {
+    "loaderbridge_fixture": "*",
+    "minecraft": "=1.21.1",
+    "java": ">=21",
+    "fabricloader": ">=0.16.0"
+  }
+}

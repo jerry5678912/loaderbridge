@@ -33,6 +33,16 @@ steps:
     timeout: PT30S
     parameters:
       contains: LOADERBRIDGE_FIXTURE_KOTLIN_ADAPTER_READY
+  - id: fixture_nested_containment
+    action: wait_for_log
+    timeout: PT30S
+    parameters:
+      contains: LOADERBRIDGE_FIXTURE_NESTED_CONTAINMENT_READY
+  - id: fixture_nested_child
+    action: wait_for_log
+    timeout: PT30S
+    parameters:
+      contains: LOADERBRIDGE_FIXTURE_NESTED_CHILD_READY
   - id: fixture_raw_game_version
     action: wait_for_log
     timeout: PT30S
