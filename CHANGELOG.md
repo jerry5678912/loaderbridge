@@ -27,6 +27,10 @@ All notable user-facing changes will be recorded here.
   insertion/extraction restrictions, filtering wrappers, transfer variants,
   resource amounts, and transfer preconditions, with real-client multi-slot
   composition coverage through world creation, save, reload, and shutdown.
+- Added Fabric `StorageUtil`, `SingleVariantStorage`, and `BlankVariantView`
+  contracts for atomic moves, simulations, stacking, resource queries,
+  comparator output, snapshots, capacity hints, and NBT codecs; a real client
+  verifies utility movement through the complete world lifecycle.
 
 - Added the initial Fabric Registry Sync v0 bridge with custom static registry
   builders, MODDED/SYNCED attributes, registry-local entry/remap events,

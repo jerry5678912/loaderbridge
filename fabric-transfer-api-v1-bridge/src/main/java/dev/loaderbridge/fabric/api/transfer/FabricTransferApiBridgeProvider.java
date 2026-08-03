@@ -10,12 +10,12 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 
-/** Advertises the pinned Transfer API transaction surface implemented by revision 1. */
+/** Advertises the pinned Transfer API surface implemented by the current bridge revision. */
 public final class FabricTransferApiBridgeProvider implements RuntimeBridgeModuleProvider {
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-transfer-api-v1-bridge",
             "fabric-transfer-api-v1:5.4.4",
-            "5.4.4+7b3d111d19-loaderbridge.3",
+            "5.4.4+7b3d111d19-loaderbridge.4",
             BridgeCapability.FABRIC_API,
             Set.of(
                     "net.fabricmc.fabric.api.transfer.v1.transaction.Transaction",
@@ -29,9 +29,12 @@ public final class FabricTransferApiBridgeProvider implements RuntimeBridgeModul
                     "net.fabricmc.fabric.api.transfer.v1.storage.StorageView",
                     "net.fabricmc.fabric.api.transfer.v1.storage.TransferVariant",
                     "net.fabricmc.fabric.api.transfer.v1.storage.StoragePreconditions",
+                    "net.fabricmc.fabric.api.transfer.v1.storage.StorageUtil",
                     "net.fabricmc.fabric.api.transfer.v1.storage.SlottedStorage",
                     "net.fabricmc.fabric.api.transfer.v1.storage.base.ResourceAmount",
+                    "net.fabricmc.fabric.api.transfer.v1.storage.base.BlankVariantView",
                     "net.fabricmc.fabric.api.transfer.v1.storage.base.SingleSlotStorage",
+                    "net.fabricmc.fabric.api.transfer.v1.storage.base.SingleVariantStorage",
                     "net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedStorage",
                     "net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedSlottedStorage",
                     "net.fabricmc.fabric.api.transfer.v1.storage.base.ExtractionOnlyStorage",

@@ -53,6 +53,7 @@ import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.storage.StorageUtil;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedSlottedStorage;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.FilteringStorage;
@@ -189,6 +190,14 @@ public final class FabricLifecycleFixture implements ModInitializer {
             throw new IllegalStateException("LOADERBRIDGE_FABRIC_TRANSFER_SLOTTED_FAILED");
         }
         System.out.println("LOADERBRIDGE_FABRIC_TRANSFER_COMPOSITION_READY");
+        TransactionalStorage utilityTarget = new TransactionalStorage();
+        if (StorageUtil.move(secondStorage, utilityTarget, "energy"::equals, 25, null) != 25
+                || secondStorage.getAmount() != 35
+                || utilityTarget.getAmount() != 25
+                || !"energy".equals(StorageUtil.findExtractableResource(utilityTarget, null))) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_TRANSFER_UTILITIES_FAILED");
+        }
+        System.out.println("LOADERBRIDGE_FABRIC_TRANSFER_UTILITIES_READY");
         DynamicRegistrySetupCallback.EVENT.register(view -> {
             if (view.getOptional(DYNAMIC_REGISTRY_KEY).isEmpty()) return;
             if (view.asDynamicRegistryManager().registry(DYNAMIC_REGISTRY_KEY).isEmpty()

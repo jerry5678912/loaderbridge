@@ -124,6 +124,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   storage, insertion/extraction restrictions, filtered wrappers, transfer
   variants, resource amounts, and precondition checks. The client verifies
   aborted and committed mutations plus multi-slot routing before world loading.
+  Storage utilities add atomic moves, simulation, stacking, resource queries,
+  and comparator output; single-variant storage adds capacity, snapshot, and
+  NBT codec behavior. A real client utility move passes before world creation.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -174,8 +177,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 ## Intentionally gated
 
 The adapter currently rejects Fabric API surfaces outside the implemented
-modules, including Transfer API single-variant helpers, storage utilities,
-item/fluid/container-context/inventory/rendering surfaces, unknown custom
+modules, including Transfer API item/fluid/container-context/inventory/rendering
+surfaces, unknown custom
 language adapters, Loader API calls outside the current
 shim, and mods requiring unreviewed native-library behavior. Signed patch packs,
 broad semantic graphical assertions, and catalog-wide compatibility measurement
