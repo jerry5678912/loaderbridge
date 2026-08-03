@@ -18,6 +18,10 @@ import org.objectweb.asm.Type;
 /** Static class-file inventory. This analyzer never defines or initializes inspected classes. */
 public final class BytecodeReferenceAnalyzer {
     public ReferenceInventory analyze(Path artifact) throws IOException {
+        return analyze(artifact, Set.of());
+    }
+
+    public ReferenceInventory analyze(Path artifact, Set<String> excludedClasses) throws IOException {
         Set<String> fabricApi = new LinkedHashSet<>();
         Set<String> loaderApi = new LinkedHashSet<>();
         Set<String> mixinExtras = new LinkedHashSet<>();
@@ -34,6 +38,16 @@ public final class BytecodeReferenceAnalyzer {
                 if (isNative(entry.getName())) {
                     natives.add(entry.getName());
                 } else if (entry.getName().endsWith(".class")) {
+                    String binaryName = entry.getName().substring(0,
+                            entry.getName().length() - ".class".length()).replace('/', '.');
+                    if (excludedClasses.stream().anyMatch(excluded ->
+                            excluded.endsWith(".*")
+                                    ? binaryName.startsWith(excluded.substring(0,
+                                            excluded.length() - 1))
+                                    : binaryName.equals(excluded)
+                                            || binaryName.startsWith(excluded + "$"))) {
+                        continue;
+                    }
                     try (InputStream input = jar.getInputStream(entry)) {
                         new ClassReader(input).accept(new InventoryVisitor(
                                 fabricApi, loaderApi, mixinExtras, minecraft, strings),
@@ -203,6 +217,11 @@ public final class BytecodeReferenceAnalyzer {
 
         private void collect(String internalName) {
             String binaryName = internalName.replace('/', '.');
+            if (binaryName.startsWith("net.fabricmc.fabric.api.datagen.")) {
+                // Fabric data-generation APIs are build-tool contracts and are not present in a
+                // production Fabric game. Their references must not select runtime bridge modules.
+                return;
+            }
             if (binaryName.startsWith("net.fabricmc.fabric.api.")) {
                 fabricApi.add(binaryName);
             } else if (binaryName.startsWith("net.fabricmc.loader.api.")) {

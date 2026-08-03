@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import org.junit.jupiter.api.Test;
@@ -50,5 +51,53 @@ class BytecodeReferenceAnalyzerTest {
         assertThat(inventory.mixinExtrasClasses())
                 .contains("com.llamalad7.mixinextras.injector.ModifyReturnValue");
         assertThat(inventory.nativeLibraries()).contains("META-INF/natives/linux/libfixture.so");
+    }
+
+    @Test
+    void excludesNonRuntimeEntrypointClassesAndTheirNestedClasses() throws Exception {
+        Path jarPath = temporaryDirectory.resolve("datagen-references.jar");
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(jarPath))) {
+            writeReferenceClass(jar, "fixture/Runtime", "net/fabricmc/fabric/api/event/EventFactory");
+            writeReferenceClass(jar, "fixture/Datagen",
+                    "net/fabricmc/fabric/api/datagen/v1/FabricDataGenerator");
+            writeReferenceClass(jar, "fixture/Datagen$Nested",
+                    "net/fabricmc/fabric/api/datagen/v1/provider/FabricDynamicRegistryProvider");
+            writeReferenceClass(jar, "fixture/datagen/Tags",
+                    "net/fabricmc/fabric/api/datagen/v1/provider/FabricTagProvider");
+        }
+
+        ReferenceInventory inventory = new BytecodeReferenceAnalyzer().analyze(jarPath,
+                Set.of("fixture.Datagen", "fixture.datagen.*"));
+
+        assertThat(inventory.fabricApiClasses())
+                .containsExactly("net.fabricmc.fabric.api.event.EventFactory");
+    }
+
+    @Test
+    void neverTreatsFabricBuildTimeDatagenApiAsRuntimeCapability() throws Exception {
+        Path jarPath = temporaryDirectory.resolve("worldgen-provider.jar");
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(jarPath))) {
+            writeReferenceClass(jar, "fixture/WorldgenProvider",
+                    "net/fabricmc/fabric/api/datagen/v1/provider/FabricDynamicRegistryProvider");
+        }
+
+        ReferenceInventory inventory = new BytecodeReferenceAnalyzer().analyze(jarPath);
+
+        assertThat(inventory.fabricApiClasses()).isEmpty();
+    }
+
+    private static void writeReferenceClass(JarOutputStream jar, String className, String owner)
+            throws Exception {
+        ClassWriter writer = new ClassWriter(0);
+        writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, className, null, "java/lang/Object", null);
+        MethodVisitor method = writer.visitMethod(Opcodes.ACC_PUBLIC, "use", "()V", null, null);
+        method.visitMethodInsn(Opcodes.INVOKESTATIC, owner, "reference", "()V", false);
+        method.visitInsn(Opcodes.RETURN);
+        method.visitMaxs(0, 1);
+        method.visitEnd();
+        writer.visitEnd();
+        jar.putNextEntry(new JarEntry(className + ".class"));
+        jar.write(writer.toByteArray());
+        jar.closeEntry();
     }
 }

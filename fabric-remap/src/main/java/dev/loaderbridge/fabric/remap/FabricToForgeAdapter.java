@@ -110,7 +110,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                 FabricModTree tree = inspector.inspect(artifact);
                 collectMetadata(tree, allMetadata);
                 FabricModMetadata metadata = tree.root();
-                ReferenceInventory inventory = analyzer.analyze(artifact);
+                ReferenceInventory inventory = analyzer.analyze(artifact,
+                        nonRuntimeEntrypointClasses(metadata));
                 analyzeRequirements(artifact, metadata, inventory, required, diagnostics, request,
                         plannedBridgeModules);
                 inspections.add(inspection(artifact, metadata, List.of()));
@@ -155,7 +156,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         for (PreparationInput input : inputs) {
             Path source = input.path();
             FabricModMetadata metadata = input.metadata();
-            ReferenceInventory inventory = analyzer.analyze(source);
+            ReferenceInventory inventory = analyzer.analyze(source,
+                    nonRuntimeEntrypointClasses(metadata));
             needsMixinExtras |= !inventory.mixinExtrasClasses().isEmpty();
             List<RuntimeBridgeModuleProvider> inputBridgeModules = modulesFor(
                     inventory.fabricApiClasses(), metadata);
@@ -313,6 +315,23 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         if (namespace == SourceNamespace.INTERMEDIARY) {
             required.add(BridgeCapability.REMAPPING);
         }
+    }
+
+    private static Set<String> nonRuntimeEntrypointClasses(FabricModMetadata metadata) {
+        Set<String> excluded = new LinkedHashSet<>();
+        metadata.entrypoints().getOrDefault("fabric-datagen", List.of()).stream()
+                .map(FabricEntrypoint::value)
+                .map(value -> value.contains("::")
+                        ? value.substring(0, value.indexOf("::")) : value)
+                .forEach(value -> {
+                    excluded.add(value);
+                    int separator = value.lastIndexOf('.');
+                    if (separator > 0
+                            && value.substring(0, separator).endsWith(".datagen")) {
+                        excluded.add(value.substring(0, separator) + ".*");
+                    }
+                });
+        return Set.copyOf(excluded);
     }
 
     private List<RuntimeBridgeModuleProvider> modulesFor(Set<String> references,
