@@ -12,10 +12,12 @@ Implemented in this release:
 - global and connection-scoped server play receivers;
 - global client play receivers and bidirectional sending;
 - server play init, join, and disconnect events;
+- server/world/chunk/proximity/entity player lookup helpers;
+- entity start/stop tracking callbacks backed by Forge tracking events;
 - content-based automatic module selection with stable duplicate, late, and
   missing-codec diagnostics.
 
-Configuration-stage, login-stage, tracking, and player-lookup contracts remain
+Configuration-stage and login-stage contracts remain
 intentionally unadvertised until implemented. Referencing one of those types
 therefore fails planning with `LB-FAPI-001` instead of producing a partially
 compatible launch.

@@ -22,14 +22,18 @@ class FabricNetworkingContractTest {
         var descriptor = new FabricNetworkingBridgeProvider().descriptor();
         assertThat(descriptor.contractVersion()).isEqualTo("fabric-networking-api-v1:4.3.1");
         assertThat(descriptor.implementationVersion()).isEqualTo(
-                "4.3.1+d30f6a7919-loaderbridge.1");
+                "4.3.1+d30f6a7919-loaderbridge.2");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrder(
+                "net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents",
+                "net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents$StartTracking",
+                "net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents$StopTracking",
                 "net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking",
                 "net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking$Context",
                 "net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking$PlayPayloadHandler",
                 "net.fabricmc.fabric.api.networking.v1.PacketByteBufs",
                 "net.fabricmc.fabric.api.networking.v1.PacketSender",
                 "net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry",
+                "net.fabricmc.fabric.api.networking.v1.PlayerLookup",
                 "net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents",
                 "net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents$Disconnect",
                 "net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents$Init",

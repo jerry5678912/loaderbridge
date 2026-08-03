@@ -11,6 +11,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerBlockEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -25,6 +26,8 @@ import net.minecraft.world.level.GameRules;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents;
+import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 
 /** Verifies Forge-to-Fabric server and world tick ordering at runtime. */
 public final class FabricLifecycleFixture implements ModInitializer {
@@ -42,6 +45,8 @@ public final class FabricLifecycleFixture implements ModInitializer {
     private static final AtomicBoolean CHUNK_GENERATED = new AtomicBoolean();
     private static final AtomicBoolean CHUNK_FULL = new AtomicBoolean();
     private static final AtomicBoolean CHUNK_UNLOADED = new AtomicBoolean();
+    private static final AtomicBoolean TRACKING_LOOKUP_REPORTED = new AtomicBoolean();
+    private static final AtomicBoolean TRACKING_ENTITY_SPAWNED = new AtomicBoolean();
     private static final AtomicInteger RESOURCE_RELOADS = new AtomicInteger();
     private static final int TEST_CHUNK = 725;
 
@@ -57,9 +62,44 @@ public final class FabricLifecycleFixture implements ModInitializer {
                         System.out.println("LOADERBRIDGE_FABRIC_NETWORK_SERVER_ROUNDTRIP");
                     }
                 });
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
-                sender.sendPacket(new FabricNetworkingPayload(
-                        FabricNetworkingPayload.PING_TYPE, "ping")));
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            var player = handler.player;
+            boolean lookupReady = PlayerLookup.all(server).contains(player)
+                    && PlayerLookup.world(player.serverLevel()).contains(player)
+                    && PlayerLookup.tracking(player.serverLevel(), player.chunkPosition()).contains(player);
+            if (!lookupReady) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_PLAYER_LOOKUP_FAILED");
+            }
+            System.out.println("LOADERBRIDGE_FABRIC_PLAYER_LOOKUP_READY");
+            sender.sendPacket(new FabricNetworkingPayload(FabricNetworkingPayload.PING_TYPE, "ping"));
+            if (TRACKING_ENTITY_SPAWNED.compareAndSet(false, true)) {
+                var entity = EntityType.ARMOR_STAND.create(player.serverLevel());
+                if (entity == null) {
+                    throw new IllegalStateException("LOADERBRIDGE_FABRIC_TRACKING_ENTITY_CREATE_FAILED");
+                }
+                entity.setPos(player.getX() + 2.0, player.getY(), player.getZ());
+                entity.addTag("loaderbridge_entity_fixture");
+                if (!player.serverLevel().addFreshEntity(entity)) {
+                    throw new IllegalStateException("LOADERBRIDGE_FABRIC_TRACKING_ENTITY_SPAWN_FAILED");
+                }
+            }
+        });
+        EntityTrackingEvents.START_TRACKING.register((entity, player) -> {
+            if (entity.getTags().contains("loaderbridge_entity_fixture")) {
+                System.out.println("LOADERBRIDGE_FABRIC_TRACKING_STARTED");
+                player.server.execute(() -> {
+                    if (PlayerLookup.tracking(entity).contains(player)
+                            && TRACKING_LOOKUP_REPORTED.compareAndSet(false, true)) {
+                        System.out.println("LOADERBRIDGE_FABRIC_ENTITY_LOOKUP_READY");
+                    }
+                });
+            }
+        });
+        EntityTrackingEvents.STOP_TRACKING.register((entity, player) -> {
+            if (entity.getTags().contains("loaderbridge_entity_fixture")) {
+                System.out.println("LOADERBRIDGE_FABRIC_TRACKING_STOPPED");
+            }
+        });
         ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(
                 new SimpleSynchronousResourceReloadListener() {
                     @Override
