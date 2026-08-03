@@ -16,9 +16,10 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
-- Added the Fabric API Lookup v1 block surface with unique typed lookup IDs,
-  block and block-entity providers, ordered fallbacks, live caches, automatic
-  dependency selection, and real-client state-change/save/reload coverage.
+- Added the complete public Fabric API Lookup v1 surface with unique typed
+  lookup IDs; block, item, and entity direct/self/fallback providers; live
+  block caches; custom lookup/provider maps; automatic dependency selection;
+  and real-client state-change/save/reload coverage.
 
 - Expanded the Fabric Object Builder API v1 bridge with the deprecated entity
   builder's base, living, and mob specializations, including Fabric-compatible

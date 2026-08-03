@@ -15,13 +15,21 @@ public final class FabricApiLookupBridgeProvider implements RuntimeBridgeModuleP
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-api-lookup-api-v1-bridge",
             "fabric-api-lookup-api-v1:1.6.72",
-            "1.6.72+d30f6a7919-loaderbridge.1",
+            "1.6.72+d30f6a7919-loaderbridge.2",
             BridgeCapability.FABRIC_API,
             Set.of(
                     "net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup",
                     "net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup$BlockApiProvider",
                     "net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup$BlockEntityApiProvider",
-                    "net.fabricmc.fabric.api.lookup.v1.block.BlockApiCache"),
+                    "net.fabricmc.fabric.api.lookup.v1.block.BlockApiCache",
+                    "net.fabricmc.fabric.api.lookup.v1.item.ItemApiLookup",
+                    "net.fabricmc.fabric.api.lookup.v1.item.ItemApiLookup$ItemApiProvider",
+                    "net.fabricmc.fabric.api.lookup.v1.entity.EntityApiLookup",
+                    "net.fabricmc.fabric.api.lookup.v1.entity.EntityApiLookup$EntityApiProvider",
+                    "net.fabricmc.fabric.api.lookup.v1.custom.ApiLookupMap",
+                    "net.fabricmc.fabric.api.lookup.v1.custom.ApiLookupMap$LookupConstructor",
+                    "net.fabricmc.fabric.api.lookup.v1.custom.ApiLookupMap$LookupFactory",
+                    "net.fabricmc.fabric.api.lookup.v1.custom.ApiProviderMap"),
             Map.of("fabric-api-lookup-api-v1", "1.6.72+d30f6a7919"),
             Set.of("fabric-api-base-bridge", "fabric-lifecycle-events-bridge"));
 

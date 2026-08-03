@@ -321,7 +321,7 @@ class FabricToForgeAdapterTest {
                 .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
                 .contains(
-                        "fabric-api-lookup-api-v1-bridge-1.6.72_d30f6a7919-loaderbridge.1.jar",
+                        "fabric-api-lookup-api-v1-bridge-1.6.72_d30f6a7919-loaderbridge.2.jar",
                         "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
                         "fabric-lifecycle-events-bridge-2.6.0_0865547519-loaderbridge.6.jar");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))

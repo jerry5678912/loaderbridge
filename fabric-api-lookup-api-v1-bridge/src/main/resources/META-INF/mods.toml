@@ -3,7 +3,7 @@ loaderVersion="[52,)"
 license="Apache-2.0"
 [[mods]]
 modId="loaderbridge_fabric_api_lookup_api_v1"
-version="1.6.72.1"
+version="1.6.72.2"
 displayName="LoaderBridge Fabric API Lookup API v1 Bridge"
 [[dependencies.loaderbridge_fabric_api_lookup_api_v1]]
 modId="forge"

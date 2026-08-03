@@ -12,7 +12,10 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
@@ -38,6 +41,8 @@ import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType;
 import net.fabricmc.fabric.api.lookup.v1.block.BlockApiCache;
 import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
+import net.fabricmc.fabric.api.lookup.v1.item.ItemApiLookup;
+import net.fabricmc.fabric.api.lookup.v1.entity.EntityApiLookup;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.EntityDimensions;
@@ -74,6 +79,18 @@ public final class FabricLifecycleFixture implements ModInitializer {
     private static final BlockApiLookup<String, Void> BLOCK_LOOKUP = BlockApiLookup.get(
             ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_block_lookup"),
             String.class, Void.class);
+    private static final ItemApiLookup<String, Void> ITEM_LOOKUP = ItemApiLookup.get(
+            ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_item_lookup"),
+            String.class, Void.class);
+    private static final ItemApiLookup<Item, Void> ITEM_SELF_LOOKUP = ItemApiLookup.get(
+            ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_item_self_lookup"),
+            Item.class, Void.class);
+    private static final EntityApiLookup<String, Void> ENTITY_LOOKUP = EntityApiLookup.get(
+            ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_entity_lookup"),
+            String.class, Void.class);
+    private static final EntityApiLookup<Entity, Void> ENTITY_SELF_LOOKUP = EntityApiLookup.get(
+            ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_entity_self_lookup"),
+            Entity.class, Void.class);
 
     @Override
     @SuppressWarnings("deprecation")
@@ -82,6 +99,14 @@ public final class FabricLifecycleFixture implements ModInitializer {
                 (world, pos, state, blockEntity, context) -> "direct", Blocks.STONE);
         BLOCK_LOOKUP.registerFallback((world, pos, state, blockEntity, context) ->
                 state.is(Blocks.DIRT) ? "fallback" : null);
+        ITEM_LOOKUP.registerForItems((stack, context) -> "direct", Items.DIAMOND);
+        ITEM_LOOKUP.registerFallback((stack, context) ->
+                stack.is(Items.DIRT) ? "fallback" : null);
+        ITEM_SELF_LOOKUP.registerSelf(Items.DIAMOND);
+        ENTITY_LOOKUP.registerForType((entity, context) -> "direct", EntityType.ARMOR_STAND);
+        ENTITY_LOOKUP.registerFallback((entity, context) ->
+                entity.getType() == EntityType.ZOMBIE ? "fallback" : null);
+        ENTITY_SELF_LOOKUP.registerSelf(EntityType.ARMOR_STAND);
         var bridgedBlockEntityType = FabricBlockEntityTypeBuilder
                 .create((position, state) -> null, Blocks.STONE)
                 .addBlock(Blocks.DIRT)
@@ -292,6 +317,22 @@ public final class FabricLifecycleFixture implements ModInitializer {
                 throw new IllegalStateException("LOADERBRIDGE_FABRIC_BLOCK_LOOKUP_FALLBACK_FAILED");
             }
             System.out.println("LOADERBRIDGE_FABRIC_BLOCK_LOOKUP_READY");
+            ItemStack diamond = new ItemStack(Items.DIAMOND);
+            if (!"direct".equals(ITEM_LOOKUP.find(diamond, null))
+                    || ITEM_SELF_LOOKUP.find(diamond, null) != Items.DIAMOND
+                    || !"fallback".equals(ITEM_LOOKUP.find(new ItemStack(Items.DIRT), null))) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_ITEM_LOOKUP_FAILED");
+            }
+            System.out.println("LOADERBRIDGE_FABRIC_ITEM_LOOKUP_READY");
+            Entity armorStand = EntityType.ARMOR_STAND.create(world);
+            Entity zombie = EntityType.ZOMBIE.create(world);
+            if (armorStand == null || zombie == null
+                    || !"direct".equals(ENTITY_LOOKUP.find(armorStand, null))
+                    || ENTITY_SELF_LOOKUP.find(armorStand, null) != armorStand
+                    || !"fallback".equals(ENTITY_LOOKUP.find(zombie, null))) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_ENTITY_LOOKUP_FAILED");
+            }
+            System.out.println("LOADERBRIDGE_FABRIC_ENTITY_API_LOOKUP_READY");
             if (SERVER_STATE.compareAndSet(1, 2)) {
                 System.out.println("LOADERBRIDGE_FABRIC_SERVER_LIFECYCLE_READY");
             }
