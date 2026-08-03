@@ -16,10 +16,12 @@ import java.util.List;
 import java.util.Map;
 import net.fabricmc.loader.api.MappingResolver;
 
-/** Runtime intermediary-to-Mojang-name mapping resolver backed by Tiny v2 data. */
+/** Runtime intermediary-to-official-name mapping resolver backed by Tiny v2 data. */
 public final class BridgeMappingResolver implements MappingResolver {
     private static final int MAX_MAPPING_LINES = 500_000;
     private static final String RUNTIME_MAPPINGS = "META-INF/loaderbridge/mappings.tiny";
+    private static final String OFFICIAL_HEADER = "tiny\t2\t0\tintermediary\tofficial";
+    private static final String LEGACY_HEADER = "tiny\t2\t0\tintermediary\tnamed";
     private volatile Mappings mappings = Mappings.empty();
     private volatile boolean discoveryAttempted;
 
@@ -38,7 +40,7 @@ public final class BridgeMappingResolver implements MappingResolver {
         int lines = 0;
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
             String header = reader.readLine();
-            if (!"tiny\t2\t0\tintermediary\tnamed".equals(header)) {
+            if (!OFFICIAL_HEADER.equals(header) && !LEGACY_HEADER.equals(header)) {
                 throw new IOException("LB-MAP-001: unsupported runtime mapping header");
             }
             String line;
@@ -65,10 +67,10 @@ public final class BridgeMappingResolver implements MappingResolver {
 
     @Override public Collection<String> getNamespaces() {
         discoverRuntimeMappings();
-        return List.of("intermediary", "named", "official");
+        return List.of("intermediary", "official");
     }
 
-    @Override public String getCurrentRuntimeNamespace() { return "named"; }
+    @Override public String getCurrentRuntimeNamespace() { return "official"; }
 
     @Override
     public String mapClassName(String namespace, String className) {

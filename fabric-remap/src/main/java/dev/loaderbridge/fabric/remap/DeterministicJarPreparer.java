@@ -122,7 +122,8 @@ public final class DeterministicJarPreparer {
             }
             if (runtimeMappings != null) {
                 try (InputStream bytes = Files.newInputStream(runtimeMappings)) {
-                    put(output, "META-INF/loaderbridge/mappings.tiny", readBounded(bytes));
+                    put(output, "META-INF/loaderbridge/mappings.tiny",
+                            runtimeMappingsForForge(readBounded(bytes)));
                 }
             }
             for (Map.Entry<String, byte[]> generated : mixins.generatedResources().entrySet()) {
@@ -135,6 +136,18 @@ public final class DeterministicJarPreparer {
             put(output, "META-INF/mods.toml", forgeMetadata(
                     metadata, manifest.fulfilledFabricDependencies().keySet()));
         }
+    }
+
+    private static byte[] runtimeMappingsForForge(byte[] mappings) throws IOException {
+        String content = new String(mappings, StandardCharsets.UTF_8);
+        String internalHeader = "tiny\t2\t0\tintermediary\tnamed\n";
+        String runtimeHeader = "tiny\t2\t0\tintermediary\tofficial\n";
+        if (content.startsWith(runtimeHeader)) return mappings;
+        if (!content.startsWith(internalHeader)) {
+            throw new IOException("LB-MAP-001: unsupported runtime mapping header");
+        }
+        return (runtimeHeader + content.substring(internalHeader.length()))
+                .getBytes(StandardCharsets.UTF_8);
     }
 
     private static byte[] bridgeMetadata(FabricModMetadata metadata, PreparationManifest manifest) {

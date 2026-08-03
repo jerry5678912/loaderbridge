@@ -43,6 +43,11 @@ steps:
     timeout: PT30S
     parameters:
       contains: LOADERBRIDGE_FIXTURE_NESTED_CHILD_READY
+  - id: fixture_official_mappings
+    action: wait_for_log
+    timeout: PT30S
+    parameters:
+      contains: LOADERBRIDGE_FIXTURE_OFFICIAL_MAPPINGS_READY
   - id: fixture_raw_game_version
     action: wait_for_log
     timeout: PT30S

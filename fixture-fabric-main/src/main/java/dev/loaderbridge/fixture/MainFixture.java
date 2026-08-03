@@ -41,6 +41,16 @@ public final class MainFixture implements ModInitializer {
             throw new IllegalStateException("nested Fabric child was not registered");
         }
         System.out.println("LOADERBRIDGE_FIXTURE_NESTED_CONTAINMENT_READY");
+        var mappings = loader.getMappingResolver();
+        if (!mappings.getCurrentRuntimeNamespace().equals("official")
+                || !mappings.getNamespaces().containsAll(
+                        java.util.List.of("intermediary", "official"))
+                || mappings.getNamespaces().contains("named")
+                || !mappings.mapClassName("intermediary", "net.minecraft.class_310")
+                        .equals("net.minecraft.client.Minecraft")) {
+            throw new IllegalStateException("Forge official runtime mapping contract failed");
+        }
+        System.out.println("LOADERBRIDGE_FIXTURE_OFFICIAL_MAPPINGS_READY");
         if (!loader.getRawGameVersion().equals("1.21.1")) {
             throw new IllegalStateException(
                     "unexpected raw game version: " + loader.getRawGameVersion());

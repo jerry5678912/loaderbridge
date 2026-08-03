@@ -124,7 +124,8 @@ class DeterministicJarPreparerTest {
 
         try (JarFile jar = new JarFile(output.toFile())) {
             assertThat(read(jar, "META-INF/loaderbridge/mappings.tiny"))
-                    .contains("intermediary", "net/minecraft/client/Minecraft");
+                    .startsWith("tiny\t2\t0\tintermediary\tofficial\n")
+                    .contains("net/minecraft/client/Minecraft");
         }
     }
 

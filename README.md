@@ -280,6 +280,11 @@ test-only reference and compares every public API type, superclass, interface,
 field, constructor, and method descriptor against the packaged shim. Extra
 forward-compatible methods are allowed, but a missing or linkage-incompatible
 pinned symbol fails the build.
+The runtime mapping resolver reports Forge's actual `official` target namespace,
+maps intermediary symbols to Mojang names, and does not falsely advertise Yarn
+`named` mappings. New transformed JARs embed an `intermediary -> official`
+mapping header; older LoaderBridge JARs using the internal `named` label remain
+readable for cache and instance compatibility.
 
 ## Build and use
 

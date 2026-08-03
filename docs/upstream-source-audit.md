@@ -35,6 +35,12 @@ An ASM contract test inventories all public types in `net.fabricmc.api`,
 requires the shim JAR to preserve their JVM names, inheritance, static shape,
 and member descriptors. This makes public API drift an automatic build failure;
 the moving supplied `master` source remains behavioral reference material.
+Fabric's `MappingResolverImpl` returns the launcher's actual target namespace.
+Because Forge 52.1.0 executes LoaderBridge output in Mojang's official names,
+the shim now reports `official`, exposes only the available `intermediary` and
+`official` namespaces, and embeds that semantic header in new prepared JARs.
+The older internal `named` header is accepted on input so existing prepared
+caches remain usable, but it is never advertised as a Yarn mapping namespace.
 The supplied discovery implementation creates `java` from
 `java.specification.version`, marks Java and Minecraft metadata as `builtin`,
 and gives Minecraft a dependency on the Java class version it requires. Fabric
