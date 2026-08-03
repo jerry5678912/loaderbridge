@@ -47,7 +47,8 @@ public final class BridgeVersionPredicate implements VersionPredicate {
                 for (int index = 0; index < wildcard; index++) {
                     components[index] = semantic.getVersionComponent(index);
                 }
-                version = BridgeSemanticVersion.of(components);
+                version = BridgeSemanticVersion.rangeMinimum(
+                        semantic.getBuildKey().orElse(null), components);
                 operator = wildcard == 1 ? VersionComparisonOperator.SAME_TO_NEXT_MAJOR
                         : VersionComparisonOperator.SAME_TO_NEXT_MINOR;
             } else if (!(version instanceof SemanticVersion)

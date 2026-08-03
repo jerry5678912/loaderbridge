@@ -77,8 +77,9 @@ public final class BridgeSemanticVersion implements SemanticVersion {
         return new BridgeSemanticVersion(parsed, prerelease, build);
     }
 
-    public static BridgeSemanticVersion of(int... components) {
-        return new BridgeSemanticVersion(components.clone(), null, null);
+    /** Creates Fabric's inclusive range floor, which sorts before every prerelease. */
+    public static BridgeSemanticVersion rangeMinimum(String build, int... components) {
+        return new BridgeSemanticVersion(components.clone(), "", build);
     }
 
     @Override public int getVersionComponentCount() { return components.length; }

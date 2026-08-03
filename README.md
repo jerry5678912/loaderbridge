@@ -269,6 +269,10 @@ compatible. Catalog-wide measurement remains pending the frozen 1,000-project
 catalog. The real-mod probes above establish the M3/M4 reference gates on
 macOS; they do not establish Windows/Linux parity or a 95% result.
 
+The Loader API contract suite also covers Fabric Loader 0.16.14's extended
+semantic-version rules for prereleases, wildcard ranges, comparator chains,
+tilde ranges, caret ranges, and the special trailing-dash range boundary.
+
 ## Build and use
 
 ```shell

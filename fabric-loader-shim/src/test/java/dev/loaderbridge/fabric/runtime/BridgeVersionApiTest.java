@@ -50,8 +50,8 @@ class BridgeVersionApiTest {
         assertThat(wildcard.test(Version.parse("1.22.0"))).isFalse();
 
         VersionInterval selected = wildcard.getInterval();
-        assertThat(selected.getMin().getFriendlyString()).isEqualTo("1.21");
-        assertThat(selected.getMax().getFriendlyString()).isEqualTo("1.22");
+        assertThat(selected.getMin().getFriendlyString()).isEqualTo("1.21-");
+        assertThat(selected.getMax().getFriendlyString()).isEqualTo("1.22-");
         assertThat(selected.not()).hasSize(2);
         assertThat(VersionInterval.or(List.of(selected), selected)).containsExactly(selected);
         assertThat(VersionInterval.or(List.of(VersionInterval.INFINITE), selected))

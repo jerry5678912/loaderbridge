@@ -61,9 +61,10 @@ public enum VersionComparisonOperator {
     public SemanticVersion maxVersion(SemanticVersion version) {
         return switch (this) {
             case LESS_EQUAL, LESS, EQUAL -> version;
-            case SAME_TO_NEXT_MINOR -> BridgeSemanticVersion.of(
+            case SAME_TO_NEXT_MINOR -> BridgeSemanticVersion.rangeMinimum(null,
                     version.getVersionComponent(0), version.getVersionComponent(1) + 1);
-            case SAME_TO_NEXT_MAJOR -> BridgeSemanticVersion.of(version.getVersionComponent(0) + 1);
+            case SAME_TO_NEXT_MAJOR -> BridgeSemanticVersion.rangeMinimum(
+                    null, version.getVersionComponent(0) + 1);
             default -> null;
         };
     }
