@@ -36,6 +36,9 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType;
+import net.fabricmc.fabric.api.lookup.v1.block.BlockApiCache;
+import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.Mob;
@@ -68,10 +71,17 @@ public final class FabricLifecycleFixture implements ModInitializer {
     private static final int TEST_CHUNK = 725;
     private static EntityType<ArmorStand> attributeFixtureType;
     private static EntityType<Zombie> mobBuilderFixtureType;
+    private static final BlockApiLookup<String, Void> BLOCK_LOOKUP = BlockApiLookup.get(
+            ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_block_lookup"),
+            String.class, Void.class);
 
     @Override
     @SuppressWarnings("deprecation")
     public void onInitialize() {
+        BLOCK_LOOKUP.registerForBlocks(
+                (world, pos, state, blockEntity, context) -> "direct", Blocks.STONE);
+        BLOCK_LOOKUP.registerFallback((world, pos, state, blockEntity, context) ->
+                state.is(Blocks.DIRT) ? "fallback" : null);
         var bridgedBlockEntityType = FabricBlockEntityTypeBuilder
                 .create((position, state) -> null, Blocks.STONE)
                 .addBlock(Blocks.DIRT)
@@ -267,6 +277,21 @@ public final class FabricLifecycleFixture implements ModInitializer {
                 throw new IllegalStateException("LOADERBRIDGE_FABRIC_DEFAULT_ATTRIBUTES_FAILED");
             }
             System.out.println("LOADERBRIDGE_FABRIC_DEFAULT_ATTRIBUTES_READY");
+            var world = server.overworld();
+            BlockPos lookupPos = new BlockPos(world.getSharedSpawnPos().getX(),
+                    world.getMinBuildHeight() + 1, world.getSharedSpawnPos().getZ());
+            world.setBlockAndUpdate(lookupPos, Blocks.STONE.defaultBlockState());
+            BlockApiCache<String, Void> lookupCache = BlockApiCache.create(
+                    BLOCK_LOOKUP, world, lookupPos);
+            if (!"direct".equals(BLOCK_LOOKUP.find(world, lookupPos, null))
+                    || !"direct".equals(lookupCache.find(null))) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_BLOCK_LOOKUP_DIRECT_FAILED");
+            }
+            world.setBlockAndUpdate(lookupPos, Blocks.DIRT.defaultBlockState());
+            if (!"fallback".equals(lookupCache.find(null))) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_BLOCK_LOOKUP_FALLBACK_FAILED");
+            }
+            System.out.println("LOADERBRIDGE_FABRIC_BLOCK_LOOKUP_READY");
             if (SERVER_STATE.compareAndSet(1, 2)) {
                 System.out.println("LOADERBRIDGE_FABRIC_SERVER_LIFECYCLE_READY");
             }

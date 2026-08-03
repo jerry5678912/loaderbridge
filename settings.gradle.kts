@@ -39,6 +39,7 @@ include(
     "fabric-resource-loader-v0-bridge",
     "fabric-game-rule-api-v1-bridge",
     "fabric-object-builder-api-v1-bridge",
+    "fabric-api-lookup-api-v1-bridge",
     "fabric-networking-api-v1-bridge",
     "forge-runtime",
     "forge-transform-service",

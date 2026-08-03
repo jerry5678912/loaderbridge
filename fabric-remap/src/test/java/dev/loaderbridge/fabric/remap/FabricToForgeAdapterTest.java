@@ -299,6 +299,36 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsBlockLookupBridgeAndItsRuntimeDependencies() throws Exception {
+        Path source = referencedMod("lookup_api", "fabric-api-lookup-api-v1", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
+            method.visitInsn(Opcodes.ACONST_NULL);
+            method.visitTypeInsn(Opcodes.CHECKCAST,
+                    "net/fabricmc/fabric/api/lookup/v1/block/BlockApiLookup");
+            method.visitInsn(Opcodes.POP);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(1, 1);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "lookup-api");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains(
+                        "fabric-api-lookup-api-v1-bridge-1.6.72_d30f6a7919-loaderbridge.1.jar",
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
+                        "fabric-lifecycle-events-bridge-2.6.0_0865547519-loaderbridge.6.jar");
+        assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
+                .contains("fabric-api-lookup-api-v1-bridge");
+    }
+
+    @Test
     void automaticallySelectsResourceLoaderBridgeAndItsBaseDependency() throws Exception {
         Path source = referencedMod("resource_loader_api", "fabric-resource-loader-v0", writer -> {
             var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);

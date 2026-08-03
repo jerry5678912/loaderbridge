@@ -38,6 +38,9 @@ dependencies {
     compileOnly(project(':fabric-object-builder-api-v1-bridge')) {
         transitive = false
     }
+    compileOnly(project(':fabric-api-lookup-api-v1-bridge')) {
+        transitive = false
+    }
     compileOnly(project(':fabric-networking-api-v1-bridge')) {
         transitive = false
     }

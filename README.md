@@ -98,6 +98,11 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   attributes, Fabric's unnamed build behavior, and spawn restrictions are
   translated to Minecraft/Forge behavior. Fabric common entrypoints run
   sequentially in resolved order inside Forge's registration window.
+- A separately versioned API Lookup v1 block bridge matching
+  `fabric-api-lookup-api-v1:1.6.72+d30f6a7919`. It implements unique typed
+  lookups, block/block-entity/self providers, ordered fallbacks, and live cache
+  queries. Mods select it by bytecode or metadata and automatically receive its
+  base and lifecycle bridge dependencies.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -133,7 +138,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   server-to-client `ping` and client-to-server `pong` in both the initial and
   reloaded integrated world, registers a Fabric-built block-entity type and a
   custom living entity with default attributes, plus a custom mob with a native
-  spawn restriction, and completes clean saves with no transformer exceptions.
+  spawn restriction. It also validates block lookup direct providers,
+  fallbacks, and cache updates before completing clean saves with no transformer
+  exceptions.
 - A controlled Fabric command fixture registers and executes a real Brigadier
   command before and after a Forge 52.1.16 dedicated-server restart, with world
   save and clean shutdown.
