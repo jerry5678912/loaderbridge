@@ -4,6 +4,7 @@
   "package": "dev.loaderbridge.fabric.api.lifecycle.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "LevelChunkBlockEntityMixin",
     "MinecraftServerLifecycleMixin",
     "ServerLevelEntityCallbacksMixin"
   ],

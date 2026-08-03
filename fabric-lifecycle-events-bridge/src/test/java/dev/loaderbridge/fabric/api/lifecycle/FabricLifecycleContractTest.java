@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerBlockEntityEvents;
 import org.junit.jupiter.api.Test;
 
 class FabricLifecycleContractTest {
@@ -36,11 +37,13 @@ class FabricLifecycleContractTest {
 
         assertThat(descriptor.contractVersion()).isEqualTo("fabric-lifecycle-events-v1:2.6.0");
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("2.6.0+0865547519-loaderbridge.4");
+                .isEqualTo("2.6.0+0865547519-loaderbridge.5");
         assertThat(descriptor.providedModVersions())
                 .containsEntry("fabric-lifecycle-events-v1", "2.6.0+0865547519");
         assertThat(descriptor.requiredModules()).containsExactly("fabric-api-base-bridge");
         assertThat(descriptor.providedClasses()).contains(
+                "net.fabricmc.fabric.api.event.lifecycle.v1.ServerBlockEntityEvents",
+                "net.fabricmc.fabric.api.event.lifecycle.v1.ServerBlockEntityEvents$Unload",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents$TagsLoaded",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents",
@@ -134,5 +137,17 @@ class FabricLifecycleContractTest {
         ServerEntityEvents.ENTITY_UNLOAD.invoker().onUnload(null, null);
 
         assertThat(calls).containsExactly("load", "equipment", "unload");
+    }
+
+    @Test
+    void serverBlockEntityEventsPreserveLoadAndUnloadOrder() {
+        List<String> calls = new ArrayList<>();
+        ServerBlockEntityEvents.BLOCK_ENTITY_LOAD.register((entity, world) -> calls.add("load"));
+        ServerBlockEntityEvents.BLOCK_ENTITY_UNLOAD.register((entity, world) -> calls.add("unload"));
+
+        ServerBlockEntityEvents.BLOCK_ENTITY_LOAD.invoker().onLoad(null, null);
+        ServerBlockEntityEvents.BLOCK_ENTITY_UNLOAD.invoker().onUnload(null, null);
+
+        assertThat(calls).containsExactly("load", "unload");
     }
 }

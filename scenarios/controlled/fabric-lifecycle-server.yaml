@@ -58,6 +58,26 @@ steps:
     timeout: PT1M
     parameters:
       contains: LOADERBRIDGE_FABRIC_ENTITY_UNLOADED
+  - id: place_block_entity
+    action: send_command
+    timeout: PT1M
+    parameters:
+      command: setblock 0 100 0 minecraft:chest
+  - id: block_entity_loaded
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_BLOCK_ENTITY_LOADED
+  - id: remove_block_entity
+    action: send_command
+    timeout: PT1M
+    parameters:
+      command: setblock 0 100 0 minecraft:air
+  - id: block_entity_unloaded
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_BLOCK_ENTITY_UNLOADED
   - id: datapack_reload
     action: send_command
     timeout: PT1M

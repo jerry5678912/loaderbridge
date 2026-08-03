@@ -15,7 +15,7 @@ The engine is split so a future GUI can call the same Java API as the CLI.
 | `fabric-loader-shim` | Independently implemented common Fabric Loader API surface |
 | `fabric-api-base-bridge` | Versioned Fabric API event and utility contracts selected from inspected references |
 | `fabric-command-api-v2-bridge` | Fabric server command registration mapped to Forge's live dispatcher and build context |
-| `fabric-lifecycle-events-bridge` | Fabric server lifecycle/world/entity/tick/tag events mapped to Forge plus exact Mixin hooks |
+| `fabric-lifecycle-events-bridge` | Fabric server lifecycle/world/entity/block-entity/tick/tag events mapped to Forge plus exact Mixin hooks |
 | `forge-runtime` | Forge language provider and custom mod-container boundary |
 | `forge-transform-service` | Early ModLauncher transformation-service boundary |
 | `integration-harness` | Pinned disposable Forge installation, scenario execution, reload, bounded commands, and artifacts |

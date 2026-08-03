@@ -251,7 +251,7 @@ class FabricToForgeAdapterTest {
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
                 .contains(
                         "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
-                        "fabric-lifecycle-events-bridge-2.6.0_0865547519-loaderbridge.4.jar");
+                        "fabric-lifecycle-events-bridge-2.6.0_0865547519-loaderbridge.5.jar");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
                 .contains("fabric-api-base-bridge", "fabric-lifecycle-events-bridge");
         try (JarFile jar = new JarFile(result.artifacts().stream()
