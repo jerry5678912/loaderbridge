@@ -8,6 +8,23 @@ import org.junit.jupiter.api.Test;
 
 class FabricRegistrationLifecycleTest {
     @Test
+    void invokesAllPreLaunchCallbacksAtTheFirstConstructEvent() {
+        var coordinator = new FabricRegistrationLifecycle.PreLaunchCoordinator();
+        List<String> order = new ArrayList<>();
+        coordinator.register(() -> order.add("pre-one"));
+        coordinator.register(() -> order.add("pre-two"));
+
+        assertThat(coordinator.invokeIfConstructEvent(
+                "net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent")).isFalse();
+        assertThat(coordinator.invokeIfConstructEvent(
+                "net.minecraftforge.fml.event.lifecycle.FMLConstructModEvent")).isTrue();
+        assertThat(coordinator.invokeIfConstructEvent(
+                "net.minecraftforge.fml.event.lifecycle.FMLConstructModEvent")).isFalse();
+
+        assertThat(order).containsExactly("pre-one", "pre-two");
+    }
+
+    @Test
     void invokesResolvedEntrypointsTogetherDuringCommonSetup() {
         var coordinator = new FabricRegistrationLifecycle.Coordinator();
         List<String> order = new ArrayList<>();

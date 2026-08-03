@@ -21,6 +21,11 @@ Fabric's supplied `EntrypointStorage` source records every metadata key before
 normal initialization, creates modern entrypoints lazily, and caches a separate
 instance for each requested contract type. LoaderBridge now follows those
 observable contracts for both lifecycle and arbitrary API entrypoint keys.
+Fabric Loader completes this setup for every active mod before invoking the
+`preLaunch` stage. LoaderBridge therefore queues prelaunch callbacks until
+Forge's first `FMLConstructModEvent`; all container constructors and entrypoint
+registrations have completed by then, while the later registry-dependent
+`main` window remains unchanged.
 The supplied public `FabricLoader` interface also exposed the previously missing
 `getRawGameVersion()` binary contract; Forge runtime now obtains it from
 `META-INF/loaderbridge.json`.

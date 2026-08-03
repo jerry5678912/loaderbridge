@@ -28,7 +28,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   small independently implemented Fabric Loader API shim.
 - Native execution of ordinary Fabric `preLaunch`, `main`, `client`, and
   `server` entrypoints on Forge, including default member-style and Kotlin
-  language-adapter declarations.
+  language-adapter declarations. All active definitions are installed before
+  `preLaunch` callbacks run together at Forge construct; common/client
+  initialization remains after registry population.
 - Fabric Loader 0.16 runtime contracts for containers, rich metadata, versions,
   dependency predicates, aliases, object sharing, classpath roots, environment
   filtering, raw game version, arbitrary lazily resolved entrypoint containers,

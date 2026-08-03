@@ -16,6 +16,11 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Deferred Fabric `preLaunch` callbacks until Forge's construct event, after all
+  active mod containers have installed their entrypoint definitions. The
+  controlled fixture discovers a custom API entrypoint from `preLaunch` on
+  client and dedicated server without moving registry-dependent `main`
+  callbacks back before Forge registry population.
 - Added Fabric Loader's raw game-version contract and source it from the
   transformed artifact's locked Minecraft version at Forge runtime.
 - Added arbitrary Fabric entrypoint keys with lazy language-adapter resolution,

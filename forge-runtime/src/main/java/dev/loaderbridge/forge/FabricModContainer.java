@@ -75,8 +75,9 @@ public final class FabricModContainer extends ModContainer {
         }
         BridgeFabricLoader.getInstance().registerMod(bridgeModContainer);
         registerEntrypointDefinitions(entrypointDefinitions);
-        invokeEntrypoints("preLaunch", PreLaunchEntrypoint.class,
-                entrypoint -> entrypoint.onPreLaunch());
+        FabricRegistrationLifecycle.registerPreLaunchEntrypoints(
+                () -> invokeEntrypoints("preLaunch", PreLaunchEntrypoint.class,
+                        entrypoint -> entrypoint.onPreLaunch()));
         FabricRegistrationLifecycle.registerMainEntrypoints(
                 () -> invokeEntrypoints("main", ModInitializer.class,
                         initializer -> initializer.onInitialize()));

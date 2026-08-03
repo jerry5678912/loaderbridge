@@ -8,13 +8,21 @@ import net.minecraftforge.eventbus.api.Event;
 
 /** Opens Forge's registry window before invoking Fabric's common entrypoints. */
 final class FabricRegistrationLifecycle {
+    private static final String CONSTRUCT_EVENT =
+            "net.minecraftforge.fml.event.lifecycle.FMLConstructModEvent";
     private static final String COMMON_SETUP_EVENT =
             "net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent";
     private static final String CLIENT_RECIPE_BOOK_EVENT =
             "net.minecraftforge.client.event.RegisterRecipeBookCategoriesEvent";
     private static final Coordinator MAIN_ENTRYPOINTS = new Coordinator();
+    private static final PreLaunchCoordinator PRE_LAUNCH_ENTRYPOINTS =
+            new PreLaunchCoordinator();
 
     private FabricRegistrationLifecycle() {
+    }
+
+    static void registerPreLaunchEntrypoints(Runnable entrypoints) {
+        PRE_LAUNCH_ENTRYPOINTS.register(entrypoints);
     }
 
     static void registerMainEntrypoints(Runnable entrypoints) {
@@ -26,7 +34,9 @@ final class FabricRegistrationLifecycle {
     }
 
     static boolean invokeIfInitializationEvent(Event event) {
-        return MAIN_ENTRYPOINTS.invokeIfInitializationEvent(event.getClass().getName(),
+        String eventName = event.getClass().getName();
+        boolean preLaunch = PRE_LAUNCH_ENTRYPOINTS.invokeIfConstructEvent(eventName);
+        boolean initialization = MAIN_ENTRYPOINTS.invokeIfInitializationEvent(eventName,
                 () -> openForgeRegistryWindow(event),
                 () -> {
                     FabricClientModelRegistration.captureBeforeEntrypoints(event);
@@ -36,6 +46,30 @@ final class FabricRegistrationLifecycle {
                     FabricClientModelRegistration.captureAfterEntrypoints(event);
                     FabricClientRecipeBookRegistration.captureAfterEntrypoints(event);
                 });
+        return preLaunch || initialization;
+    }
+
+    static final class PreLaunchCoordinator {
+        private final List<Runnable> pending = new ArrayList<>();
+        private boolean invoked;
+
+        synchronized void register(Runnable entrypoints) {
+            if (invoked) {
+                throw new IllegalStateException(
+                        "LB-ENTRY-007: Fabric preLaunch entrypoint registered after construct");
+            }
+            pending.add(entrypoints);
+        }
+
+        synchronized boolean invokeIfConstructEvent(String eventName) {
+            if (!CONSTRUCT_EVENT.equals(eventName) || invoked) {
+                return false;
+            }
+            invoked = true;
+            pending.forEach(Runnable::run);
+            pending.clear();
+            return true;
+        }
     }
 
     static final class Coordinator {
