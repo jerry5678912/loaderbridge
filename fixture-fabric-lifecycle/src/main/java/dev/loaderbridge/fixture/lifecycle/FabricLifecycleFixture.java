@@ -43,7 +43,14 @@ import net.fabricmc.fabric.api.lookup.v1.block.BlockApiCache;
 import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
 import net.fabricmc.fabric.api.lookup.v1.item.ItemApiLookup;
 import net.fabricmc.fabric.api.lookup.v1.entity.EntityApiLookup;
+import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
+import net.fabricmc.fabric.api.event.registry.RegistryAttribute;
+import net.fabricmc.fabric.api.event.registry.RegistryAttributeHolder;
+import net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.MappedRegistry;
+import net.minecraft.resources.ResourceKey;
+import com.mojang.serialization.Lifecycle;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.Mob;
@@ -73,6 +80,7 @@ public final class FabricLifecycleFixture implements ModInitializer {
     private static final AtomicBoolean TRACKING_LOOKUP_REPORTED = new AtomicBoolean();
     private static final AtomicBoolean TRACKING_ENTITY_SPAWNED = new AtomicBoolean();
     private static final AtomicInteger RESOURCE_RELOADS = new AtomicInteger();
+    private static final AtomicBoolean CUSTOM_REGISTRY_CALLBACK = new AtomicBoolean();
     private static final int TEST_CHUNK = 725;
     private static EntityType<ArmorStand> attributeFixtureType;
     private static EntityType<Zombie> mobBuilderFixtureType;
@@ -91,10 +99,35 @@ public final class FabricLifecycleFixture implements ModInitializer {
     private static final EntityApiLookup<Entity, Void> ENTITY_SELF_LOOKUP = EntityApiLookup.get(
             ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_entity_self_lookup"),
             Entity.class, Void.class);
+    private static final ResourceKey<Registry<String>> CUSTOM_REGISTRY_KEY =
+            ResourceKey.createRegistryKey(ResourceLocation.fromNamespaceAndPath(
+                    "loaderbridge", "fixture_registry"));
+    private static final MappedRegistry<String> CUSTOM_REGISTRY =
+            new MappedRegistry<>(CUSTOM_REGISTRY_KEY, Lifecycle.stable(), false);
 
     @Override
     @SuppressWarnings("deprecation")
     public void onInitialize() {
+        RegistryEntryAddedCallback.event(CUSTOM_REGISTRY).register((rawId, id, value) -> {
+            if (rawId == 0
+                    && id.equals(ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_value"))
+                    && value.equals("registry-value")) {
+                CUSTOM_REGISTRY_CALLBACK.set(true);
+            }
+        });
+        FabricRegistryBuilder.from(CUSTOM_REGISTRY)
+                .attribute(RegistryAttribute.SYNCED)
+                .buildAndRegister();
+        Registry.register(CUSTOM_REGISTRY,
+                ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_value"),
+                "registry-value");
+        if (!CUSTOM_REGISTRY_CALLBACK.get()
+                || !RegistryAttributeHolder.get(CUSTOM_REGISTRY).hasAttribute(RegistryAttribute.MODDED)
+                || !RegistryAttributeHolder.get(CUSTOM_REGISTRY).hasAttribute(RegistryAttribute.SYNCED)
+                || BuiltInRegistries.REGISTRY.get(CUSTOM_REGISTRY_KEY.location()) != CUSTOM_REGISTRY) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_REGISTRY_SYNC_FAILED");
+        }
+        System.out.println("LOADERBRIDGE_FABRIC_REGISTRY_SYNC_READY");
         BLOCK_LOOKUP.registerForBlocks(
                 (world, pos, state, blockEntity, context) -> "direct", Blocks.STONE);
         BLOCK_LOOKUP.registerFallback((world, pos, state, blockEntity, context) ->

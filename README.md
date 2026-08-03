@@ -104,6 +104,11 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   cache queries; and the public custom lookup/provider maps. Mods select it by
   bytecode or metadata and automatically receive its base and lifecycle bridge
   dependencies.
+- An initial Registry Sync v0 bridge matching
+  `fabric-registry-sync-v0:5.1.3+60c3209b19`. It implements static custom
+  registry builders, registry attributes, and entry-added/remap event contracts.
+  Forge owns the connection registry handshake; the controlled client proves
+  custom root registration and callback delivery through save and reload.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -141,15 +146,18 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   custom living entity with default attributes, plus a custom mob with a native
   spawn restriction. It also validates block, item, and entity lookup direct,
   self, and fallback providers plus block cache updates in both integrated-world
-  runs before completing clean saves with no transformer exceptions.
+  runs. It also creates a Fabric custom registry, observes its first entry, and
+  verifies its attributes before completing clean saves with no transformer
+  exceptions.
 - A controlled Fabric command fixture registers and executes a real Brigadier
   command before and after a Forge 52.1.16 dedicated-server restart, with world
   save and clean shutdown.
 
 ## Intentionally gated
 
-The adapter currently rejects Fabric API surfaces outside the implemented base
-module, unknown custom language adapters, Loader API calls outside the current
+The adapter currently rejects Fabric API surfaces outside the implemented
+modules, including dynamic Registry Sync codec/datapack setup callbacks,
+unknown custom language adapters, Loader API calls outside the current
 shim, and mods requiring unreviewed native-library behavior. Signed patch packs,
 broad semantic graphical assertions, and catalog-wide compatibility measurement
 are not yet implemented.

@@ -30,6 +30,9 @@ dependencies {
     runtimeOnly(project(":fabric-api-lookup-api-v1-bridge")) {
         isTransitive = false
     }
+    runtimeOnly(project(":fabric-registry-sync-v0-bridge")) {
+        isTransitive = false
+    }
     runtimeOnly(project(":fabric-networking-api-v1-bridge")) {
         isTransitive = false
     }

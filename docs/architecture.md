@@ -26,6 +26,7 @@ The engine is split so a future GUI can call the same Java API as the CLI.
 | `fixture-fabric-api-base` | Controlled automatic API-module selection and runtime probe |
 | `fixture-fabric-command` | Controlled Fabric callback registration and real Brigadier command execution probe |
 | `fixture-fabric-lifecycle` | Controlled automatic lifecycle+base selection and ordered server tick probe |
+| `fabric-registry-sync-v0-bridge` | Static Fabric custom-registry builders, attributes, and registry-local events over Forge synchronization |
 
 Adapter discovery is exclusively through Java `ServiceLoader`. A future loader
 direction can be added as another provider without editing the CLI.

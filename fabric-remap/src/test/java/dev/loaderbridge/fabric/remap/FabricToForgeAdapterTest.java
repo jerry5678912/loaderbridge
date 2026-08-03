@@ -329,6 +329,38 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsRegistrySyncBridgeAndItsBaseDependency() throws Exception {
+        Path source = referencedMod("registry_sync", "fabric-registry-sync-v0", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
+            method.visitInsn(Opcodes.ACONST_NULL);
+            method.visitMethodInsn(Opcodes.INVOKESTATIC,
+                    "net/fabricmc/fabric/api/event/registry/RegistryAttributeHolder", "get",
+                    "(Lnet/minecraft/core/Registry;)"
+                            + "Lnet/fabricmc/fabric/api/event/registry/RegistryAttributeHolder;",
+                    true);
+            method.visitInsn(Opcodes.POP);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(1, 1);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "registry-sync");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains(
+                        "fabric-registry-sync-v0-bridge-5.1.3_60c3209b19-loaderbridge.1.jar",
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar");
+        assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
+                .contains("fabric-registry-sync-v0-bridge");
+    }
+
+    @Test
     void automaticallySelectsResourceLoaderBridgeAndItsBaseDependency() throws Exception {
         Path source = referencedMod("resource_loader_api", "fabric-resource-loader-v0", writer -> {
             var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
