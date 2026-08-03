@@ -37,6 +37,7 @@ import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.block.type.BlockSetTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.block.type.WoodTypeBuilder;
+import net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -328,6 +329,10 @@ public final class FabricLifecycleFixture implements ModInitializer {
             throw new IllegalStateException("LOADERBRIDGE_FABRIC_WOOD_TYPE_FAILED");
         }
         System.out.println("LOADERBRIDGE_FABRIC_WOOD_TYPE_READY");
+        TradeOfferHelper.registerWanderingTraderOffers(1, offers -> {
+            offers.add((trader, random) -> null);
+            System.out.println("LOADERBRIDGE_FABRIC_TRADE_CALLBACK_READY");
+        });
         Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, ITEM_GROUP_KEY.location(),
                 FabricItemGroup.builder()
                         .title(Component.literal("LoaderBridge Fixture"))

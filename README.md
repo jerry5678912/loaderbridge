@@ -110,7 +110,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   attributes, Fabric's unnamed build behavior, and spawn restrictions are
   translated to Minecraft/Forge behavior. `BlockSetTypeBuilder` and
   `WoodTypeBuilder` also construct and register native behavior records with
-  Fabric-compatible copying and defaults. Fabric common entrypoints run
+  Fabric-compatible copying and defaults. Villager, wandering-trader, and
+  rebalanced-pool registrations are translated through Forge's trade build
+  events. Fabric common entrypoints run
   sequentially in resolved order inside Forge's registration window.
 - A separately versioned API Lookup v1 bridge matching
   `fabric-api-lookup-api-v1:1.6.72+d30f6a7919`. It implements unique typed

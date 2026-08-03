@@ -32,7 +32,7 @@ class FabricObjectBuilderContractTest {
 
         assertThat(descriptor.contractVersion()).isEqualTo("fabric-object-builder-api-v1:15.2.1");
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("15.2.1+40875a9319-loaderbridge.5");
+                .isEqualTo("15.2.1+40875a9319-loaderbridge.6");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrder(
                 "net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder",
                 "net.fabricmc.fabric.api.object.builder.v1.block.entity."
@@ -46,7 +46,10 @@ class FabricObjectBuilderContractTest {
                 "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType$Builder$Living",
                 "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType$Builder$Mob",
                 "net.fabricmc.fabric.api.object.builder.v1.block.type.BlockSetTypeBuilder",
-                "net.fabricmc.fabric.api.object.builder.v1.block.type.WoodTypeBuilder");
+                "net.fabricmc.fabric.api.object.builder.v1.block.type.WoodTypeBuilder",
+                "net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper",
+                "net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper$VillagerOffersAdder",
+                "net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper$WanderingTraderOffersBuilder");
     }
 
     @Test

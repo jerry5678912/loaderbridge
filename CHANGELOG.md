@@ -16,6 +16,9 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added Fabric `TradeOfferHelper` villager and wandering-trader registration
+  over Forge trade events; the graphical fixture observes its callback on both
+  initial world creation and reload.
 - Expanded Object Builder API v1 with Fabric-compatible block-set and wood-type
   builders, including copy/build/register behavior and real-client native
   record registration.
