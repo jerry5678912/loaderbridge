@@ -17,6 +17,7 @@ public interface RepositoryProvider {
 
     RepositoryPage search(RepositoryQuery query) throws IOException;
 
+    /** Returns artifacts for the exact project, Minecraft version, and loader ID. */
     List<RepositoryArtifact> versions(String projectId, String minecraftVersion, String loader)
             throws IOException;
 

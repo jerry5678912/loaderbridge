@@ -21,6 +21,8 @@ class RepositoryContractTest {
                 List.of(new RepositoryDependency("required-project", null, DependencyKind.REQUIRED)));
 
         assertThat(artifact.isEligibleFabric1211()).isTrue();
+        assertThat(artifact.isEligibleFor("1.21.1", "fabric")).isTrue();
+        assertThat(artifact.isEligibleFor("1.21.1", "forge")).isFalse();
         assertThat(artifact.preferredHash()).hasValueSatisfying(hash -> {
             assertThat(hash.algorithm()).isEqualTo(HashAlgorithm.SHA1);
             assertThat(hash.value()).hasSize(40);

@@ -82,6 +82,23 @@ class CurseForgeRepositoryProviderTest {
     }
 
     @Test
+    void queriesNativeForgeArtifactsForCatalogExclusivityChecks() throws Exception {
+        FakeTransport transport = new FakeTransport();
+        transport.filesJson = filesJson(7, SHA1,
+                "https://edge.forgecdn.net/files/1/2/example.jar", "[]")
+                .replace("\"Fabric\"", "\"Forge\"");
+        var provider = new CurseForgeRepositoryProvider(transport);
+
+        var versions = provider.versions("238222", "1.21.1", "forge");
+
+        assertThat(versions).singleElement().satisfies(artifact ->
+                assertThat(artifact.isEligibleFor("1.21.1", "forge")).isTrue());
+        String query = URLDecoder.decode(transport.requested.getFirst().getRawQuery(),
+                StandardCharsets.UTF_8);
+        assertThat(query).contains("modLoaderType=1");
+    }
+
+    @Test
     void resolvesDownloadUrlWhenFileMetadataOmitsIt() throws Exception {
         FakeTransport transport = new FakeTransport();
         transport.filesJson = filesJson(7, SHA1, null, "[]");

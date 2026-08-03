@@ -37,14 +37,34 @@ class CatalogCollectorTest {
         assertThat(snapshot.entries()).allMatch(entry -> entry.artifact().versionNumber().equals("new"));
     }
 
+    @Test
+    void excludesProjectsThatPublishANativeForgeReleaseForTheSameMinecraftVersion() throws Exception {
+        FakeProvider modrinth = new FakeProvider("modrinth", 3, true);
+        FakeProvider curseforge = new FakeProvider("curseforge", 3, true);
+
+        CatalogSnapshot snapshot = new CatalogCollector(List.of(modrinth, curseforge))
+                .collectAndFreeze(4, 2, "2026-08", Instant.parse("2026-08-01T00:00:00Z"));
+
+        assertThat(snapshot.entries()).noneMatch(entry -> entry.project().projectId().endsWith("0"));
+        assertThat(modrinth.requestedLoaders).contains("fabric", "forge");
+        assertThat(curseforge.requestedLoaders).contains("fabric", "forge");
+    }
+
     private static final class FakeProvider implements RepositoryProvider {
         private final RepositoryId id;
         private final int count;
+        private final boolean exposesNativeForge;
         private final List<Integer> offsets = new ArrayList<>();
+        private final List<String> requestedLoaders = new ArrayList<>();
 
         private FakeProvider(String id, int count) {
+            this(id, count, false);
+        }
+
+        private FakeProvider(String id, int count, boolean exposesNativeForge) {
             this.id = new RepositoryId(id);
             this.count = count;
+            this.exposesNativeForge = exposesNativeForge;
         }
 
         @Override
@@ -65,16 +85,25 @@ class CatalogCollectorTest {
 
         @Override
         public List<RepositoryArtifact> versions(String projectId, String minecraftVersion, String loader) {
+            requestedLoaders.add(loader);
+            if (loader.equals("forge")) {
+                return exposesNativeForge && projectId.endsWith("0")
+                        ? List.of(artifact(projectId, "native-forge", 3, "forge")) : List.of();
+            }
             return List.of(artifact(projectId, "old", 1), artifact(projectId, "new", 2));
         }
 
         private RepositoryArtifact artifact(String projectId, String version, int day) {
+            return artifact(projectId, version, day, "fabric");
+        }
+
+        private RepositoryArtifact artifact(String projectId, String version, int day, String loader) {
             String hash = String.format("%040x", (id.value() + projectId + version).hashCode()
                     & 0xffffffffL);
             return new RepositoryArtifact(id, projectId, projectId + "-" + version, version,
                     projectId + ".jar", URI.create("https://example.invalid/" + projectId + ".jar"),
                     10, Map.of(HashAlgorithm.SHA1, hash), Instant.parse("2026-08-01T00:00:00Z")
-                            .plusSeconds(day), ReleaseChannel.RELEASE, Set.of("1.21.1"), Set.of("fabric"),
+                            .plusSeconds(day), ReleaseChannel.RELEASE, Set.of("1.21.1"), Set.of(loader),
                     List.of());
         }
 

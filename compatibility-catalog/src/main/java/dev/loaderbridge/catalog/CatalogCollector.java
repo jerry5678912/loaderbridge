@@ -47,11 +47,19 @@ public final class CatalogCollector {
                 totals.put(id, page.total());
                 offsets.put(id, Math.min(MAXIMUM_SEARCH_OFFSET, offset + PAGE_SIZE));
                 for (RepositoryProject project : page.projects()) {
-                    provider.versions(project.projectId(), "1.21.1", "fabric").stream()
+                    var fabricArtifact = provider.versions(project.projectId(), "1.21.1", "fabric").stream()
                             .filter(RepositoryArtifact::isEligibleFabric1211)
                             .max(Comparator.comparing(RepositoryArtifact::publishedAt)
-                                    .thenComparing(RepositoryArtifact::versionId))
-                            .ifPresent(artifact -> candidates.add(new CatalogCandidate(project, artifact)));
+                                    .thenComparing(RepositoryArtifact::versionId));
+                    if (fabricArtifact.isEmpty()) {
+                        continue;
+                    }
+                    boolean hasNativeForgeRelease = provider
+                            .versions(project.projectId(), "1.21.1", "forge").stream()
+                            .anyMatch(artifact -> artifact.isEligibleFor("1.21.1", "forge"));
+                    if (!hasNativeForgeRelease) {
+                        candidates.add(new CatalogCandidate(project, fabricArtifact.orElseThrow()));
+                    }
                 }
                 fetched = true;
             }

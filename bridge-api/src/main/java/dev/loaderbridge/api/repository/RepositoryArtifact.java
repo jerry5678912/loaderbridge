@@ -34,8 +34,14 @@ public record RepositoryArtifact(RepositoryId repository, String projectId, Stri
     }
 
     public boolean isEligibleFabric1211() {
-        return releaseChannel != ReleaseChannel.ALPHA && gameVersions.contains("1.21.1")
-                && loaders.stream().anyMatch(loader -> loader.equalsIgnoreCase("fabric"));
+        return isEligibleFor("1.21.1", "fabric");
+    }
+
+    public boolean isEligibleFor(String minecraftVersion, String loaderId) {
+        Objects.requireNonNull(minecraftVersion, "minecraftVersion");
+        Objects.requireNonNull(loaderId, "loaderId");
+        return releaseChannel != ReleaseChannel.ALPHA && gameVersions.contains(minecraftVersion)
+                && loaders.stream().anyMatch(loader -> loader.equalsIgnoreCase(loaderId));
     }
 
     public Optional<ArtifactHash> preferredHash() {

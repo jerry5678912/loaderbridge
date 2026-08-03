@@ -80,6 +80,21 @@ class ModrinthRepositoryProviderTest {
     }
 
     @Test
+    void queriesNativeForgeArtifactsForCatalogExclusivityChecks() throws Exception {
+        FakeTransport transport = new FakeTransport();
+        transport.versionsJson = versionJson(7, SHA1).replace("\"fabric\"", "\"forge\"");
+        ModrinthRepositoryProvider provider = new ModrinthRepositoryProvider(transport);
+
+        var versions = provider.versions("PROJECT1", "1.21.1", "forge");
+
+        assertThat(versions).singleElement().satisfies(artifact ->
+                assertThat(artifact.isEligibleFor("1.21.1", "forge")).isTrue());
+        String query = URLDecoder.decode(transport.requested.getFirst().getRawQuery(),
+                StandardCharsets.UTF_8);
+        assertThat(query).contains("loaders=[\"forge\"]");
+    }
+
+    @Test
     void resolvesPinnedVersionIdsForDependencyTraversal() throws Exception {
         FakeTransport transport = new FakeTransport();
         String versionArray = versionJson(7, SHA1);

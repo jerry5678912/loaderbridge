@@ -42,6 +42,7 @@ public final class CurseForgeRepositoryProvider implements RepositoryProvider {
     private static final long MAXIMUM_METADATA_BYTES = 8L << 20;
     private static final int MINECRAFT_GAME_ID = 432;
     private static final int MINECRAFT_MOD_CLASS_ID = 6;
+    private static final int FORGE_LOADER = 1;
     private static final int FABRIC_LOADER = 4;
     private final CurseForgeTransport transport;
 
@@ -60,12 +61,12 @@ public final class CurseForgeRepositoryProvider implements RepositoryProvider {
 
     @Override
     public RepositoryPage search(RepositoryQuery query) throws IOException {
-        requireFabric(query.loader());
+        int loaderType = loaderType(query.loader());
         int pageSize = Math.min(query.limit(), 50);
         int sortField = query.sort() == RepositorySort.DOWNLOADS ? 6 : 3;
         URI uri = endpoint("mods/search?gameId=" + MINECRAFT_GAME_ID + "&classId="
                 + MINECRAFT_MOD_CLASS_ID + "&gameVersion=" + parameter(query.minecraftVersion())
-                + "&modLoaderType=" + FABRIC_LOADER + "&sortField=" + sortField
+                + "&modLoaderType=" + loaderType + "&sortField=" + sortField
                 + "&sortOrder=desc&index=" + query.offset() + "&pageSize=" + pageSize);
         try {
             JsonObject response = object(read(uri));
@@ -90,18 +91,18 @@ public final class CurseForgeRepositoryProvider implements RepositoryProvider {
     @Override
     public List<RepositoryArtifact> versions(String projectId, String minecraftVersion, String loader)
             throws IOException {
-        requireFabric(loader);
+        int loaderType = loaderType(loader);
         int modId = numericId(projectId);
         List<RepositoryArtifact> artifacts = new ArrayList<>();
         int index = 0;
         while (index < 10_000) {
             URI uri = endpoint("mods/" + modId + "/files?gameVersion=" + parameter(minecraftVersion)
-                    + "&modLoaderType=" + FABRIC_LOADER + "&index=" + index + "&pageSize=50");
+                    + "&modLoaderType=" + loaderType + "&index=" + index + "&pageSize=50");
             JsonObject response;
             try {
                 response = object(read(uri));
                 for (JsonElement value : array(response, "data")) {
-                    Optional<RepositoryArtifact> artifact = parseFile(modId, value.getAsJsonObject());
+                    Optional<RepositoryArtifact> artifact = parseFile(modId, value.getAsJsonObject(), loader);
                     artifact.ifPresent(artifacts::add);
                 }
             } catch (RuntimeException exception) {
@@ -157,7 +158,7 @@ public final class CurseForgeRepositoryProvider implements RepositoryProvider {
         }
     }
 
-    private Optional<RepositoryArtifact> parseFile(int modId, JsonObject file) throws IOException {
+    private Optional<RepositoryArtifact> parseFile(int modId, JsonObject file, String loader) throws IOException {
         if (!booleanValue(file, "isAvailable") || integer(file, "releaseType") == 3) {
             return Optional.empty();
         }
@@ -187,7 +188,7 @@ public final class CurseForgeRepositoryProvider implements RepositoryProvider {
             return Optional.empty();
         }
         Set<String> gameVersions = strings(array(file, "gameVersions"));
-        if (!gameVersions.contains("Fabric")) {
+        if (gameVersions.stream().noneMatch(version -> version.equalsIgnoreCase(loader))) {
             return Optional.empty();
         }
         List<RepositoryDependency> dependencies = new ArrayList<>();
@@ -201,7 +202,7 @@ public final class CurseForgeRepositoryProvider implements RepositoryProvider {
                 Integer.toString(integer(file, "id")), string(file, "displayName"), fileName,
                 URI.create(downloadUrl), number(file, "fileLength"), hashes,
                 Instant.parse(string(file, "fileDate")), releaseType == 1 ? ReleaseChannel.RELEASE
-                        : ReleaseChannel.BETA, gameVersions, Set.of("fabric"), dependencies));
+                        : ReleaseChannel.BETA, gameVersions, Set.of(loader.toLowerCase(Locale.ROOT)), dependencies));
     }
 
     private byte[] read(URI uri) throws IOException {
@@ -272,10 +273,12 @@ public final class CurseForgeRepositoryProvider implements RepositoryProvider {
         }
     }
 
-    private static void requireFabric(String loader) {
-        if (!"fabric".equalsIgnoreCase(loader)) {
-            throw new IllegalArgumentException("CurseForge adapter currently supports Fabric only");
-        }
+    private static int loaderType(String loader) {
+        return switch (loader.toLowerCase(Locale.ROOT)) {
+            case "forge" -> FORGE_LOADER;
+            case "fabric" -> FABRIC_LOADER;
+            default -> throw new IllegalArgumentException("Unsupported CurseForge loader: " + loader);
+        };
     }
 
     private static URI endpoint(String relative) {
