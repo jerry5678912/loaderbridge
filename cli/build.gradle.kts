@@ -45,6 +45,18 @@ dependencies {
     runtimeOnly(project(":fabric-item-group-api-v1-bridge")) {
         isTransitive = false
     }
+    runtimeOnly(project(":fabric-convention-tags-v2-bridge")) {
+        isTransitive = false
+    }
+    runtimeOnly(project(":fabric-biome-api-v1-bridge")) {
+        isTransitive = false
+    }
+    runtimeOnly(project(":fabric-blockrenderlayer-v1-bridge")) {
+        isTransitive = false
+    }
+    runtimeOnly(project(":fabric-rendering-v1-bridge")) {
+        isTransitive = false
+    }
     runtimeOnly(project(":repository-modrinth"))
     runtimeOnly(project(":repository-curseforge"))
     implementation("info.picocli:picocli:4.7.6")

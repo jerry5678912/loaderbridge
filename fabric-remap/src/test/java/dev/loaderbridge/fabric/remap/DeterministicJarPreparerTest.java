@@ -172,7 +172,8 @@ class DeterministicJarPreparerTest {
 
         new DeterministicJarPreparer().prepare(source, output,
                 new FabricModInspector().inspect(source).root(),
-                PreparationManifest.pinned("1.21.1", "52.1.0"), mappings);
+                PreparationManifest.pinned("1.21.1", "52.1.0")
+                        .namespaces("neutral", "official"), mappings);
 
         try (JarFile jar = new JarFile(output.toFile())) {
             assertThat(read(jar, "fixture.accesswidener")).isEqualTo(original);

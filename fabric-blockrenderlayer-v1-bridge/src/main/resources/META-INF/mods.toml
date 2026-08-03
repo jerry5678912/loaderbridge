@@ -1,0 +1,13 @@
+modLoader="javafml"
+loaderVersion="[52,)"
+license="Apache-2.0"
+[[mods]]
+modId="loaderbridge_fabric_blockrenderlayer_v1"
+version="1.1.52.1"
+displayName="LoaderBridge Fabric Block Render Layer v1 Bridge"
+[[dependencies.loaderbridge_fabric_blockrenderlayer_v1]]
+modId="forge"
+mandatory=true
+versionRange="[52.1.0,53)"
+ordering="NONE"
+side="CLIENT"

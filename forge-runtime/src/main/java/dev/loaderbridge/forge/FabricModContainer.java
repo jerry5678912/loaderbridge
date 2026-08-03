@@ -33,7 +33,6 @@ public final class FabricModContainer extends ModContainer {
     private final BridgeModContainer bridgeModContainer;
     private final ClassLoader gameClassLoader;
     private final boolean active;
-    private final AtomicBoolean clientEntrypointsInvoked = new AtomicBoolean();
     private final AtomicBoolean serverEntrypointsInvoked = new AtomicBoolean();
 
     public FabricModContainer(IModInfo info, ModFileScanData scanData, ModuleLayer gameLayer) {
@@ -76,6 +75,11 @@ public final class FabricModContainer extends ModContainer {
         FabricRegistrationLifecycle.registerMainEntrypoints(
                 () -> invokeEntrypoints(metadataPath, "main", ModInitializer.class,
                         initializer -> initializer.onInitialize()));
+        if (FMLEnvironment.dist.isClient()) {
+            FabricRegistrationLifecycle.registerClientEntrypoints(
+                    () -> invokeEntrypoints(metadataPath, "client", ClientModInitializer.class,
+                            initializer -> initializer.onInitializeClient()));
+        }
     }
 
     @SuppressWarnings("try")
@@ -132,10 +136,6 @@ public final class FabricModContainer extends ModContainer {
                 && serverEntrypointsInvoked.compareAndSet(false, true)) {
             invokeEntrypoints(metadataPath, "server", DedicatedServerModInitializer.class,
                     initializer -> initializer.onInitializeServer());
-        } else if (eventName.equals("net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent")
-                && clientEntrypointsInvoked.compareAndSet(false, true)) {
-            invokeEntrypoints(metadataPath, "client", ClientModInitializer.class,
-                    initializer -> initializer.onInitializeClient());
         }
     }
 

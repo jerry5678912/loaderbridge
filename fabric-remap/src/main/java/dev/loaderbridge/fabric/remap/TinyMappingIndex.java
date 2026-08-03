@@ -18,6 +18,8 @@ final class TinyMappingIndex {
     private final Map<String, String> reverseClasses;
     private final Map<Member, String> fields;
     private final Map<Member, String> methods;
+    private final Map<MemberSignature, String> uniqueFields;
+    private final Map<MemberSignature, String> uniqueMethods;
 
     private TinyMappingIndex(Map<String, String> classes, Map<Member, String> fields,
             Map<Member, String> methods) {
@@ -27,6 +29,8 @@ final class TinyMappingIndex {
         this.reverseClasses = Map.copyOf(reverse);
         this.fields = Map.copyOf(fields);
         this.methods = Map.copyOf(methods);
+        this.uniqueFields = uniqueMembers(fields);
+        this.uniqueMethods = uniqueMembers(methods);
     }
 
     static TinyMappingIndex read(Path path) throws IOException {
@@ -68,13 +72,17 @@ final class TinyMappingIndex {
             if (methodDescriptor > 0) {
                 String name = reference.substring(0, methodDescriptor);
                 String descriptor = reference.substring(methodDescriptor);
-                return mapMethod(inferredOwner, name, descriptor) + mapDescriptor(descriptor);
+                String sourceDescriptor = sourceDescriptor(descriptor);
+                return mapMethod(inferredOwner, name, sourceDescriptor)
+                        + mapDescriptor(sourceDescriptor);
             }
             int fieldDescriptor = reference.indexOf(':');
             if (fieldDescriptor > 0) {
                 String name = reference.substring(0, fieldDescriptor);
                 String descriptor = reference.substring(fieldDescriptor + 1);
-                return mapField(inferredOwner, name, descriptor) + ":" + mapDescriptor(descriptor);
+                String sourceDescriptor = sourceDescriptor(descriptor);
+                return mapField(inferredOwner, name, sourceDescriptor) + ":"
+                        + mapDescriptor(sourceDescriptor);
             }
         }
         if (!reference.startsWith("L")) return mapDescriptor(reference);
@@ -82,21 +90,24 @@ final class TinyMappingIndex {
         if (separator < 2) return reference;
         String owner = reference.substring(1, separator);
         String remainder = reference.substring(separator + 1);
-        String targetOwner = classes.getOrDefault(owner, owner);
+        String sourceOwner = reverseClasses.getOrDefault(owner, owner);
+        String targetOwner = classes.getOrDefault(sourceOwner, owner);
         if (remainder.isEmpty()) return "L" + targetOwner + ";";
         int methodDescriptor = remainder.indexOf('(');
         if (methodDescriptor > 0) {
             String name = remainder.substring(0, methodDescriptor);
             String descriptor = remainder.substring(methodDescriptor);
-            String targetName = methods.getOrDefault(new Member(owner, name, descriptor), name);
-            return "L" + targetOwner + ";" + targetName + mapDescriptor(descriptor);
+            String sourceDescriptor = sourceDescriptor(descriptor);
+            String targetName = mapMethod(sourceOwner, name, sourceDescriptor);
+            return "L" + targetOwner + ";" + targetName + mapDescriptor(sourceDescriptor);
         }
         int fieldDescriptor = remainder.indexOf(':');
         if (fieldDescriptor > 0) {
             String name = remainder.substring(0, fieldDescriptor);
             String descriptor = remainder.substring(fieldDescriptor + 1);
-            String targetName = fields.getOrDefault(new Member(owner, name, descriptor), name);
-            return "L" + targetOwner + ";" + targetName + ":" + mapDescriptor(descriptor);
+            String sourceDescriptor = sourceDescriptor(descriptor);
+            String targetName = mapField(sourceOwner, name, sourceDescriptor);
+            return "L" + targetOwner + ";" + targetName + ":" + mapDescriptor(sourceDescriptor);
         }
         return "L" + targetOwner + ";" + remainder;
     }
@@ -121,11 +132,13 @@ final class TinyMappingIndex {
     }
 
     String mapField(String owner, String name, String descriptor) {
-        return fields.getOrDefault(new Member(owner, name, descriptor), name);
+        return fields.getOrDefault(new Member(owner, name, descriptor),
+                uniqueFields.getOrDefault(new MemberSignature(name, descriptor), name));
     }
 
     String mapMethod(String owner, String name, String descriptor) {
-        return methods.getOrDefault(new Member(owner, name, descriptor), name);
+        return methods.getOrDefault(new Member(owner, name, descriptor),
+                uniqueMethods.getOrDefault(new MemberSignature(name, descriptor), name));
     }
 
     static String unqualified(String reference) {
@@ -145,5 +158,18 @@ final class TinyMappingIndex {
         return output.toString();
     }
 
+    private static Map<MemberSignature, String> uniqueMembers(Map<Member, String> members) {
+        Map<MemberSignature, String> unique = new LinkedHashMap<>();
+        java.util.Set<MemberSignature> ambiguous = new java.util.HashSet<>();
+        members.forEach((member, targetName) -> {
+            MemberSignature signature = new MemberSignature(member.name(), member.descriptor());
+            String prior = unique.putIfAbsent(signature, targetName);
+            if (prior != null && !prior.equals(targetName)) ambiguous.add(signature);
+        });
+        ambiguous.forEach(unique::remove);
+        return Map.copyOf(unique);
+    }
+
     private record Member(String owner, String name, String descriptor) {}
+    private record MemberSignature(String name, String descriptor) {}
 }

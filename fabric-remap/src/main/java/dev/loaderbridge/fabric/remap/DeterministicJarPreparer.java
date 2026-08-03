@@ -369,8 +369,11 @@ public final class DeterministicJarPreparer {
         String original = metadata.accessWidener().orElseThrow();
         validateResourceName(original, "access widener");
         byte[] bytes = readResource(input, original, "LB-AW-004");
-        TinyMappingIndex mappings = sourceNamespace.equals("intermediary") && runtimeMappings != null
-                ? TinyMappingIndex.read(runtimeMappings) : null;
+        // Access-widener resources declare their own namespace. Metadata-only modules have no
+        // bytecode from which to infer a source namespace, but their intermediary rules still
+        // need the resolved runtime mappings.
+        TinyMappingIndex mappings = runtimeMappings == null
+                ? null : TinyMappingIndex.read(runtimeMappings);
         byte[] transformed = new AccessWidenerResourceTransformer().transform(bytes, mappings);
         String generated = "META-INF/loaderbridge/access-wideners/"
                 + sha256("access-widener\u0000" + original) + ".accesswidener";

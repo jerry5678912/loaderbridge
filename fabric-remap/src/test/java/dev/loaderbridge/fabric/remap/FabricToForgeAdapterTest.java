@@ -443,6 +443,97 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsConventionTagsBridgeFromBytecode() throws Exception {
+        Path source = referencedMod("convention_tags", "fabric-convention-tags-v2", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
+            method.visitFieldInsn(Opcodes.GETSTATIC,
+                    "net/fabricmc/fabric/api/tag/convention/v2/ConventionalBiomeTags", "IS_PLAINS",
+                    "Lnet/minecraft/tags/TagKey;");
+            method.visitInsn(Opcodes.POP);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(1, 1);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "convention-tags");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains("fabric-convention-tags-v2-bridge-2.12.0_c3656daa19-loaderbridge.1.jar");
+    }
+
+    @Test
+    void automaticallySelectsBiomeBridgeFromBytecode() throws Exception {
+        Path source = referencedMod("biome_api", "fabric-biome-api-v1", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
+            method.visitMethodInsn(Opcodes.INVOKESTATIC,
+                    "net/fabricmc/fabric/api/biome/v1/BiomeSelectors", "foundInOverworld",
+                    "()Ljava/util/function/Predicate;", false);
+            method.visitInsn(Opcodes.POP);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(1, 1);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "biome-api");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains("fabric-biome-api-v1-bridge-13.0.31_d527f9fd19-loaderbridge.1.jar");
+    }
+
+    @Test
+    void automaticallySelectsBlockRenderLayerBridgeFromBytecode() throws Exception {
+        Path source = referencedMod("block_render_layer", "fabric-blockrenderlayer-v1", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
+            method.visitFieldInsn(Opcodes.GETSTATIC,
+                    "net/fabricmc/fabric/api/blockrenderlayer/v1/BlockRenderLayerMap", "INSTANCE",
+                    "Lnet/fabricmc/fabric/api/blockrenderlayer/v1/BlockRenderLayerMap;");
+            method.visitInsn(Opcodes.POP);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(1, 1);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "block-render-layer");
+        var result = new FabricToForgeAdapter().prepare(request, new FabricToForgeAdapter().plan(request));
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains("fabric-blockrenderlayer-v1-bridge-1.1.52_0af3f5a719-loaderbridge.1.jar");
+    }
+
+    @Test
+    void automaticallySelectsRenderingBridgeFromBytecode() throws Exception {
+        Path source = referencedMod("rendering", "fabric-rendering-v1", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
+            method.visitFieldInsn(Opcodes.GETSTATIC,
+                    "net/fabricmc/fabric/api/client/rendering/v1/ColorProviderRegistry", "BLOCK",
+                    "Lnet/fabricmc/fabric/api/client/rendering/v1/ColorProviderRegistry;");
+            method.visitInsn(Opcodes.POP);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(1, 1);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "rendering");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains("fabric-rendering-v1-bridge-5.1.0_ab4c25a019-loaderbridge.3.jar");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .anyMatch(name -> name.startsWith("fabric-api-base-bridge-"));
+    }
+
+    @Test
     void itemStorageSelectionPullsLookupDependenciesAutomatically() throws Exception {
         Path source = referencedMod("item_storage", "fabric-transfer-api-v1", writer -> {
             var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
@@ -586,6 +677,44 @@ class FabricToForgeAdapterTest {
                     "\"parentModId\": \"nested_parent\"",
                     "\"parentSubLocation\": \"META-INF/jars/child.jar\"");
         }
+    }
+
+    @Test
+    void replacesBundledFabricApiModulesInsteadOfTransformingThem() throws Exception {
+        byte[] renderingModule = jarBytes("""
+                {"schemaVersion":1,"id":"fabric-rendering-v1","version":"5.1.0"}
+                """);
+        byte[] transitiveAccessWideners = jarBytes("""
+                {"schemaVersion":1,"id":"fabric-transitive-access-wideners-v1","version":"6.2.0"}
+                """);
+        Path source = temporaryDirectory.resolve("fabric-api.jar");
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(source))) {
+            jar.putNextEntry(new JarEntry("fabric.mod.json"));
+            jar.write("""
+                    {"schemaVersion":1,"id":"fabric-api","version":"0.116.15+1.21.1",
+                     "jars":[{"file":"META-INF/jars/fabric-rendering-v1.jar"},
+                              {"file":"META-INF/jars/fabric-transitive-access-wideners-v1.jar"}]}
+                    """.getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+            jar.putNextEntry(new JarEntry("META-INF/jars/fabric-rendering-v1.jar"));
+            jar.write(renderingModule);
+            jar.closeEntry();
+            jar.putNextEntry(new JarEntry(
+                    "META-INF/jars/fabric-transitive-access-wideners-v1.jar"));
+            jar.write(transitiveAccessWideners);
+            jar.closeEntry();
+        }
+        BridgeRequest request = new BridgeRequest("1.21.1", new LoaderId("forge"), "52.1.0",
+                BridgeEnvironment.CLIENT, List.of(source), temporaryDirectory.resolve("output-fapi"),
+                temporaryDirectory.resolve("cache-fapi"));
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var result = adapter.prepare(request, adapter.plan(request));
+
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .containsExactlyInAnyOrder(
+                        "fabric-api-0.116.15_1.21.1-loaderbridge.jar",
+                        "fabric-transitive-access-wideners-v1-6.2.0-loaderbridge.jar");
     }
 
     @Test

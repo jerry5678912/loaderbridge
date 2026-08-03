@@ -154,6 +154,9 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                     request.cacheDirectory(), inputs, seenArtifacts, seenModVersions);
         }
         for (PreparationInput input : inputs) {
+            if (isReplacedFabricApiNestedInput(input)) {
+                continue;
+            }
             Path source = input.path();
             FabricModMetadata metadata = input.metadata();
             ReferenceInventory inventory = analyzer.analyze(source,
@@ -541,6 +544,12 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
 
     private static boolean isFabricApiDependency(String id) {
         return id.equals("fabric-api") || (id.startsWith("fabric-") && id.contains("api"));
+    }
+
+    private static boolean isReplacedFabricApiNestedInput(PreparationInput input) {
+        return ("fabric-api".equals(input.parentModId())
+                && !"fabric-transitive-access-wideners-v1".equals(input.metadata().id()))
+                || "fabric-data-generation-api-v1".equals(input.metadata().id());
     }
 
     private static Diagnostic error(String code, BridgePhase phase, String modId, Path artifact,

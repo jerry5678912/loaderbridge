@@ -48,4 +48,16 @@ dependencies {
     testRuntimeOnly(project(":fabric-item-group-api-v1-bridge")) {
         isTransitive = false
     }
+    testRuntimeOnly(project(":fabric-convention-tags-v2-bridge")) {
+        isTransitive = false
+    }
+    testRuntimeOnly(project(":fabric-biome-api-v1-bridge")) {
+        isTransitive = false
+    }
+    testRuntimeOnly(project(":fabric-blockrenderlayer-v1-bridge")) {
+        isTransitive = false
+    }
+    testRuntimeOnly(project(":fabric-rendering-v1-bridge")) {
+        isTransitive = false
+    }
 }

@@ -3,6 +3,7 @@ package dev.loaderbridge.fabric.remap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
@@ -110,6 +111,74 @@ class MixinStructuralPatchTransformerTest {
         assertThat(target).hasValue(null);
     }
 
+    @Test
+    void makesFabricBoatMapHookOptionalWhenForgeRemovedTheCallsite() {
+        byte[] output = new MixinStructuralPatchTransformer("1.21.1", "52.1.0")
+                .transform(boatRendererMixin());
+        AtomicReference<Integer> require = new AtomicReference<>();
+        new ClassReader(output).accept(new ClassVisitor(Opcodes.ASM9) {
+            @Override public MethodVisitor visitMethod(int access, String name, String descriptor,
+                    String signature, String[] exceptions) {
+                return new MethodVisitor(Opcodes.ASM9) {
+                    @Override public AnnotationVisitor visitAnnotation(String descriptor,
+                            boolean visible) {
+                        return new AnnotationVisitor(Opcodes.ASM9) {
+                            @Override public void visit(String name, Object value) {
+                                if (name.equals("require")) require.set((Integer) value);
+                            }
+                        };
+                    }
+                };
+            }
+        }, 0);
+        assertThat(require).hasValue(0);
+    }
+
+    @Test
+    void addsForgeBoatModelOverrideToOldFabricRendererShape() {
+        byte[] output = new MixinStructuralPatchTransformer("1.21.1", "52.1.0")
+                .transform(fabricBoatRenderer());
+        AtomicReference<String> override = new AtomicReference<>();
+        AtomicBoolean hasFrame = new AtomicBoolean();
+        new ClassReader(output).accept(new ClassVisitor(Opcodes.ASM9) {
+            @Override public MethodVisitor visitMethod(int access, String name, String descriptor,
+                    String signature, String[] exceptions) {
+                if (name.equals("getModelWithLocation")) override.set(name + descriptor);
+                return new MethodVisitor(Opcodes.ASM9) {
+                    @Override public void visitFrame(int type, int numLocal, Object[] local,
+                            int numStack, Object[] stack) {
+                        if (name.equals("getModelWithLocation")) hasFrame.set(true);
+                    }
+                };
+            }
+        }, 0);
+        assertThat(override).hasValue("getModelWithLocation(Lnet/minecraft/world/entity/vehicle/Boat;)"
+                + "Lcom/mojang/datafixers/util/Pair;");
+        assertThat(hasFrame).isTrue();
+    }
+
+    @Test
+    void redirectsFabricRegistryAliasAbiToForgeBridgeByCallShape() {
+        byte[] output = new MixinStructuralPatchTransformer("1.21.1", "52.1.0")
+                .transform(registryAliasCaller());
+        AtomicReference<String> call = new AtomicReference<>();
+        new ClassReader(output).accept(new ClassVisitor(Opcodes.ASM9) {
+            @Override public MethodVisitor visitMethod(int access, String name, String descriptor,
+                    String signature, String[] exceptions) {
+                return new MethodVisitor(Opcodes.ASM9) {
+                    @Override public void visitMethodInsn(int opcode, String owner, String name,
+                            String descriptor, boolean isInterface) {
+                        call.set(opcode + ":" + owner + ":" + name + descriptor + ":" + isInterface);
+                    }
+                };
+            }
+        }, 0);
+        assertThat(call.get()).startsWith(Opcodes.INVOKESTATIC
+                        + ":dev/loaderbridge/fabric/api/registry/RegistryAliasBridge:addAlias(")
+                .contains("Lnet/minecraft/core/DefaultedRegistry;")
+                .endsWith(")V:false");
+    }
+
     private static AnnotationVisitor nestedTarget(AtomicReference<String> target) {
         return new AnnotationVisitor(Opcodes.ASM9) {
             @Override
@@ -127,6 +196,29 @@ class MixinStructuralPatchTransformerTest {
                 return this;
             }
         };
+    }
+
+    private static byte[] registryAliasCaller() {
+        ClassWriter writer = new ClassWriter(0);
+        writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, "fixture/AliasCaller", null,
+                "java/lang/Object", null);
+        MethodVisitor method = writer.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC,
+                "register", "(Lnet/minecraft/core/DefaultedRegistry;"
+                        + "Lnet/minecraft/resources/ResourceLocation;"
+                        + "Lnet/minecraft/resources/ResourceLocation;)V", null, null);
+        method.visitCode();
+        method.visitVarInsn(Opcodes.ALOAD, 0);
+        method.visitVarInsn(Opcodes.ALOAD, 1);
+        method.visitVarInsn(Opcodes.ALOAD, 2);
+        method.visitMethodInsn(Opcodes.INVOKEINTERFACE,
+                "net/minecraft/core/DefaultedRegistry", "addAlias",
+                "(Lnet/minecraft/resources/ResourceLocation;"
+                        + "Lnet/minecraft/resources/ResourceLocation;)V", true);
+        method.visitInsn(Opcodes.RETURN);
+        method.visitMaxs(3, 3);
+        method.visitEnd();
+        writer.visitEnd();
+        return writer.toByteArray();
     }
 
     private static AnnotationVisitor constructorPoint(AtomicReference<String> point,
@@ -271,6 +363,49 @@ class MixinStructuralPatchTransformerTest {
             "Lorg/spongepowered/asm/mixin/injection/Inject;";
     private static final String AT_DESCRIPTOR =
             "Lorg/spongepowered/asm/mixin/injection/At;";
+
+    private static byte[] boatRendererMixin() {
+        ClassWriter writer = new ClassWriter(0);
+        writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, "fixture/BoatRendererMixin", null,
+                "java/lang/Object", null);
+        AnnotationVisitor mixin = writer.visitAnnotation(
+                "Lorg/spongepowered/asm/mixin/Mixin;", false);
+        AnnotationVisitor targets = mixin.visitArray("value");
+        targets.visit(null, Type.getObjectType("net/minecraft/client/renderer/entity/BoatRenderer"));
+        targets.visitEnd();
+        mixin.visitEnd();
+        MethodVisitor method = writer.visitMethod(Opcodes.ACC_PRIVATE, "wrap", "()V", null, null);
+        AnnotationVisitor wrap = method.visitAnnotation(
+                "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;", true);
+        AnnotationVisitor methods = wrap.visitArray("method");
+        methods.visit(null, "render");
+        methods.visitEnd();
+        AnnotationVisitor points = wrap.visitArray("at");
+        AnnotationVisitor at = points.visitAnnotation(null, AT_DESCRIPTOR);
+        at.visit("value", "INVOKE");
+        at.visit("target", "Ljava/util/Map;get(Ljava/lang/Object;)Ljava/lang/Object;");
+        at.visitEnd();
+        points.visitEnd();
+        wrap.visitEnd();
+        method.visitEnd();
+        writer.visitEnd();
+        return writer.toByteArray();
+    }
+
+    private static byte[] fabricBoatRenderer() {
+        ClassWriter writer = new ClassWriter(0);
+        writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, "fixture/FabricBoatRenderer", null,
+                "net/minecraft/client/renderer/entity/BoatRenderer", null);
+        MethodVisitor method = writer.visitMethod(Opcodes.ACC_PUBLIC, "getTextureAndModel",
+                "(Lfixture/BoatHolder;)Lcom/mojang/datafixers/util/Pair;", null, null);
+        method.visitCode();
+        method.visitInsn(Opcodes.ACONST_NULL);
+        method.visitInsn(Opcodes.ARETURN);
+        method.visitMaxs(1, 2);
+        method.visitEnd();
+        writer.visitEnd();
+        return writer.toByteArray();
+    }
 
     private static byte[] levelMixin(String name) {
         ClassWriter writer = new ClassWriter(0);

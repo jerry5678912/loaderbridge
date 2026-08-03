@@ -45,6 +45,8 @@ minecraft {
         client {
             workingDirectory project.file('run')
             property 'forge.logging.console.level', 'info'
+            property 'loaderbridge.probe.block', providers.gradleProperty('loaderbridgeProbeBlock').orElse('').get()
+            property 'loaderbridge.probe.world', providers.gradleProperty('loaderbridgeProbeWorld').orElse('loaderbridge-m1-world').get()
             mods {
                 loaderbridge_client_probe {
                     source sourceSets.main

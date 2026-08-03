@@ -11,8 +11,10 @@ class FabricRegistrationLifecycleTest {
     void invokesAllMainEntrypointsInRegistrationOrderDuringCommonSetup() {
         var coordinator = new FabricRegistrationLifecycle.Coordinator();
         List<String> order = new ArrayList<>();
-        coordinator.register(() -> order.add("main-one"));
-        coordinator.register(() -> order.add("main-two"));
+        coordinator.registerMain(() -> order.add("main-one"));
+        coordinator.registerClient(() -> order.add("client-one"));
+        coordinator.registerMain(() -> order.add("main-two"));
+        coordinator.registerClient(() -> order.add("client-two"));
 
         assertThat(coordinator.invokeIfCommonSetupEvent(
                 "net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent",
@@ -24,6 +26,7 @@ class FabricRegistrationLifecycleTest {
                 "net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent",
                 () -> order.add("open-again"))).isFalse();
 
-        assertThat(order).containsExactly("open", "main-one", "main-two");
+        assertThat(order).containsExactly(
+                "open", "main-one", "main-two", "client-one", "client-two");
     }
 }

@@ -8,13 +8,30 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.FrameNode;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.JumpInsnNode;
+import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TypeInsnNode;
+import org.objectweb.asm.tree.VarInsnNode;
 
 /** Applies version-scoped repairs for callsites structurally moved by Forge patches. */
 final class MixinStructuralPatchTransformer {
     private static final String MIXIN = "Lorg/spongepowered/asm/mixin/Mixin;";
     private static final String INJECT = "Lorg/spongepowered/asm/mixin/injection/Inject;";
     private static final String AT = "Lorg/spongepowered/asm/mixin/injection/At;";
+    private static final String WRAP_OPERATION =
+            "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;";
+    private static final String BOAT_RENDERER = "net/minecraft/client/renderer/entity/BoatRenderer";
+    private static final String BOAT = "net/minecraft/world/entity/vehicle/Boat";
+    private static final String PAIR = "Lcom/mojang/datafixers/util/Pair;";
+    private static final String DEFAULTED_REGISTRY = "net/minecraft/core/DefaultedRegistry";
+    private static final String REGISTRY_ALIAS_BRIDGE =
+            "dev/loaderbridge/fabric/api/registry/RegistryAliasBridge";
+    private static final String ADD_ALIAS_DESCRIPTOR = "(Lnet/minecraft/resources/ResourceLocation;"
+            + "Lnet/minecraft/resources/ResourceLocation;)V";
     private static final Rule LEVEL_BLOCK_NOTIFICATION = new Rule(
             "forge-level-block-notification-v1",
             "net/minecraft/world/level/Level",
@@ -41,10 +58,10 @@ final class MixinStructuralPatchTransformer {
         if (rules.isEmpty()) return input;
         ClassNode type = new ClassNode();
         new ClassReader(input).accept(type, 0);
+        boolean changed = addForgeBoatModelOverride(type) | rewriteFabricRegistryAliases(type);
         String target = mixinTarget(type.invisibleAnnotations);
         if (target == null) target = mixinTarget(type.visibleAnnotations);
-        if (target == null) return input;
-        boolean changed = false;
+        if (target == null && !changed) return input;
         for (Rule rule : rules) {
             if (!rule.targetClass().equals(target)) continue;
             for (var method : type.methods) {
@@ -52,7 +69,13 @@ final class MixinStructuralPatchTransformer {
                 changed |= patchAnnotations(method.invisibleAnnotations, rule);
             }
         }
-        if (target.equals("net/minecraft/world/level/chunk/LevelChunk")) {
+        if (BOAT_RENDERER.equals(target)) {
+            for (var method : type.methods) {
+                changed |= makeRemovedBoatMapHookOptional(method.visibleAnnotations);
+                changed |= makeRemovedBoatMapHookOptional(method.invisibleAnnotations);
+            }
+        }
+        if ("net/minecraft/world/level/chunk/LevelChunk".equals(target)) {
             for (var method : type.methods) {
                 if (replacesMutableShadowMap(type, method)) {
                     changed |= patchConstructorInjection(method.visibleAnnotations);
@@ -73,6 +96,88 @@ final class MixinStructuralPatchTransformer {
         ClassWriter writer = new ClassWriter(0);
         type.accept(writer);
         return writer.toByteArray();
+    }
+
+    private static boolean rewriteFabricRegistryAliases(ClassNode type) {
+        boolean changed = false;
+        for (MethodNode method : type.methods) {
+            for (var instruction = method.instructions.getFirst(); instruction != null;
+                    instruction = instruction.getNext()) {
+                if (!(instruction instanceof MethodInsnNode call)
+                        || !call.owner.equals(DEFAULTED_REGISTRY)
+                        || !call.name.equals("addAlias")
+                        || !call.desc.equals(ADD_ALIAS_DESCRIPTOR)) continue;
+                call.setOpcode(Opcodes.INVOKESTATIC);
+                call.owner = REGISTRY_ALIAS_BRIDGE;
+                call.desc = "(L" + DEFAULTED_REGISTRY + ";"
+                        + ADD_ALIAS_DESCRIPTOR.substring(1);
+                call.itf = false;
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
+    private static boolean makeRemovedBoatMapHookOptional(List<AnnotationNode> annotations) {
+        AnnotationNode wrap = annotation(annotations, WRAP_OPERATION);
+        if (wrap == null || !contains(value(wrap, "method"), "render")) return false;
+        Object points = value(wrap, "at");
+        if (!containsNestedTarget(points,
+                "Ljava/util/Map;get(Ljava/lang/Object;)Ljava/lang/Object;")) return false;
+        putValue(wrap, "require", 0);
+        return true;
+    }
+
+    private static boolean containsNestedTarget(Object value, String expected) {
+        if (value instanceof AnnotationNode annotation) {
+            if (expected.equals(value(annotation, "target"))) return true;
+            if (annotation.values == null) return false;
+            for (int index = 1; index < annotation.values.size(); index += 2) {
+                if (containsNestedTarget(annotation.values.get(index), expected)) return true;
+            }
+        } else if (value instanceof List<?> list) {
+            return list.stream().anyMatch(item -> containsNestedTarget(item, expected));
+        }
+        return false;
+    }
+
+    private static boolean addForgeBoatModelOverride(ClassNode type) {
+        if (!BOAT_RENDERER.equals(type.superName)) return false;
+        String overrideDescriptor = "(L" + BOAT + ";)" + PAIR;
+        if (type.methods.stream().anyMatch(method -> method.name.equals("getModelWithLocation")
+                && method.desc.equals(overrideDescriptor))) return false;
+        List<MethodNode> candidates = type.methods.stream().filter(method ->
+                (method.access & Opcodes.ACC_PUBLIC) != 0 && method.desc.endsWith(")" + PAIR)
+                        && Type.getArgumentTypes(method.desc).length == 1
+                        && Type.getArgumentTypes(method.desc)[0].getSort() == Type.OBJECT
+                        && !Type.getArgumentTypes(method.desc)[0].getInternalName().equals(BOAT))
+                .toList();
+        if (candidates.size() != 1) return false;
+        MethodNode delegate = candidates.getFirst();
+        String holderType = Type.getArgumentTypes(delegate.desc)[0].getInternalName();
+        MethodNode override = new MethodNode(Opcodes.ACC_PUBLIC, "getModelWithLocation",
+                overrideDescriptor, null, null);
+        LabelNode fallback = new LabelNode();
+        override.instructions.add(new VarInsnNode(Opcodes.ALOAD, 1));
+        override.instructions.add(new TypeInsnNode(Opcodes.INSTANCEOF, holderType));
+        override.instructions.add(new JumpInsnNode(Opcodes.IFEQ, fallback));
+        override.instructions.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        override.instructions.add(new VarInsnNode(Opcodes.ALOAD, 1));
+        override.instructions.add(new TypeInsnNode(Opcodes.CHECKCAST, holderType));
+        override.instructions.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL,
+                type.name, delegate.name, delegate.desc, false));
+        override.instructions.add(new InsnNode(Opcodes.ARETURN));
+        override.instructions.add(fallback);
+        override.instructions.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null));
+        override.instructions.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        override.instructions.add(new VarInsnNode(Opcodes.ALOAD, 1));
+        override.instructions.add(new MethodInsnNode(Opcodes.INVOKESPECIAL,
+                BOAT_RENDERER, "getModelWithLocation", overrideDescriptor, false));
+        override.instructions.add(new InsnNode(Opcodes.ARETURN));
+        override.maxStack = 2;
+        override.maxLocals = 2;
+        type.methods.add(override);
+        return true;
     }
 
     private static String mixinTarget(List<AnnotationNode> annotations) {
@@ -245,6 +350,17 @@ final class MixinStructuralPatchTransformer {
     private static void setValue(AnnotationNode annotation, String name, Object value) {
         int index = annotation.values.indexOf(name);
         annotation.values.set(index + 1, value);
+    }
+
+    private static void putValue(AnnotationNode annotation, String name, Object value) {
+        if (annotation.values == null) annotation.values = new java.util.ArrayList<>();
+        int index = annotation.values.indexOf(name);
+        if (index < 0) {
+            annotation.values.add(name);
+            annotation.values.add(value);
+        } else {
+            annotation.values.set(index + 1, value);
+        }
     }
 
     private static void removeValue(AnnotationNode annotation, String name) {

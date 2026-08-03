@@ -16,7 +16,11 @@ final class FabricRegistrationLifecycle {
     }
 
     static void registerMainEntrypoints(Runnable entrypoints) {
-        MAIN_ENTRYPOINTS.register(entrypoints);
+        MAIN_ENTRYPOINTS.registerMain(entrypoints);
+    }
+
+    static void registerClientEntrypoints(Runnable entrypoints) {
+        MAIN_ENTRYPOINTS.registerClient(entrypoints);
     }
 
     static boolean invokeIfCommonSetupEvent(Event event) {
@@ -25,15 +29,24 @@ final class FabricRegistrationLifecycle {
     }
 
     static final class Coordinator {
-        private final List<Runnable> pending = new ArrayList<>();
+        private final List<Runnable> pendingMain = new ArrayList<>();
+        private final List<Runnable> pendingClient = new ArrayList<>();
         private boolean invoked;
 
-        synchronized void register(Runnable entrypoints) {
+        synchronized void registerMain(Runnable entrypoints) {
             if (invoked) {
                 throw new IllegalStateException(
                         "LB-ENTRY-005: Fabric main entrypoint registered after common setup");
             }
-            pending.add(entrypoints);
+            pendingMain.add(entrypoints);
+        }
+
+        synchronized void registerClient(Runnable entrypoints) {
+            if (invoked) {
+                throw new IllegalStateException(
+                        "LB-ENTRY-006: Fabric client entrypoint registered after common setup");
+            }
+            pendingClient.add(entrypoints);
         }
 
         synchronized boolean invokeIfCommonSetupEvent(String eventName,
@@ -43,8 +56,10 @@ final class FabricRegistrationLifecycle {
             }
             invoked = true;
             openRegistryWindow.run();
-            pending.forEach(Runnable::run);
-            pending.clear();
+            pendingMain.forEach(Runnable::run);
+            pendingClient.forEach(Runnable::run);
+            pendingMain.clear();
+            pendingClient.clear();
             return true;
         }
     }

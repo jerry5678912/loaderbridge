@@ -84,6 +84,38 @@ class MixinRefmapTransformerTest {
                 .isEqualTo("run(Lnet/minecraft/Argument;)V");
     }
 
+    @Test
+    void translatesIntermediaryMemberNamesAfterTinyRemapperAlreadyMappedDescriptors() throws Exception {
+        byte[] translated = new MixinRefmapTransformer().transform("""
+                {"mappings":{"fixture/BoatMixin":{
+                  "fall":"Lnet/minecraft/Example;method_1(Lnet/minecraft/Argument;)V"
+                }}}
+                """.getBytes(StandardCharsets.UTF_8), mappings(), "boat.refmap.json");
+
+        var values = JsonParser.parseString(new String(translated, StandardCharsets.UTF_8))
+                .getAsJsonObject().getAsJsonObject("mappings")
+                .getAsJsonObject("fixture/BoatMixin");
+        assertThat(values.get("fall").getAsString())
+                .isEqualTo("Lnet/minecraft/Example;run(Lnet/minecraft/Argument;)V");
+        assertThat(values.get("run(Lnet/minecraft/Argument;)V").getAsString())
+                .isEqualTo("Lnet/minecraft/Example;run(Lnet/minecraft/Argument;)V");
+    }
+
+    @Test
+    void translatesInheritedIntermediarySelectorAgainstRuntimeSubclassOwner() throws Exception {
+        byte[] translated = new MixinRefmapTransformer().transform("""
+                {"mappings":{"fixture/ChildMixin":{
+                  "fall":"Lnet/minecraft/ExampleChild;method_1(Lnet/minecraft/Argument;)V"
+                }}}
+                """.getBytes(StandardCharsets.UTF_8), mappings(), "child.refmap.json");
+
+        var value = JsonParser.parseString(new String(translated, StandardCharsets.UTF_8))
+                .getAsJsonObject().getAsJsonObject("mappings")
+                .getAsJsonObject("fixture/ChildMixin").get("fall").getAsString();
+        assertThat(value).isEqualTo(
+                "Lnet/minecraft/ExampleChild;run(Lnet/minecraft/Argument;)V");
+    }
+
     private TinyMappingIndex mappings() throws Exception {
         Path mappings = temporaryDirectory.resolve("mappings.tiny");
         Files.writeString(mappings, "tiny\t2\t0\tintermediary\tnamed\n"
@@ -91,7 +123,8 @@ class MixinRefmapTransformerTest {
                 + "\tf\tLnet/minecraft/class_2;\tfield_1\targument\n"
                 + "\tm\t(Lnet/minecraft/class_2;)V\tmethod_1\trun\n"
                 + "\tm\t()V\tmethod_1\trun\n"
-                + "c\tnet/minecraft/class_2\tnet/minecraft/Argument\n");
+                + "c\tnet/minecraft/class_2\tnet/minecraft/Argument\n"
+                + "c\tnet/minecraft/class_3\tnet/minecraft/ExampleChild\n");
         return TinyMappingIndex.read(mappings);
     }
 }
