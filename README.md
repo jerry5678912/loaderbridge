@@ -92,11 +92,12 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - A separately versioned Object Builder API v1 bridge matching
   `fabric-object-builder-api-v1:15.2.1+40875a9319`. It currently implements
   `FabricBlockEntityTypeBuilder`, `FabricDefaultAttributeRegistry`, and the
-  deprecated `FabricEntityTypeBuilder` base/living/mob contracts. Entity
-  dimensions, tracking, feature requirements, attributes, Fabric's unnamed
-  build behavior, and spawn restrictions are translated to Minecraft/Forge
-  behavior. Fabric common entrypoints run sequentially in resolved order inside
-  Forge's registration window.
+  deprecated `FabricEntityTypeBuilder` base/living/mob contracts and the modern
+  `FabricEntityType.Builder` interface injected into Minecraft's builder.
+  Entity dimensions, tracking, velocity updates, feature requirements,
+  attributes, Fabric's unnamed build behavior, and spawn restrictions are
+  translated to Minecraft/Forge behavior. Fabric common entrypoints run
+  sequentially in resolved order inside Forge's registration window.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with

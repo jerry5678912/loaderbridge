@@ -35,6 +35,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
+import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.Mob;
@@ -91,14 +92,18 @@ public final class FabricLifecycleFixture implements ModInitializer {
         Registry.register(BuiltInRegistries.ENTITY_TYPE,
                 ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_attribute_entity"),
                 attributeFixtureType);
-        mobBuilderFixtureType = FabricEntityTypeBuilder.<Zombie>createMob()
-                .spawnGroup(MobCategory.MONSTER)
-                .entityFactory(Zombie::new)
-                .dimensions(EntityDimensions.fixed(0.6F, 1.95F))
-                .defaultAttributes(Zombie::createAttributes)
-                .spawnRestriction(SpawnPlacementTypes.ON_GROUND,
-                        Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Mob::checkMobSpawnRules)
-                .build();
+        EntityType.Builder<Zombie> modernMobBuilder = FabricEntityType.Builder.createMob(
+                Zombie::new, MobCategory.MONSTER,
+                builder -> builder.defaultAttributes(Zombie::createAttributes)
+                        .spawnRestriction(SpawnPlacementTypes.ON_GROUND,
+                                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                                Mob::checkMobSpawnRules));
+        modernMobBuilder.sized(0.6F, 1.95F);
+        @SuppressWarnings("unchecked")
+        FabricEntityType.Builder<Zombie> fabricModernMobBuilder =
+                (FabricEntityType.Builder<Zombie>) (Object) modernMobBuilder;
+        fabricModernMobBuilder.alwaysUpdateVelocity(true);
+        mobBuilderFixtureType = fabricModernMobBuilder.build();
         Registry.register(BuiltInRegistries.ENTITY_TYPE,
                 ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_mob_builder_entity"),
                 mobBuilderFixtureType);
@@ -116,6 +121,7 @@ public final class FabricLifecycleFixture implements ModInitializer {
             throw new IllegalStateException("LOADERBRIDGE_FABRIC_ENTITY_BUILDER_FAILED");
         }
         System.out.println("LOADERBRIDGE_FABRIC_ENTITY_BUILDER_READY");
+        System.out.println("LOADERBRIDGE_FABRIC_MODERN_ENTITY_BUILDER_READY");
         PayloadTypeRegistry.playC2S().register(FabricNetworkingPayload.PONG_TYPE,
                 FabricNetworkingPayload.PONG_CODEC);
         PayloadTypeRegistry.playS2C().register(FabricNetworkingPayload.PING_TYPE,

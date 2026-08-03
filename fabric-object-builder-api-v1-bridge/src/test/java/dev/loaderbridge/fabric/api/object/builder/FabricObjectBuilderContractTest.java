@@ -6,6 +6,7 @@ import com.mojang.datafixers.types.Type;
 import java.lang.reflect.Modifier;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
+import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
@@ -26,7 +27,7 @@ class FabricObjectBuilderContractTest {
 
         assertThat(descriptor.contractVersion()).isEqualTo("fabric-object-builder-api-v1:15.2.1");
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("15.2.1+40875a9319-loaderbridge.2");
+                .isEqualTo("15.2.1+40875a9319-loaderbridge.3");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrder(
                 "net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder",
                 "net.fabricmc.fabric.api.object.builder.v1.block.entity."
@@ -34,7 +35,11 @@ class FabricObjectBuilderContractTest {
                 "net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry",
                 "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder",
                 "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder$Living",
-                "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder$Mob");
+                "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder$Mob",
+                "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType",
+                "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType$Builder",
+                "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType$Builder$Living",
+                "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType$Builder$Mob");
     }
 
     @Test
@@ -99,5 +104,30 @@ class FabricObjectBuilderContractTest {
                 .getBounds()[0].getTypeName()).isEqualTo(LivingEntity.class.getName());
         assertThat(FabricEntityTypeBuilder.Mob.class.getTypeParameters()[0]
                 .getBounds()[0].getTypeName()).isEqualTo(Mob.class.getName());
+    }
+
+    @Test
+    void exposesThePinnedModernEntityBuilderExtensions() throws ReflectiveOperationException {
+        assertThat(FabricEntityType.Builder.class.getDeclaredMethod(
+                "alwaysUpdateVelocity", boolean.class).getReturnType())
+                .isEqualTo(EntityType.Builder.class);
+        assertThat(FabricEntityType.Builder.class.getDeclaredMethod("build").getReturnType())
+                .isEqualTo(EntityType.class);
+        assertThat(FabricEntityType.Builder.class.getDeclaredMethod("createLiving",
+                EntityType.EntityFactory.class, MobCategory.class,
+                java.util.function.UnaryOperator.class).getReturnType())
+                .isEqualTo(EntityType.Builder.class);
+        assertThat(FabricEntityType.Builder.class.getDeclaredMethod("createMob",
+                EntityType.EntityFactory.class, MobCategory.class,
+                java.util.function.UnaryOperator.class).getReturnType())
+                .isEqualTo(EntityType.Builder.class);
+        assertThat(FabricEntityType.Builder.Living.class.getDeclaredMethod(
+                "defaultAttributes", java.util.function.Supplier.class).getReturnType())
+                .isEqualTo(FabricEntityType.Builder.Living.class);
+        assertThat(FabricEntityType.Builder.Mob.class.getDeclaredMethod(
+                "spawnRestriction", net.minecraft.world.entity.SpawnPlacementType.class,
+                net.minecraft.world.level.levelgen.Heightmap.Types.class,
+                net.minecraft.world.entity.SpawnPlacements.SpawnPredicate.class).getReturnType())
+                .isEqualTo(FabricEntityType.Builder.Mob.class);
     }
 }

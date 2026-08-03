@@ -11,6 +11,8 @@ Implemented now:
 - `FabricEntityTypeBuilder` base, living, and mob specializations, including
   tracking options, attributes, Fabric-compatible unnamed builds, and native
   spawn restrictions.
+- `FabricEntityType.Builder`, injected into Minecraft's builder with modern
+  living/mob configuration callbacks and Forge-backed velocity updates.
 
 Unimplemented public types remain unadvertised so preprocessing reports the stable
 missing-Fabric-API diagnostic instead of installing an incomplete bridge silently.

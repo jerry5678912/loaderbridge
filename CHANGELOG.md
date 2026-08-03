@@ -21,6 +21,9 @@ All notable user-facing changes will be recorded here.
   unnamed builds, attributes, tracking, and native spawn restrictions. A real
   Forge client with FerriteCore verifies registration, world save, shutdown,
   and reload.
+- Added the modern `FabricEntityType.Builder` injected interface with no-ID
+  builds, velocity updates, living attributes, and mob restrictions, covered by
+  the same real-client save/reload cycle.
 - Moved Fabric common entrypoints into a single resolved-order Forge common
   setup registration window, opening both Minecraft and Forge registry guards
   before direct Fabric registry writes and retaining final Forge freezing.

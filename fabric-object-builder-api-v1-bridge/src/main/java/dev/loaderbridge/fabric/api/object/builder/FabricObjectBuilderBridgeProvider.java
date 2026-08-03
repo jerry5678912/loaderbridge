@@ -15,7 +15,7 @@ public final class FabricObjectBuilderBridgeProvider implements RuntimeBridgeMod
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-object-builder-api-v1-bridge",
             "fabric-object-builder-api-v1:15.2.1",
-            "15.2.1+40875a9319-loaderbridge.2",
+            "15.2.1+40875a9319-loaderbridge.3",
             BridgeCapability.FABRIC_API,
             Set.of(
                     "net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder",
@@ -25,7 +25,11 @@ public final class FabricObjectBuilderBridgeProvider implements RuntimeBridgeMod
                             + "FabricDefaultAttributeRegistry",
                     "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder",
                     "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder$Living",
-                    "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder$Mob"),
+                    "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder$Mob",
+                    "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType",
+                    "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType$Builder",
+                    "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType$Builder$Living",
+                    "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType$Builder$Mob"),
             Map.of("fabric-object-builder-api-v1", "15.2.1+40875a9319"),
             Set.of());
 
