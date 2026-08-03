@@ -3,6 +3,7 @@ package dev.loaderbridge.fabric.api.lifecycle;
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
@@ -12,6 +13,7 @@ import net.minecraftforge.event.server.ServerAboutToStartEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
+import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /** Connects Forge tick events to the binary-compatible Fabric callbacks. */
@@ -28,6 +30,8 @@ public final class FabricLifecycleBridgeMod {
         MinecraftForge.EVENT_BUS.addListener(this::onServerStopping);
         MinecraftForge.EVENT_BUS.addListener(this::onServerStopped);
         MinecraftForge.EVENT_BUS.addListener(this::onDataPackSync);
+        MinecraftForge.EVENT_BUS.addListener(this::onLevelLoad);
+        MinecraftForge.EVENT_BUS.addListener(this::onLevelUnload);
     }
 
     private void onServerTickStart(TickEvent.ServerTickEvent.Pre event) {
@@ -81,6 +85,18 @@ public final class FabricLifecycleBridgeMod {
         for (var player : players) {
             ServerLifecycleEvents.SYNC_DATA_PACK_CONTENTS.invoker()
                     .onSyncDataPackContents(player, joined);
+        }
+    }
+
+    private void onLevelLoad(LevelEvent.Load event) {
+        if (event.getLevel() instanceof ServerLevel level && level.getServer() != null) {
+            ServerWorldEvents.LOAD.invoker().onWorldLoad(level.getServer(), level);
+        }
+    }
+
+    private void onLevelUnload(LevelEvent.Unload event) {
+        if (event.getLevel() instanceof ServerLevel level && level.getServer() != null) {
+            ServerWorldEvents.UNLOAD.invoker().onWorldUnload(level.getServer(), level);
         }
     }
 }

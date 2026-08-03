@@ -16,7 +16,7 @@ public final class FabricLifecycleBridgeProvider implements RuntimeBridgeModuleP
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             MODULE_ID,
             "fabric-lifecycle-events-v1:2.6.0",
-            "2.6.0+0865547519-loaderbridge.2",
+            "2.6.0+0865547519-loaderbridge.3",
             BridgeCapability.FABRIC_API,
             Set.of(
                     "net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents",
@@ -35,7 +35,10 @@ public final class FabricLifecycleBridgeProvider implements RuntimeBridgeModuleP
                     "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents$StartTick",
                     "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents$EndTick",
                     "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents$StartWorldTick",
-                    "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents$EndWorldTick"),
+                    "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents$EndWorldTick",
+                    "net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents",
+                    "net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents$Load",
+                    "net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents$Unload"),
             Map.of("fabric-lifecycle-events-v1", "2.6.0+0865547519"),
             Set.of("fabric-api-base-bridge"));
 

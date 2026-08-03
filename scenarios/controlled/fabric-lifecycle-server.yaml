@@ -18,6 +18,11 @@ steps:
     timeout: PT1M
     parameters:
       contains: LOADERBRIDGE_FABRIC_SERVER_LIFECYCLE_READY
+  - id: worlds_loaded
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_WORLDS_LOADED
   - id: tags_ready
     action: wait_for_log
     timeout: PT1M
@@ -73,3 +78,8 @@ steps:
     timeout: PT1M
     parameters:
       contains: LOADERBRIDGE_FABRIC_SERVER_STOPPED
+  - id: worlds_unloaded
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_WORLDS_UNLOADED

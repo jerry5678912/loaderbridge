@@ -7,6 +7,7 @@ import java.util.List;
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import org.junit.jupiter.api.Test;
 
 class FabricLifecycleContractTest {
@@ -34,7 +35,7 @@ class FabricLifecycleContractTest {
 
         assertThat(descriptor.contractVersion()).isEqualTo("fabric-lifecycle-events-v1:2.6.0");
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("2.6.0+0865547519-loaderbridge.2");
+                .isEqualTo("2.6.0+0865547519-loaderbridge.3");
         assertThat(descriptor.providedModVersions())
                 .containsEntry("fabric-lifecycle-events-v1", "2.6.0+0865547519");
         assertThat(descriptor.requiredModules()).containsExactly("fabric-api-base-bridge");
@@ -43,6 +44,8 @@ class FabricLifecycleContractTest {
                 "net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents$TagsLoaded",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents$AfterSave",
+                "net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents",
+                "net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents$Unload",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents$StartTick",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents$EndWorldTick");
@@ -101,5 +104,17 @@ class FabricLifecycleContractTest {
                 java.util.Collections.singletonList(null), true);
 
         assertThat(joinedValues).containsExactly(false, false, true);
+    }
+
+    @Test
+    void serverWorldEventsPreserveLoadAndUnloadOrder() {
+        List<String> calls = new ArrayList<>();
+        ServerWorldEvents.LOAD.register((server, world) -> calls.add("load"));
+        ServerWorldEvents.UNLOAD.register((server, world) -> calls.add("unload"));
+
+        ServerWorldEvents.LOAD.invoker().onWorldLoad(null, null);
+        ServerWorldEvents.UNLOAD.invoker().onWorldUnload(null, null);
+
+        assertThat(calls).containsExactly("load", "unload");
     }
 }

@@ -32,7 +32,7 @@ tasks.named('jar') {
             'Automatic-Module-Name': 'dev.loaderbridge.fabric.api.lifecycle',
             'LICENSE': 'Apache-2.0',
             'Implementation-Title': 'LoaderBridge Fabric Lifecycle Events Bridge',
-            'Implementation-Version': '2.6.0+0865547519-loaderbridge.2',
+            'Implementation-Version': '2.6.0+0865547519-loaderbridge.3',
             'MixinConfigs': 'loaderbridge.fabric-lifecycle.mixins.json'
         )
     }

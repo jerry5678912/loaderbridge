@@ -5,16 +5,29 @@ import java.util.concurrent.atomic.AtomicInteger;
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 
 /** Verifies Forge-to-Fabric server and world tick ordering at runtime. */
 public final class FabricLifecycleFixture implements ModInitializer {
     private static final AtomicInteger STATE = new AtomicInteger();
     private static final AtomicInteger SERVER_STATE = new AtomicInteger();
+    private static final AtomicInteger WORLDS_LOADED = new AtomicInteger();
+    private static final AtomicInteger WORLDS_UNLOADED = new AtomicInteger();
     private static final AtomicBoolean REPORTED = new AtomicBoolean();
 
     @Override
     public void onInitialize() {
+        ServerWorldEvents.LOAD.register((server, world) -> {
+            if (WORLDS_LOADED.incrementAndGet() == 3) {
+                System.out.println("LOADERBRIDGE_FABRIC_WORLDS_LOADED");
+            }
+        });
+        ServerWorldEvents.UNLOAD.register((server, world) -> {
+            if (WORLDS_UNLOADED.incrementAndGet() == 3) {
+                System.out.println("LOADERBRIDGE_FABRIC_WORLDS_UNLOADED");
+            }
+        });
         ServerLifecycleEvents.SERVER_STARTING.register(server -> SERVER_STATE.compareAndSet(0, 1));
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             if (SERVER_STATE.compareAndSet(1, 2)) {
