@@ -12,6 +12,10 @@ import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedSlottedStorage;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedStorage;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.FilteringStorage;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.SingleSlotStorage;
 import org.junit.jupiter.api.Test;
 
 class TransactionContractTest {
@@ -19,7 +23,7 @@ class TransactionContractTest {
     void providerAdvertisesOnlyImplementedTransactionSurface() {
         var descriptor = new FabricTransferApiBridgeProvider().descriptor();
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("5.4.4+7b3d111d19-loaderbridge.2");
+                .isEqualTo("5.4.4+7b3d111d19-loaderbridge.3");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrderElementsOf(Set.of(
                 "net.fabricmc.fabric.api.transfer.v1.transaction.Transaction",
                 "net.fabricmc.fabric.api.transfer.v1.transaction.Transaction$Lifecycle",
@@ -29,7 +33,17 @@ class TransactionContractTest {
                 "net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext$Result",
                 "net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant",
                 "net.fabricmc.fabric.api.transfer.v1.storage.Storage",
-                "net.fabricmc.fabric.api.transfer.v1.storage.StorageView"));
+                "net.fabricmc.fabric.api.transfer.v1.storage.StorageView",
+                "net.fabricmc.fabric.api.transfer.v1.storage.TransferVariant",
+                "net.fabricmc.fabric.api.transfer.v1.storage.StoragePreconditions",
+                "net.fabricmc.fabric.api.transfer.v1.storage.SlottedStorage",
+                "net.fabricmc.fabric.api.transfer.v1.storage.base.ResourceAmount",
+                "net.fabricmc.fabric.api.transfer.v1.storage.base.SingleSlotStorage",
+                "net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedStorage",
+                "net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedSlottedStorage",
+                "net.fabricmc.fabric.api.transfer.v1.storage.base.ExtractionOnlyStorage",
+                "net.fabricmc.fabric.api.transfer.v1.storage.base.InsertionOnlyStorage",
+                "net.fabricmc.fabric.api.transfer.v1.storage.base.FilteringStorage"));
     }
 
     @Test
@@ -137,6 +151,33 @@ class TransactionContractTest {
         assertThat(Storage.<String>asClass()).isEqualTo(Storage.class);
     }
 
+    @Test
+    void combinedSlottedAndFilteringStoragesPreserveOrderAndRestrictions() {
+        TestSlot first = new TestSlot(5, 10);
+        TestSlot second = new TestSlot(0, 10);
+        CombinedStorage<String, TestSlot> combined =
+                new CombinedStorage<>(List.of(first, second));
+        try (Transaction transaction = Transaction.openOuter()) {
+            assertThat(combined.insert("energy", 9, transaction)).isEqualTo(9);
+            transaction.commit();
+        }
+        assertThat(first.amount).isEqualTo(10);
+        assertThat(second.amount).isEqualTo(4);
+
+        CombinedSlottedStorage<String, TestSlot> slotted =
+                new CombinedSlottedStorage<>(List.of(first, second));
+        assertThat(slotted.getSlotCount()).isEqualTo(2);
+        assertThat(slotted.getSlots()).containsExactly(first, second);
+        assertThatThrownBy(() -> slotted.getSlot(2)).isInstanceOf(IndexOutOfBoundsException.class);
+
+        Storage<String> readOnly = FilteringStorage.readOnlyOf(combined);
+        try (Transaction transaction = Transaction.openOuter()) {
+            assertThat(readOnly.insert("energy", 2, transaction)).isZero();
+            assertThat(readOnly.iterator().next().extract("energy", 2, transaction)).isZero();
+        }
+        assertThat(readOnly.iterator().next().getUnderlyingView()).isSameAs(first);
+    }
+
     private static StorageView<String> view(String resource, long amount) {
         return new StorageView<>() {
             @Override public long extract(String requested, long maximum, TransactionContext tx) { return 0; }
@@ -170,5 +211,33 @@ class TransactionContractTest {
         protected void onFinalCommit() {
             finalCommits++;
         }
+    }
+
+    private static final class TestSlot extends SnapshotParticipant<Long>
+            implements SingleSlotStorage<String> {
+        private long amount;
+        private final long capacity;
+
+        private TestSlot(long amount, long capacity) {
+            this.amount = amount;
+            this.capacity = capacity;
+        }
+
+        @Override public long insert(String resource, long maximum, TransactionContext transaction) {
+            long inserted = Math.min(maximum, capacity - amount);
+            if (inserted > 0) { updateSnapshots(transaction); amount += inserted; }
+            return inserted;
+        }
+        @Override public long extract(String resource, long maximum, TransactionContext transaction) {
+            long extracted = Math.min(maximum, amount);
+            if (extracted > 0) { updateSnapshots(transaction); amount -= extracted; }
+            return extracted;
+        }
+        @Override public boolean isResourceBlank() { return amount == 0; }
+        @Override public String getResource() { return "energy"; }
+        @Override public long getAmount() { return amount; }
+        @Override public long getCapacity() { return capacity; }
+        @Override protected Long createSnapshot() { return amount; }
+        @Override protected void readSnapshot(Long snapshot) { amount = snapshot; }
     }
 }

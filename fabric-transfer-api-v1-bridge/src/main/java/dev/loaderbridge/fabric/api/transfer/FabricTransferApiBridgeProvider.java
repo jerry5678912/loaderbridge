@@ -15,7 +15,7 @@ public final class FabricTransferApiBridgeProvider implements RuntimeBridgeModul
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-transfer-api-v1-bridge",
             "fabric-transfer-api-v1:5.4.4",
-            "5.4.4+7b3d111d19-loaderbridge.2",
+            "5.4.4+7b3d111d19-loaderbridge.3",
             BridgeCapability.FABRIC_API,
             Set.of(
                     "net.fabricmc.fabric.api.transfer.v1.transaction.Transaction",
@@ -26,7 +26,17 @@ public final class FabricTransferApiBridgeProvider implements RuntimeBridgeModul
                     "net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext$Result",
                     "net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant",
                     "net.fabricmc.fabric.api.transfer.v1.storage.Storage",
-                    "net.fabricmc.fabric.api.transfer.v1.storage.StorageView"),
+                    "net.fabricmc.fabric.api.transfer.v1.storage.StorageView",
+                    "net.fabricmc.fabric.api.transfer.v1.storage.TransferVariant",
+                    "net.fabricmc.fabric.api.transfer.v1.storage.StoragePreconditions",
+                    "net.fabricmc.fabric.api.transfer.v1.storage.SlottedStorage",
+                    "net.fabricmc.fabric.api.transfer.v1.storage.base.ResourceAmount",
+                    "net.fabricmc.fabric.api.transfer.v1.storage.base.SingleSlotStorage",
+                    "net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedStorage",
+                    "net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedSlottedStorage",
+                    "net.fabricmc.fabric.api.transfer.v1.storage.base.ExtractionOnlyStorage",
+                    "net.fabricmc.fabric.api.transfer.v1.storage.base.InsertionOnlyStorage",
+                    "net.fabricmc.fabric.api.transfer.v1.storage.base.FilteringStorage"),
             Map.of("fabric-transfer-api-v1", "5.4.4+7b3d111d19"),
             Set.of());
 

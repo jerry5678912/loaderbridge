@@ -54,6 +54,9 @@ import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedSlottedStorage;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.FilteringStorage;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.SingleSlotStorage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.resources.ResourceKey;
@@ -163,6 +166,29 @@ public final class FabricLifecycleFixture implements ModInitializer {
             throw new IllegalStateException("LOADERBRIDGE_FABRIC_TRANSFER_STORAGE_FAILED");
         }
         System.out.println("LOADERBRIDGE_FABRIC_TRANSFER_STORAGE_READY");
+        TransactionalStorage secondStorage = new TransactionalStorage();
+        CombinedSlottedStorage<String, TransactionalStorage> combinedStorage =
+                new CombinedSlottedStorage<>(java.util.List.of(storage, secondStorage));
+        try (Transaction committed = Transaction.openOuter()) {
+            if (combinedStorage.insert("energy", 120, committed) != 120) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_TRANSFER_COMBINED_FAILED");
+            }
+            committed.commit();
+        }
+        Storage<String> readOnly = FilteringStorage.readOnlyOf(combinedStorage);
+        try (Transaction aborted = Transaction.openOuter()) {
+            if (readOnly.insert("energy", 1, aborted) != 0
+                    || readOnly.iterator().next().extract("energy", 1, aborted) != 0) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_TRANSFER_FILTER_FAILED");
+            }
+        }
+        if (combinedStorage.getSlotCount() != 2
+                || combinedStorage.getSlot(1) != secondStorage
+                || storage.getAmount() != 100
+                || secondStorage.getAmount() != 60) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_TRANSFER_SLOTTED_FAILED");
+        }
+        System.out.println("LOADERBRIDGE_FABRIC_TRANSFER_COMPOSITION_READY");
         DynamicRegistrySetupCallback.EVENT.register(view -> {
             if (view.getOptional(DYNAMIC_REGISTRY_KEY).isEmpty()) return;
             if (view.asDynamicRegistryManager().registry(DYNAMIC_REGISTRY_KEY).isEmpty()
@@ -523,7 +549,7 @@ public final class FabricLifecycleFixture implements ModInitializer {
     }
 
     private static final class TransactionalStorage extends SnapshotParticipant<Long>
-            implements Storage<String>, StorageView<String> {
+            implements SingleSlotStorage<String> {
         private long amount;
 
         @Override
