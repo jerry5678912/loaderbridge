@@ -70,6 +70,8 @@ import net.fabricmc.fabric.api.registry.FlattenableBlockRegistry;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.fabricmc.fabric.api.registry.OxidizableBlocksRegistry;
 import net.fabricmc.fabric.api.registry.StrippableBlockRegistry;
+import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
+import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
@@ -87,11 +89,13 @@ import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.HoneycombItem;
 import net.minecraft.world.item.ShovelItem;
+import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.WeatheringCopper;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.network.chat.Component;
 
 /** Verifies Forge-to-Fabric server and world tick ordering at runtime. */
 public final class FabricLifecycleFixture implements ModInitializer {
@@ -144,6 +148,9 @@ public final class FabricLifecycleFixture implements ModInitializer {
     private static final ResourceKey<Registry<String>> EMPTY_DYNAMIC_REGISTRY_KEY =
             ResourceKey.createRegistryKey(ResourceLocation.fromNamespaceAndPath(
                     "loaderbridge", "fixture_empty_dynamic"));
+    static final ResourceKey<CreativeModeTab> ITEM_GROUP_KEY = ResourceKey.create(
+            net.minecraft.core.registries.Registries.CREATIVE_MODE_TAB,
+            ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_items"));
 
     @Override
     @SuppressWarnings("deprecation")
@@ -302,6 +309,21 @@ public final class FabricLifecycleFixture implements ModInitializer {
             throw new IllegalStateException("LOADERBRIDGE_FABRIC_CONTENT_REGISTRIES_FAILED");
         }
         System.out.println("LOADERBRIDGE_FABRIC_CONTENT_REGISTRIES_READY");
+        Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, ITEM_GROUP_KEY.location(),
+                FabricItemGroup.builder()
+                        .title(Component.literal("LoaderBridge Fixture"))
+                        .icon(() -> new ItemStack(Items.DIAMOND))
+                        .displayItems((parameters, output) -> {})
+                        .build());
+        ItemGroupEvents.modifyEntriesEvent(ITEM_GROUP_KEY).register(entries -> {
+            entries.accept(Items.DIAMOND);
+            if (entries.getDisplayStacks().stream().noneMatch(stack -> stack.is(Items.DIAMOND))
+                    || entries.getSearchTabStacks().stream()
+                            .noneMatch(stack -> stack.is(Items.DIAMOND))) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_ITEM_GROUP_FAILED");
+            }
+            System.out.println("LOADERBRIDGE_FABRIC_ITEM_GROUP_READY");
+        });
         DynamicRegistrySetupCallback.EVENT.register(view -> {
             if (view.getOptional(DYNAMIC_REGISTRY_KEY).isEmpty()) return;
             if (view.asDynamicRegistryManager().registry(DYNAMIC_REGISTRY_KEY).isEmpty()

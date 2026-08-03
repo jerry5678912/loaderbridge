@@ -418,6 +418,31 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsItemGroupBridgeFromBytecode() throws Exception {
+        Path source = referencedMod("item_group", "fabric-item-group-api-v1", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
+            method.visitMethodInsn(Opcodes.INVOKESTATIC,
+                    "net/fabricmc/fabric/api/itemgroup/v1/FabricItemGroup", "builder",
+                    "()Lnet/minecraft/world/item/CreativeModeTab$Builder;", false);
+            method.visitInsn(Opcodes.POP);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(1, 1);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "item-group");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains("fabric-item-group-api-v1-bridge-4.1.7_def88e3a19-loaderbridge.1.jar");
+    }
+
+    @Test
     void itemStorageSelectionPullsLookupDependenciesAutomatically() throws Exception {
         Path source = referencedMod("item_storage", "fabric-transfer-api-v1", writer -> {
             var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);

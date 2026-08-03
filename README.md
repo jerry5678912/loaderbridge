@@ -67,6 +67,12 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   flattening, axe stripping, oxidation, and waxing registries. Automatic
   selection is driven by inspected classes and declared dependencies; early
   Mixins feed the custom transformations into Minecraft's vanilla lookup paths.
+- An Item Group API v1 bridge matching
+  `fabric-item-group-api-v1:4.1.7+def88e3a19`. Fabric custom-tab builders and
+  keyed/global entry callbacks run through Forge's creative-tab build event,
+  preserving parent/search visibility, feature filtering, prepend, and
+  before/after ordering. The graphical fixture rebuilds its custom tab after
+  each world join and observes the Fabric-added item on both runs.
 - A separately versioned lifecycle bridge matching the complete server-tick,
   common tag-loading, server lifecycle, world, entity, block-entity, and chunk surfaces of
   `fabric-lifecycle-events-v1:2.6.0+0865547519`. It maps Fabric server/world
@@ -202,7 +208,7 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 
 The adapter currently rejects Fabric API surfaces outside the implemented
 modules, including Transfer API item-provided storage registration and fluid
-storage, item-group, biome, convention-tag, and rendering surfaces, unknown custom
+storage, biome, convention-tag, trade-helper, and rendering surfaces, unknown custom
 language adapters, Loader API calls outside the current
 shim, and mods requiring unreviewed native-library behavior. Signed patch packs,
 broad semantic graphical assertions, and catalog-wide compatibility measurement

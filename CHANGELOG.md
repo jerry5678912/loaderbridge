@@ -16,6 +16,9 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added Fabric Item Group API v1 custom-tab builders and keyed/global entry
+  callbacks with visibility and ordering behavior, automatic installation, and
+  a real-client custom-tab rebuild on initial world join and reload.
 - Added a generic Fabric Content Registries v0 bridge for fuel, composting,
   flammability, shovel flattening, axe stripping, oxidation, and waxing, with
   bytecode-driven installation and a real Forge client behavioral fixture.
