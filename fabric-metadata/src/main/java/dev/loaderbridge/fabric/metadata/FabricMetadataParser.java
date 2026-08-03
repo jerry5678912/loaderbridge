@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -36,7 +37,7 @@ public final class FabricMetadataParser {
                 id,
                 version,
                 optionalString(root, "name").orElse(id),
-                optionalString(root, "environment").orElse("*"),
+                parseEnvironment(optionalString(root, "environment").orElse("*")),
                 parseEntrypoints(root.getAsJsonObject("entrypoints")),
                 new FabricDependencies(
                         parseConstraints(root.getAsJsonObject("depends")),
@@ -110,10 +111,19 @@ public final class FabricMetadataParser {
                 JsonObject mixin = element.getAsJsonObject();
                 result.add(new FabricMixin(
                         requiredString(mixin, "config"),
-                        optionalString(mixin, "environment").orElse("*")));
+                        parseEnvironment(optionalString(mixin, "environment").orElse("*"))));
             }
         }
         return result;
+    }
+
+    private static String parseEnvironment(String value) throws UnsafeJarException {
+        String environment = value.toLowerCase(Locale.ROOT);
+        return switch (environment) {
+            case "", "*" -> "*";
+            case "client", "server" -> environment;
+            default -> throw new UnsafeJarException("Invalid environment type: " + environment);
+        };
     }
 
     private static List<String> parseNestedJars(JsonArray array) throws UnsafeJarException {

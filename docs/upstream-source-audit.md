@@ -46,6 +46,11 @@ falling back to a path under the first root, and returns a stable dummy path for
 synthetic containers without roots. LoaderBridge mirrors this behavior so a
 resource in the second root of a multi-project or multi-path mod is not silently
 resolved to a nonexistent location in the first root.
+Fabric normalizes mod-level and Mixin-level environment strings with
+locale-independent lowercase rules, accepts universal, client, and server, and
+rejects every other value. LoaderBridge now applies the same rule during
+untrusted-JAR inspection instead of silently treating uppercase or malformed
+environments as universal.
 The supplied discovery implementation creates `java` from
 `java.specification.version`, marks Java and Minecraft metadata as `builtin`,
 and gives Minecraft a dependency on the Java class version it requires. Fabric

@@ -119,6 +119,43 @@ final class FabricModInspectorTest {
                 .hasMessageContaining("entry limit");
     }
 
+    @Test
+    void normalizesCaseInsensitiveModAndMixinEnvironments() throws IOException {
+        Path jar = tempDirectory.resolve("environment-case.jar");
+        writeJar(jar, Map.of("fabric.mod.json", """
+                {"schemaVersion":1,"id":"case_mod","version":"1.0.0",
+                 "environment":"CLIENT",
+                 "mixins":[{"config":"server.mixins.json","environment":"SERVER"}]}
+                """));
+
+        FabricModMetadata metadata = new FabricModInspector().inspect(jar).root();
+
+        assertThat(metadata.environment()).isEqualTo("client");
+        assertThat(metadata.mixins()).singleElement()
+                .extracting(FabricMixin::environment).isEqualTo("server");
+    }
+
+    @Test
+    void rejectsUnknownModAndMixinEnvironments() throws IOException {
+        Path invalidMod = tempDirectory.resolve("invalid-mod-environment.jar");
+        writeJar(invalidMod, Map.of("fabric.mod.json", """
+                {"schemaVersion":1,"id":"invalid_mod","version":"1.0.0",
+                 "environment":"desktop"}
+                """));
+        Path invalidMixin = tempDirectory.resolve("invalid-mixin-environment.jar");
+        writeJar(invalidMixin, Map.of("fabric.mod.json", """
+                {"schemaVersion":1,"id":"invalid_mixin","version":"1.0.0",
+                 "mixins":[{"config":"invalid.mixins.json","environment":"desktop"}]}
+                """));
+
+        assertThatThrownBy(() -> new FabricModInspector().inspect(invalidMod))
+                .isInstanceOf(UnsafeJarException.class)
+                .hasMessageContaining("Invalid environment type: desktop");
+        assertThatThrownBy(() -> new FabricModInspector().inspect(invalidMixin))
+                .isInstanceOf(UnsafeJarException.class)
+                .hasMessageContaining("Invalid environment type: desktop");
+    }
+
     private static byte[] jarBytes(String metadata) throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(output)) {
