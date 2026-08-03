@@ -4,7 +4,7 @@ license="Apache-2.0"
 
 [[mods]]
 modId="loaderbridge_fabric_transfer_api_v1"
-version="5.4.4.6"
+version="5.4.4.7"
 displayName="LoaderBridge Fabric Transfer API v1 Bridge"
 
 [[dependencies.loaderbridge_fabric_transfer_api_v1]]

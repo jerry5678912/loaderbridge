@@ -168,7 +168,7 @@ class FabricToForgeAdapterTest {
         java.util.function.Consumer<ClassWriter> reference = writer -> {
             var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
             method.visitMethodInsn(Opcodes.INVOKESTATIC,
-                    "net/fabricmc/fabric/api/transfer/v1/item/PlayerInventoryStorage",
+                    "net/fabricmc/fabric/api/transfer/v1/storage/base/SingleVariantItemStorage",
                     "find", "()V", false);
             method.visitEnd();
         };
@@ -383,7 +383,7 @@ class FabricToForgeAdapterTest {
         assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
                 .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
-                .contains("fabric-transfer-api-v1-bridge-5.4.4_7b3d111d19-loaderbridge.6.jar");
+                .contains("fabric-transfer-api-v1-bridge-5.4.4_7b3d111d19-loaderbridge.7.jar");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
                 .contains("fabric-transfer-api-v1-bridge");
     }
@@ -409,7 +409,7 @@ class FabricToForgeAdapterTest {
         assertThat(plan.canPrepare()).isTrue();
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
                 .contains(
-                        "fabric-transfer-api-v1-bridge-5.4.4_7b3d111d19-loaderbridge.6.jar",
+                        "fabric-transfer-api-v1-bridge-5.4.4_7b3d111d19-loaderbridge.7.jar",
                         "fabric-api-lookup-api-v1-bridge-1.6.72_d30f6a7919-loaderbridge.2.jar",
                         "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
                         "fabric-lifecycle-events-bridge-2.6.0_0865547519-loaderbridge.6.jar");

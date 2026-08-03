@@ -58,12 +58,15 @@ import net.fabricmc.fabric.api.transfer.v1.storage.StorageUtil;
 import net.fabricmc.fabric.api.transfer.v1.item.InventoryStorage;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
+import net.fabricmc.fabric.api.transfer.v1.item.PlayerInventoryStorage;
+import net.fabricmc.fabric.api.transfer.v1.context.ContainerItemContext;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedSlottedStorage;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.FilteringStorage;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.SingleSlotStorage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.resources.ResourceKey;
 import com.mojang.serialization.Lifecycle;
@@ -230,6 +233,21 @@ public final class FabricLifecycleFixture implements ModInitializer {
             throw new IllegalStateException("LOADERBRIDGE_FABRIC_ITEM_STORAGE_FAILED");
         }
         System.out.println("LOADERBRIDGE_FABRIC_ITEM_STORAGE_READY");
+        ContainerItemContext constantContext =
+                ContainerItemContext.withConstant(new ItemStack(Items.DIAMOND, 3));
+        try (Transaction committed = Transaction.openOuter()) {
+            if (constantContext.exchange(ItemVariant.of(Items.DIRT), 2, committed) != 2) {
+                throw new IllegalStateException(
+                        "LOADERBRIDGE_FABRIC_CONSTANT_ITEM_CONTEXT_EXCHANGE_FAILED");
+            }
+            committed.commit();
+        }
+        if (constantContext.getAmount() != 3
+                || !constantContext.getItemVariant().equals(diamonds)) {
+            throw new IllegalStateException(
+                    "LOADERBRIDGE_FABRIC_CONSTANT_ITEM_CONTEXT_FAILED");
+        }
+        System.out.println("LOADERBRIDGE_FABRIC_CONSTANT_ITEM_CONTEXT_READY");
         DynamicRegistrySetupCallback.EVENT.register(view -> {
             if (view.getOptional(DYNAMIC_REGISTRY_KEY).isEmpty()) return;
             if (view.asDynamicRegistryManager().registry(DYNAMIC_REGISTRY_KEY).isEmpty()
@@ -354,6 +372,55 @@ public final class FabricLifecycleFixture implements ModInitializer {
                 throw new IllegalStateException("LOADERBRIDGE_FABRIC_PLAYER_LOOKUP_FAILED");
             }
             System.out.println("LOADERBRIDGE_FABRIC_PLAYER_LOOKUP_READY");
+            int previousSelected = player.getInventory().selected;
+            ItemStack previousFirstSlot = player.getInventory().getItem(0).copy();
+            ItemStack previousSecondSlot = player.getInventory().getItem(1).copy();
+            ItemStack previousCarried = player.containerMenu.getCarried().copy();
+            player.getInventory().selected = 0;
+            player.getInventory().setItem(0, ItemStack.EMPTY);
+            player.getInventory().setItem(1, ItemStack.EMPTY);
+            PlayerInventoryStorage playerStorage = PlayerInventoryStorage.of(player);
+            ItemVariant playerDiamonds = ItemVariant.of(Items.DIAMOND);
+            try (Transaction committed = Transaction.openOuter()) {
+                if (playerStorage.offer(playerDiamonds, 5, committed) != 5) {
+                    throw new IllegalStateException(
+                            "LOADERBRIDGE_FABRIC_PLAYER_ITEM_OFFER_FAILED");
+                }
+                committed.commit();
+            }
+            ContainerItemContext handContext =
+                    ContainerItemContext.ofPlayerHand(player, InteractionHand.MAIN_HAND);
+            try (Transaction committed = Transaction.openOuter()) {
+                if (handContext.exchange(ItemVariant.of(Items.DIRT), 2, committed) != 2) {
+                    throw new IllegalStateException(
+                            "LOADERBRIDGE_FABRIC_PLAYER_ITEM_EXCHANGE_FAILED");
+                }
+                committed.commit();
+            }
+            var cursor = PlayerInventoryStorage.getCursorStorage(player.containerMenu);
+            player.containerMenu.setCarried(ItemStack.EMPTY);
+            try (Transaction committed = Transaction.openOuter()) {
+                if (cursor.insert(playerDiamonds, 1, committed) != 1) {
+                    throw new IllegalStateException(
+                            "LOADERBRIDGE_FABRIC_PLAYER_CURSOR_INSERT_FAILED");
+                }
+                committed.commit();
+            }
+            if (player.getInventory().getItem(0).getCount() != 3
+                    || !player.getInventory().getItem(0).is(Items.DIAMOND)
+                    || player.getInventory().getItem(1).getCount() != 2
+                    || !player.getInventory().getItem(1).is(Items.DIRT)
+                    || cursor.getAmount() != 1
+                    || !cursor.getResource().equals(playerDiamonds)) {
+                throw new IllegalStateException(
+                        "LOADERBRIDGE_FABRIC_PLAYER_ITEM_CONTEXT_FAILED");
+            }
+            player.getInventory().setItem(0, previousFirstSlot);
+            player.getInventory().setItem(1, previousSecondSlot);
+            player.getInventory().selected = previousSelected;
+            player.containerMenu.setCarried(previousCarried);
+            player.containerMenu.broadcastChanges();
+            System.out.println("LOADERBRIDGE_FABRIC_PLAYER_ITEM_CONTEXT_READY");
             sender.sendPacket(new FabricNetworkingPayload(FabricNetworkingPayload.PING_TYPE, "ping"));
             if (TRACKING_ENTITY_SPAWNED.compareAndSet(false, true)) {
                 var entity = EntityType.ARMOR_STAND.create(player.serverLevel());

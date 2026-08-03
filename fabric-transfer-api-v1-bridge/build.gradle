@@ -20,6 +20,6 @@ tasks.named('jar') {
         attributes('Automatic-Module-Name': 'dev.loaderbridge.fabric.transfer.api.v1',
                 'LICENSE': 'Apache-2.0',
                 'Implementation-Title': 'LoaderBridge Fabric Transfer API v1 Bridge',
-                'Implementation-Version': '5.4.4+7b3d111d19-loaderbridge.6')
+                'Implementation-Version': '5.4.4+7b3d111d19-loaderbridge.7')
     }
 }

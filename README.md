@@ -134,6 +134,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   `ItemStorage.SIDED` now discovers vanilla container block entities through the
   standard Fabric block lookup, with automatic lookup-module dependencies. A
   real chest lookup and insertion passes on initial load and world reload.
+  Player inventory and container-item contexts add native stacking order,
+  transactional hand/cursor mutation, overflow routing, and immutable
+  simulation. The graphical client performs a hand exchange and cursor insert
+  on both initial join and world reload.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with

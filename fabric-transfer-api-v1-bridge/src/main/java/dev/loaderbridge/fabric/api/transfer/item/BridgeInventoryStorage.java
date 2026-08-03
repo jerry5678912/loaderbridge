@@ -16,6 +16,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.Container;
 import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.entity.player.Inventory;
 
 /** Vanilla-container implementation used by InventoryStorage.of. */
 public final class BridgeInventoryStorage
@@ -34,6 +35,13 @@ public final class BridgeInventoryStorage
     }
 
     public static InventoryStorage of(Container inventory, Direction direction) {
+        if (inventory instanceof Inventory playerInventory && direction == null) {
+            return BridgePlayerInventoryStorage.of(playerInventory);
+        }
+        return createGeneric(inventory, direction);
+    }
+
+    static BridgeInventoryStorage createGeneric(Container inventory, Direction direction) {
         if (direction == null || !(inventory instanceof WorldlyContainer)) {
             synchronized (WRAPPERS) {
                 BridgeInventoryStorage existing = WRAPPERS.get(inventory);

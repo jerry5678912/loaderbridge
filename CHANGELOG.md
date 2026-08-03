@@ -40,6 +40,10 @@ All notable user-facing changes will be recorded here.
 - Added `ItemStorage.SIDED` with automatic lookup-module dependency selection
   and vanilla container fallback wrapping; the graphical client discovers a
   chest, inserts transactionally, saves, and repeats the lookup after reload.
+- Added Fabric player inventory storage and container-item contexts with native
+  hand-first stacking, transactional cursor and inventory mutation, deferred
+  overflow drops, creative/simulation behavior, and graphical join/reload
+  coverage.
 
 - Added the initial Fabric Registry Sync v0 bridge with custom static registry
   builders, MODDED/SYNCED attributes, registry-local entry/remap events,
