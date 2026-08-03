@@ -254,8 +254,11 @@ returned `1.21.1`. The same fixture resolved Fabric-compatible `minecraft`,
 versions, Minecraft-to-Java dependency, and real ordered Forge game-input root
 paths. Fabric Loader's self-container metadata and icon resolved through the
 Forge `union:` filesystem. A custom constructor member entrypoint also resolved
-and instantiated through Forge's named module layers. The fixture observed each
-side's final Minecraft launch arguments. On the client, Fabric initialization
+and instantiated through Forge's named module layers. The Kotlin adapter fixture
+covers the eight entrypoint forms from Fabric Language Kotlin
+`1.12.3+kotlin.2.0.21`: class, object class/function/property, companion
+class/function/property, and top-level function. The fixture observed each side's
+final Minecraft launch arguments. On the client, Fabric initialization
 received the real `Minecraft` instance; on the dedicated server, the instance
 was correctly null during initialization and became the constructed server at
 Forge's about-to-start boundary. Both sides completed world save, shutdown, and

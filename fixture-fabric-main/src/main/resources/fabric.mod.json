@@ -23,6 +23,16 @@
     "loaderbridge:constructor": [
       "dev.loaderbridge.fixture.FixtureApiProvider::<init>"
     ],
+    "loaderbridge:kotlin": [
+      {"adapter": "kotlin", "value": "dev.loaderbridge.fixture.KotlinEntrypointShapes$ClassEntrypoint"},
+      {"adapter": "kotlin", "value": "dev.loaderbridge.fixture.KotlinEntrypointShapes$ObjectClass"},
+      {"adapter": "kotlin", "value": "dev.loaderbridge.fixture.KotlinEntrypointShapes$ObjectFunction::init"},
+      {"adapter": "kotlin", "value": "dev.loaderbridge.fixture.KotlinEntrypointShapes$ObjectProperty::initializer"},
+      {"adapter": "kotlin", "value": "dev.loaderbridge.fixture.KotlinEntrypointShapes$CompanionClass$Companion"},
+      {"adapter": "kotlin", "value": "dev.loaderbridge.fixture.KotlinEntrypointShapes$CompanionFunction$Companion::init"},
+      {"adapter": "kotlin", "value": "dev.loaderbridge.fixture.KotlinEntrypointShapes$CompanionProperty$Companion::initializer"},
+      {"adapter": "kotlin", "value": "dev.loaderbridge.fixture.KotlinEntrypointShapes$TopLevel::init"}
+    ],
     "server": [
       "dev.loaderbridge.fixture.ServerFixture"
     ],

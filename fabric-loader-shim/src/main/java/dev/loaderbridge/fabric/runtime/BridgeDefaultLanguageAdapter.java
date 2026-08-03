@@ -91,11 +91,16 @@ public final class BridgeDefaultLanguageAdapter implements LanguageAdapter {
                     && !Modifier.isStatic(method.getModifiers())) {
                 receiver = owner.getDeclaredConstructor().newInstance();
             }
-            MethodHandle handle = reflectionHandle(executable, receiver);
-            return type.cast(MethodHandleProxies.asInterfaceInstance(type, handle));
+            return adaptExecutable(executable, receiver, type);
         } catch (Exception exception) {
             throw new LanguageAdapterException(exception);
         }
+    }
+
+    static <T> T adaptExecutable(Executable executable, Object receiver, Class<T> type)
+            throws NoSuchMethodException, IllegalAccessException {
+        MethodHandle handle = reflectionHandle(executable, receiver);
+        return type.cast(MethodHandleProxies.asInterfaceInstance(type, handle));
     }
 
     private static MethodHandle reflectionHandle(Executable executable, Object receiver)

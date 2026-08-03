@@ -26,6 +26,14 @@ public final class MainFixture implements ModInitializer {
             throw new IllegalStateException("constructor Fabric entrypoint contract failed");
         }
         System.out.println("LOADERBRIDGE_FIXTURE_CONSTRUCTOR_ENTRYPOINT_READY");
+        var kotlinEntrypoints = loader.getEntrypoints(
+                "loaderbridge:kotlin", Runnable.class);
+        if (kotlinEntrypoints.size() != 8) {
+            throw new IllegalStateException(
+                    "unexpected Kotlin entrypoint count: " + kotlinEntrypoints.size());
+        }
+        kotlinEntrypoints.forEach(Runnable::run);
+        System.out.println("LOADERBRIDGE_FIXTURE_KOTLIN_ADAPTER_READY");
         if (!loader.getRawGameVersion().equals("1.21.1")) {
             throw new IllegalStateException(
                     "unexpected raw game version: " + loader.getRawGameVersion());
