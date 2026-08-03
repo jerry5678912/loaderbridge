@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.mojang.serialization.Lifecycle;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.fabricmc.fabric.api.event.registry.DynamicRegistries;
 import net.fabricmc.fabric.api.event.registry.DynamicRegistrySetupCallback;
@@ -12,6 +14,7 @@ import net.fabricmc.fabric.api.event.registry.DynamicRegistryView;
 import net.fabricmc.fabric.api.event.registry.RegistryAttribute;
 import net.fabricmc.fabric.api.event.registry.RegistryAttributeHolder;
 import net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback;
+import net.fabricmc.fabric.api.event.registry.RegistryIdRemapCallback;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistrationInfo;
@@ -24,7 +27,7 @@ class RegistrySyncContractTest {
     void providerAdvertisesOnlyImplementedPublicSurface() {
         var descriptor = new FabricRegistrySyncBridgeProvider().descriptor();
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("5.1.3+60c3209b19-loaderbridge.4");
+                .isEqualTo("5.1.3+60c3209b19-loaderbridge.5");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrderElementsOf(Set.of(
                 "net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder",
                 "net.fabricmc.fabric.api.event.registry.DynamicRegistries",
@@ -62,6 +65,28 @@ class RegistrySyncContractTest {
         assertThat(observed).hasValue("0:loaderbridge:value:payload");
         assertThat(RegistryEntryAddedCallback.event(registry))
                 .isSameAs(RegistryEntryAddedCallback.event(registry));
+    }
+
+    @Test
+    void remapEventReceivesStableOldAndNewIdViews() {
+        ResourceKey<Registry<String>> key = registryKey("remap_events");
+        MappedRegistry<String> registry = new MappedRegistry<>(key, Lifecycle.stable());
+        AtomicReference<String> observed = new AtomicReference<>();
+        RegistryIdRemapCallback.event(registry).register(state -> observed.set(
+                state.getRawIdChangeMap().get(4) + ":"
+                        + state.getIdFromOld(4) + ":" + state.getIdFromNew(1)));
+        var changes = new Int2IntOpenHashMap();
+        changes.put(4, 1);
+        var oldIds = new Int2ObjectOpenHashMap<ResourceLocation>();
+        oldIds.put(4, ResourceLocation.fromNamespaceAndPath("loaderbridge_test", "value"));
+        var newIds = new Int2ObjectOpenHashMap<ResourceLocation>();
+        newIds.put(1, ResourceLocation.fromNamespaceAndPath("loaderbridge_test", "value"));
+
+        RegistryEventDispatcher.fireRemapped(
+                registry, new RegistryRemapState<>(changes, oldIds, newIds));
+
+        assertThat(observed).hasValue(
+                "1:loaderbridge_test:value:loaderbridge_test:value");
     }
 
     @Test

@@ -25,6 +25,8 @@ All notable user-facing changes will be recorded here.
 - Added Fabric dynamic registry setup views and entry callbacks before datapack
   population, plus `SKIP_WHEN_EMPTY` filtering for registry and tag sync; both
   are verified during initial connection and world reload.
+- Translated Forge native ID-mapping events into Fabric registry-local remap
+  callbacks with immutable full old/new raw-ID and resource-ID views.
 
 - Added the complete public Fabric API Lookup v1 surface with unique typed
   lookup IDs; block, item, and entity direct/self/fallback providers; live

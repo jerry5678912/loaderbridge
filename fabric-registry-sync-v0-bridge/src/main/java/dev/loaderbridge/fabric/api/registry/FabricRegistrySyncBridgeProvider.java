@@ -15,7 +15,7 @@ public final class FabricRegistrySyncBridgeProvider implements RuntimeBridgeModu
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-registry-sync-v0-bridge",
             "fabric-registry-sync-v0:5.1.3",
-            "5.1.3+60c3209b19-loaderbridge.4",
+            "5.1.3+60c3209b19-loaderbridge.5",
             BridgeCapability.FABRIC_API,
             Set.of(
                     "net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder",

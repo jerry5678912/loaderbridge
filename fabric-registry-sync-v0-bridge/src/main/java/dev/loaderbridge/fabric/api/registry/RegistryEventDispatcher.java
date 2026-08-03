@@ -31,6 +31,11 @@ public final class RegistryEventDispatcher {
         events(registry).entryAdded.invoker().onEntryAdded(rawId, id, value);
     }
 
+    public static <T> void fireRemapped(Registry<T> registry,
+            RegistryIdRemapCallback.RemapState<T> state) {
+        events(registry).remapped.invoker().onRemap(state);
+    }
+
     @SuppressWarnings("unchecked")
     private static <T> Events<T> events(Registry<T> registry) {
         synchronized (EVENTS) {
