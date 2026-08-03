@@ -77,6 +77,11 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   `fabric-resource-loader-v0:1.3.1+5b5275af19`. Server-data listeners and
   registry-aware factories preserve Fabric IDs and dependency order through
   initial load, datapack reload, save, and process restart.
+- A separately versioned Game Rule API v1 bridge matching
+  `fabric-game-rule-api-v1:1.0.53+6ced4dd919`. Boolean, bounded integer,
+  double, enum, visitor, callback, custom-category, command, serialization,
+  save, and process-restart persistence behavior use Minecraft's native rule
+  registry in Forge's transformed game layer.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -106,6 +111,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   and process reload on Forge 52.1.16.
   The same fixture automatically selects Resource Loader v0 and proves its
   listener on initial server resources, `/reload`, and the restarted process.
+  It also registers a Fabric custom game rule, changes it through the native
+  command, saves it, and verifies the value after a full JVM restart.
 - A controlled Fabric command fixture registers and executes a real Brigadier
   command before and after a Forge 52.1.16 dedicated-server restart, with world
   save and clean shutdown.

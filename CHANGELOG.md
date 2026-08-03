@@ -21,6 +21,8 @@ All notable user-facing changes will be recorded here.
   a real Forge 52.1.16 force-load/save/restart behavioral scenario.
 - Added the exact Fabric resource-loader-v0 1.21.1 public types and ordered,
   registry-aware Forge server-data reload listener registration.
+- Added Fabric Game Rule API v1 boolean, bounded integer, double, enum, visitor,
+  callback, custom-category, command, serialization, and persistence behavior.
 
 - Initial LoaderBridge project scaffold.
 - Added validated, launcher-neutral repository provider, artifact, dependency,

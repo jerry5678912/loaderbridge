@@ -19,9 +19,17 @@ import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.ResourceManager;
+import net.fabricmc.fabric.api.gamerule.v1.GameRuleFactory;
+import net.fabricmc.fabric.api.gamerule.v1.GameRuleRegistry;
+import net.minecraft.world.level.GameRules;
 
 /** Verifies Forge-to-Fabric server and world tick ordering at runtime. */
 public final class FabricLifecycleFixture implements ModInitializer {
+    private static final GameRules.Key<GameRules.BooleanValue> PERSISTED_RULE =
+            GameRuleRegistry.register("loaderbridgeEnabled", GameRules.Category.MISC,
+                    GameRuleFactory.createBooleanRule(false, (server, rule) -> {
+                        if (rule.get()) System.out.println("LOADERBRIDGE_FABRIC_GAME_RULE_CHANGED");
+                    }));
     private static final AtomicInteger STATE = new AtomicInteger();
     private static final AtomicInteger SERVER_STATE = new AtomicInteger();
     private static final AtomicInteger WORLDS_LOADED = new AtomicInteger();
@@ -32,7 +40,7 @@ public final class FabricLifecycleFixture implements ModInitializer {
     private static final AtomicBoolean CHUNK_FULL = new AtomicBoolean();
     private static final AtomicBoolean CHUNK_UNLOADED = new AtomicBoolean();
     private static final AtomicInteger RESOURCE_RELOADS = new AtomicInteger();
-    private static final int TEST_CHUNK = 700;
+    private static final int TEST_CHUNK = 725;
 
     @Override
     public void onInitialize() {
@@ -110,6 +118,9 @@ public final class FabricLifecycleFixture implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             if (SERVER_STATE.compareAndSet(1, 2)) {
                 System.out.println("LOADERBRIDGE_FABRIC_SERVER_LIFECYCLE_READY");
+            }
+            if (server.getGameRules().getRule(PERSISTED_RULE).get()) {
+                System.out.println("LOADERBRIDGE_FABRIC_GAME_RULE_PERSISTED");
             }
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {

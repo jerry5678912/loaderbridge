@@ -87,7 +87,7 @@ steps:
     action: send_command
     timeout: PT1M
     parameters:
-      command: forceload add 11200 11200
+      command: forceload add 11600 11600
   - id: chunk_loaded
     action: wait_for_log
     timeout: PT3M
@@ -107,7 +107,7 @@ steps:
     action: send_command
     timeout: PT1M
     parameters:
-      command: forceload remove 11200 11200
+      command: forceload remove 11600 11600
   - id: chunk_unloaded
     action: wait_for_log
     timeout: PT3M
@@ -133,6 +133,16 @@ steps:
     timeout: PT1M
     parameters:
       contains: LOADERBRIDGE_FABRIC_RESOURCE_RELOADED:2
+  - id: set_custom_game_rule
+    action: send_command
+    timeout: PT1M
+    parameters:
+      command: gamerule loaderbridgeEnabled true
+  - id: custom_game_rule_changed
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_GAME_RULE_CHANGED
   - id: save
     action: save
     timeout: PT1M
@@ -158,6 +168,11 @@ steps:
     timeout: PT1M
     parameters:
       contains: LOADERBRIDGE_FABRIC_LIFECYCLE_TAGS_READY
+  - id: custom_game_rule_persisted
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_GAME_RULE_PERSISTED
   - id: shutdown
     action: shutdown
     timeout: PT1M

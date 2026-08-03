@@ -4,6 +4,7 @@ build/
 .idea/
 *.iml
 run/
+**/logs/
 bridge-cache/
 bridge.lock.json
 compatibility-report.json
