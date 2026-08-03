@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8.7",
+  "package": "dev.loaderbridge.fabric.api.content.registry.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "AxeItemMixin",
+    "HoneycombItemMixin",
+    "ShovelItemMixin",
+    "WeatheringCopperMixin"
+  ],
+  "injectors": {"defaultRequire": 1}
+}

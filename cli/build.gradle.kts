@@ -39,6 +39,9 @@ dependencies {
     runtimeOnly(project(":fabric-transfer-api-v1-bridge")) {
         isTransitive = false
     }
+    runtimeOnly(project(":fabric-content-registries-v0-bridge")) {
+        isTransitive = false
+    }
     runtimeOnly(project(":repository-modrinth"))
     runtimeOnly(project(":repository-curseforge"))
     implementation("info.picocli:picocli:4.7.6")

@@ -16,6 +16,9 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added a generic Fabric Content Registries v0 bridge for fuel, composting,
+  flammability, shovel flattening, axe stripping, oxidation, and waxing, with
+  bytecode-driven installation and a real Forge client behavioral fixture.
 - Added the first Fabric-only content-mod deep scenario for Blockus, requiring
   real block/item registration, placement, rendering, save, and reload rather
   than treating startup as compatibility.

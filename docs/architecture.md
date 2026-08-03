@@ -14,6 +14,7 @@ The engine is split so a future GUI can call the same Java API as the CLI.
 | `fabric-remap` | Reference analysis, TinyRemapper wrapper, deterministic preparation, lock/report writing |
 | `fabric-loader-shim` | Independently implemented common Fabric Loader API surface |
 | `fabric-api-base-bridge` | Versioned Fabric API event and utility contracts selected from inspected references |
+| `fabric-content-registries-v0-bridge` | Fabric fuel, composting, flammability, flattening, stripping, oxidation, and waxing registries mapped into vanilla/Forge behavior |
 | `fabric-command-api-v2-bridge` | Fabric server command registration mapped to Forge's live dispatcher and build context |
 | `fabric-lifecycle-events-bridge` | Complete Fabric lifecycle-events-v1 server/world/entity/block-entity/chunk/tick/tag surface mapped to Forge plus exact Mixin hooks |
 | `fabric-resource-loader-v0-bridge` | Fabric resource listener contracts and ordered server-data reload registration |

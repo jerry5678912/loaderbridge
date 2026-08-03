@@ -50,6 +50,9 @@ dependencies {
     compileOnly(project(':fabric-transfer-api-v1-bridge')) {
         transitive = false
     }
+    compileOnly(project(':fabric-content-registries-v0-bridge')) {
+        transitive = false
+    }
 }
 
 tasks.named('jar') {

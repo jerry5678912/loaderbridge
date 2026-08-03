@@ -64,6 +64,12 @@ import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedSlottedStorage;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.FilteringStorage;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.SingleSlotStorage;
+import net.fabricmc.fabric.api.registry.CompostingChanceRegistry;
+import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
+import net.fabricmc.fabric.api.registry.FlattenableBlockRegistry;
+import net.fabricmc.fabric.api.registry.FuelRegistry;
+import net.fabricmc.fabric.api.registry.OxidizableBlocksRegistry;
+import net.fabricmc.fabric.api.registry.StrippableBlockRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
@@ -78,6 +84,13 @@ import net.minecraft.world.entity.SpawnPlacements;
 import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.item.AxeItem;
+import net.minecraft.world.item.HoneycombItem;
+import net.minecraft.world.item.ShovelItem;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.RotatedPillarBlock;
+import net.minecraft.world.level.block.WeatheringCopper;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.levelgen.Heightmap;
 
 /** Verifies Forge-to-Fabric server and world tick ordering at runtime. */
@@ -248,6 +261,47 @@ public final class FabricLifecycleFixture implements ModInitializer {
                     "LOADERBRIDGE_FABRIC_CONSTANT_ITEM_CONTEXT_FAILED");
         }
         System.out.println("LOADERBRIDGE_FABRIC_CONSTANT_ITEM_CONTEXT_READY");
+        Block flattenInput = Registry.register(BuiltInRegistries.BLOCK,
+                ResourceLocation.fromNamespaceAndPath("loaderbridge", "flatten_input"),
+                new Block(BlockBehaviour.Properties.of()));
+        Block flattenOutput = Registry.register(BuiltInRegistries.BLOCK,
+                ResourceLocation.fromNamespaceAndPath("loaderbridge", "flatten_output"),
+                new Block(BlockBehaviour.Properties.of()));
+        Block stripInput = Registry.register(BuiltInRegistries.BLOCK,
+                ResourceLocation.fromNamespaceAndPath("loaderbridge", "strip_input"),
+                new RotatedPillarBlock(BlockBehaviour.Properties.of()));
+        Block stripOutput = Registry.register(BuiltInRegistries.BLOCK,
+                ResourceLocation.fromNamespaceAndPath("loaderbridge", "strip_output"),
+                new RotatedPillarBlock(BlockBehaviour.Properties.of()));
+        Block oxidized = Registry.register(BuiltInRegistries.BLOCK,
+                ResourceLocation.fromNamespaceAndPath("loaderbridge", "oxidized"),
+                new Block(BlockBehaviour.Properties.of()));
+        Block waxed = Registry.register(BuiltInRegistries.BLOCK,
+                ResourceLocation.fromNamespaceAndPath("loaderbridge", "waxed"),
+                new Block(BlockBehaviour.Properties.of()));
+        FuelRegistry.INSTANCE.add(Items.DIAMOND, 1234);
+        CompostingChanceRegistry.INSTANCE.add(Items.DIAMOND, 0.42F);
+        FlammableBlockRegistry.getDefaultInstance().add(flattenInput, 7, 11);
+        FlattenableBlockRegistry.register(flattenInput, flattenOutput.defaultBlockState());
+        StrippableBlockRegistry.register(stripInput, stripOutput);
+        OxidizableBlocksRegistry.registerOxidizableBlockPair(flattenInput, oxidized);
+        OxidizableBlocksRegistry.registerWaxableBlockPair(oxidized, waxed);
+        FlammableBlockRegistry.Entry flammable =
+                FlammableBlockRegistry.getDefaultInstance().get(flattenInput);
+        if (FuelRegistry.INSTANCE.get(Items.DIAMOND) != 1234
+                || Math.abs(CompostingChanceRegistry.INSTANCE.get(Items.DIAMOND) - 0.42F) > 0.001F
+                || flammable.getBurnChance() != 7
+                || flammable.getSpreadChance() != 11
+                || !ShovelItem.getShovelPathingState(flattenInput.defaultBlockState())
+                        .is(flattenOutput)
+                || !AxeItem.getAxeStrippingState(stripInput.defaultBlockState()).is(stripOutput)
+                || WeatheringCopper.getNext(flattenInput).orElseThrow() != oxidized
+                || WeatheringCopper.getPrevious(oxidized).orElseThrow() != flattenInput
+                || HoneycombItem.getWaxed(oxidized.defaultBlockState()).orElseThrow().getBlock()
+                        != waxed) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_CONTENT_REGISTRIES_FAILED");
+        }
+        System.out.println("LOADERBRIDGE_FABRIC_CONTENT_REGISTRIES_READY");
         DynamicRegistrySetupCallback.EVENT.register(view -> {
             if (view.getOptional(DYNAMIC_REGISTRY_KEY).isEmpty()) return;
             if (view.asDynamicRegistryManager().registry(DYNAMIC_REGISTRY_KEY).isEmpty()

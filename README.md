@@ -61,6 +61,12 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   `fabric-api-base:0.4.42+6573ed8c19`: events, ordered phases, TriState, and
   utility constants. ServiceLoader selection is driven by bytecode references
   and declared dependencies, then recorded in the lock and report.
+- A Content Registries v0 bridge matching
+  `fabric-content-registries-v0:8.0.19+b559734419`. It implements Fabric's
+  item/block override maps plus fuel, composting, flammability, shovel
+  flattening, axe stripping, oxidation, and waxing registries. Automatic
+  selection is driven by inspected classes and declared dependencies; early
+  Mixins feed the custom transformations into Minecraft's vanilla lookup paths.
 - A separately versioned lifecycle bridge matching the complete server-tick,
   common tag-loading, server lifecycle, world, entity, block-entity, and chunk surfaces of
   `fabric-lifecycle-events-v1:2.6.0+0865547519`. It maps Fabric server/world
@@ -186,6 +192,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   empty optional registry from synchronization, and repeats all dynamic
   assertions after world reload before completing clean saves with no
   transformer exceptions.
+  The client also proves all Content Registries v0 paths during Fabric
+  initialization before creating, saving, and reloading the integrated world.
 - A controlled Fabric command fixture registers and executes a real Brigadier
   command before and after a Forge 52.1.16 dedicated-server restart, with world
   save and clean shutdown.
@@ -193,9 +201,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 ## Intentionally gated
 
 The adapter currently rejects Fabric API surfaces outside the implemented
-modules, including Transfer API full container-item contexts, item-provided
-storage registration, player-inventory special views, fluid/rendering surfaces,
-unknown custom
+modules, including Transfer API item-provided storage registration and fluid
+storage, item-group, biome, convention-tag, and rendering surfaces, unknown custom
 language adapters, Loader API calls outside the current
 shim, and mods requiring unreviewed native-library behavior. Signed patch packs,
 broad semantic graphical assertions, and catalog-wide compatibility measurement

@@ -389,6 +389,35 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsContentRegistriesBridgeFromBytecode() throws Exception {
+        Path source = referencedMod("content_registries", "fabric-content-registries-v0",
+                writer -> {
+                    var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V",
+                            null, null);
+                    method.visitFieldInsn(Opcodes.GETSTATIC,
+                            "net/fabricmc/fabric/api/registry/FuelRegistry", "INSTANCE",
+                            "Lnet/fabricmc/fabric/api/registry/FuelRegistry;");
+                    method.visitInsn(Opcodes.POP);
+                    method.visitInsn(Opcodes.RETURN);
+                    method.visitMaxs(1, 1);
+                    method.visitEnd();
+                });
+        BridgeRequest request = requestFor(source, "content-registries");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains("fabric-content-registries-v0-bridge-8.0.19_b559734419-loaderbridge.1.jar");
+        assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
+                .contains("fabric-content-registries-v0-bridge");
+    }
+
+    @Test
     void itemStorageSelectionPullsLookupDependenciesAutomatically() throws Exception {
         Path source = referencedMod("item_storage", "fabric-transfer-api-v1", writer -> {
             var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
