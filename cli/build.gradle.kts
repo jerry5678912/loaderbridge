@@ -12,6 +12,9 @@ dependencies {
     runtimeOnly(project(":fabric-api-base-bridge")) {
         isTransitive = false
     }
+    runtimeOnly(project(":fabric-lifecycle-events-bridge")) {
+        isTransitive = false
+    }
     runtimeOnly(project(":repository-modrinth"))
     runtimeOnly(project(":repository-curseforge"))
     implementation("info.picocli:picocli:4.7.6")

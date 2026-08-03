@@ -61,6 +61,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   `fabric-api-base:0.4.42+6573ed8c19`: events, ordered phases, TriState, and
   utility constants. ServiceLoader selection is driven by bytecode references
   and declared dependencies, then recorded in the lock and report.
+- A separately versioned lifecycle bridge matching the server-tick surface of
+  `fabric-lifecycle-events-v1:2.6.0+0865547519`. It maps Fabric server/world
+  start and end tick callbacks onto Forge events and automatically pulls in
+  its API-base dependency.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -82,6 +86,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - A controlled Fabric API base fixture passes automatic module installation,
   dedicated-server ready, world save, clean shutdown, and reload on Forge
   52.1.16.
+- A controlled Fabric lifecycle fixture passes automatic base+lifecycle module
+  installation, ordered server/world tick callbacks, dedicated-server ready,
+  world save, clean shutdown, and reload on Forge 52.1.16.
 
 ## Intentionally gated
 

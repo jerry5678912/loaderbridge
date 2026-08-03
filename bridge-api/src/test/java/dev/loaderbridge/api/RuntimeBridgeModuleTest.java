@@ -10,7 +10,7 @@ class RuntimeBridgeModuleTest {
     @Test
     void rejectsPathStyleClassNames() {
         assertThatThrownBy(() -> new RuntimeBridgeModule("base", "1", "1.0",
-                BridgeCapability.FABRIC_API, Set.of("net/fabricmc/Bad"), Map.of()))
+                BridgeCapability.FABRIC_API, Set.of("net/fabricmc/Bad"), Map.of(), Set.of()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("binary names");
     }

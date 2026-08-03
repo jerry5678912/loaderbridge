@@ -11,7 +11,8 @@ public record RuntimeBridgeModule(
         String implementationVersion,
         BridgeCapability capability,
         Set<String> providedClasses,
-        Map<String, String> providedModVersions) {
+        Map<String, String> providedModVersions,
+        Set<String> requiredModules) {
     public RuntimeBridgeModule {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(contractVersion, "contractVersion");
@@ -19,6 +20,7 @@ public record RuntimeBridgeModule(
         Objects.requireNonNull(capability, "capability");
         providedClasses = Set.copyOf(providedClasses);
         providedModVersions = Map.copyOf(providedModVersions);
+        requiredModules = Set.copyOf(requiredModules);
         if (id.isBlank() || contractVersion.isBlank() || implementationVersion.isBlank()) {
             throw new IllegalArgumentException("Bridge module identifiers and versions must not be blank");
         }
@@ -28,6 +30,9 @@ public record RuntimeBridgeModule(
         if (providedModVersions.entrySet().stream()
                 .anyMatch(entry -> entry.getKey().isBlank() || entry.getValue().isBlank())) {
             throw new IllegalArgumentException("Provided mod IDs and versions must not be blank");
+        }
+        if (requiredModules.stream().anyMatch(String::isBlank)) {
+            throw new IllegalArgumentException("Required bridge module IDs must not be blank");
         }
     }
 }

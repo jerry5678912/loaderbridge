@@ -24,7 +24,8 @@ public final class FabricApiBaseBridgeProvider implements RuntimeBridgeModulePro
                     "net.fabricmc.fabric.api.util.BooleanFunction",
                     "net.fabricmc.fabric.api.util.NbtType",
                     "net.fabricmc.fabric.api.util.TriState"),
-            Map.of("fabric-api-base", "0.4.42+6573ed8c19"));
+            Map.of("fabric-api-base", "0.4.42+6573ed8c19"),
+            Set.of());
 
     @Override
     public RuntimeBridgeModule descriptor() {

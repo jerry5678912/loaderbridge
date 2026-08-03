@@ -34,10 +34,12 @@ include(
     "fabric-remap",
     "fabric-loader-shim",
     "fabric-api-base-bridge",
+    "fabric-lifecycle-events-bridge",
     "forge-runtime",
     "forge-transform-service",
     "integration-harness",
     "cli",
     "fixture-fabric-main",
     "fixture-fabric-api-base",
+    "fixture-fabric-lifecycle",
 )

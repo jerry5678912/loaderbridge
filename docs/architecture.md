@@ -14,12 +14,14 @@ The engine is split so a future GUI can call the same Java API as the CLI.
 | `fabric-remap` | Reference analysis, TinyRemapper wrapper, deterministic preparation, lock/report writing |
 | `fabric-loader-shim` | Independently implemented common Fabric Loader API surface |
 | `fabric-api-base-bridge` | Versioned Fabric API event and utility contracts selected from inspected references |
+| `fabric-lifecycle-events-bridge` | Versioned Fabric server/world tick events mapped to Forge lifecycle events |
 | `forge-runtime` | Forge language provider and custom mod-container boundary |
 | `forge-transform-service` | Early ModLauncher transformation-service boundary |
 | `integration-harness` | Pinned disposable Forge installation, scenario execution, reload, bounded commands, and artifacts |
 | `cli` | ServiceLoader discovery and machine-oriented commands/exit codes |
 | `fixture-fabric-main` | Controlled Fabric `main` entrypoint probe |
 | `fixture-fabric-api-base` | Controlled automatic API-module selection and runtime probe |
+| `fixture-fabric-lifecycle` | Controlled automatic lifecycle+base selection and ordered server tick probe |
 
 Adapter discovery is exclusively through Java `ServiceLoader`. A future loader
 direction can be added as another provider without editing the CLI.

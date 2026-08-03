@@ -318,11 +318,23 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
     private List<RuntimeBridgeModuleProvider> modulesFor(Set<String> references,
             FabricModMetadata metadata) {
         Set<String> dependencies = metadata.dependencies().depends().keySet();
-        return bridgeModules.stream().filter(provider ->
+        Set<String> selectedIds = bridgeModules.stream().filter(provider ->
                 provider.descriptor().providedClasses().stream().anyMatch(references::contains)
                         || provider.descriptor().providedModVersions().keySet().stream()
                                 .anyMatch(dependencies::contains))
-                .toList();
+                .map(provider -> provider.descriptor().id())
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        boolean changed;
+        do {
+            changed = false;
+            for (RuntimeBridgeModuleProvider provider : bridgeModules) {
+                if (selectedIds.contains(provider.descriptor().id())) {
+                    changed |= selectedIds.addAll(provider.descriptor().requiredModules());
+                }
+            }
+        } while (changed);
+        return bridgeModules.stream()
+                .filter(provider -> selectedIds.contains(provider.descriptor().id())).toList();
     }
 
     private static List<String> moduleVersions(List<RuntimeBridgeModuleProvider> modules) {
@@ -338,6 +350,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
     private static List<RuntimeBridgeModuleProvider> validateBridgeModules(
             List<RuntimeBridgeModuleProvider> providers) {
         Map<String, String> owners = new LinkedHashMap<>();
+        Set<String> moduleIds = providers.stream().map(provider -> provider.descriptor().id())
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
         for (RuntimeBridgeModuleProvider provider : providers) {
             var descriptor = provider.descriptor();
             claimModuleKey(owners, "module:" + descriptor.id(), descriptor.id());
@@ -345,6 +359,12 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                     claimModuleKey(owners, "class:" + className, descriptor.id()));
             descriptor.providedModVersions().keySet().forEach(modId ->
                     claimModuleKey(owners, "mod:" + modId, descriptor.id()));
+            for (String required : descriptor.requiredModules()) {
+                if (!moduleIds.contains(required)) {
+                    throw new IllegalStateException("LB-MODULE-003: bridge module "
+                            + descriptor.id() + " requires unavailable module " + required);
+                }
+            }
         }
         return List.copyOf(providers);
     }

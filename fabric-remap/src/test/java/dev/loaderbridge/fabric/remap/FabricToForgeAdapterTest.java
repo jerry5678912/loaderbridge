@@ -228,6 +228,42 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsLifecycleBridgeAndItsBaseDependency() throws Exception {
+        Path source = referencedMod("lifecycle_api", "fabric-lifecycle-events-v1", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
+            method.visitFieldInsn(Opcodes.GETSTATIC,
+                    "net/fabricmc/fabric/api/event/lifecycle/v1/ServerTickEvents",
+                    "START_SERVER_TICK", "Lnet/fabricmc/fabric/api/event/Event;");
+            method.visitInsn(Opcodes.POP);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(1, 1);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "lifecycle-api");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains(
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
+                        "fabric-lifecycle-events-bridge-2.6.0_0865547519-loaderbridge.1.jar");
+        assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
+                .contains("fabric-api-base-bridge", "fabric-lifecycle-events-bridge");
+        try (JarFile jar = new JarFile(result.artifacts().stream()
+                .filter(path -> path.getFileName().toString().startsWith("lifecycle_api-"))
+                .findFirst().orElseThrow().toFile())) {
+            String forgeMetadata = new String(jar.getInputStream(
+                    jar.getJarEntry("META-INF/mods.toml")).readAllBytes(), StandardCharsets.UTF_8);
+            assertThat(forgeMetadata).doesNotContain("fabric_lifecycle_events_v1");
+        }
+    }
+
+    @Test
     void rejectsOverlappingRuntimeBridgeModules() {
         RuntimeBridgeModuleProvider first = moduleProvider("first", "example.Shared", "example-api");
         RuntimeBridgeModuleProvider second = moduleProvider("second", "example.Shared", "other-api");
@@ -375,7 +411,8 @@ class FabricToForgeAdapterTest {
             @Override
             public RuntimeBridgeModule descriptor() {
                 return new RuntimeBridgeModule(id, "test:1", "1.0.0",
-                        BridgeCapability.FABRIC_API, Set.of(className), Map.of(modId, "1.0.0"));
+                        BridgeCapability.FABRIC_API, Set.of(className), Map.of(modId, "1.0.0"),
+                        Set.of());
             }
 
             @Override

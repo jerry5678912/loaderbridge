@@ -1,0 +1,30 @@
+schemaVersion: 1
+id: fabric_lifecycle_server
+description: Proves Fabric server and world tick callbacks through ready, save, reload, and shutdown.
+side: server
+mods:
+  - loaderbridge_fabric_lifecycle_fixture
+steps:
+  - id: start
+    action: start_instance
+    timeout: PT3M
+  - id: lifecycle_ready
+    action: wait_for_log
+    timeout: PT3M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_LIFECYCLE_TICKS_READY
+  - id: save
+    action: save
+    timeout: PT1M
+    parameters:
+      marker: All dimensions are saved
+  - id: reload
+    action: reload
+    timeout: PT3M
+    parameters:
+      marker: LOADERBRIDGE_FABRIC_LIFECYCLE_TICKS_READY
+  - id: shutdown
+    action: shutdown
+    timeout: PT1M
+    parameters:
+      marker: All dimensions are saved
