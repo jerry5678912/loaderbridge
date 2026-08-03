@@ -18,7 +18,7 @@ tasks.named('jar') {
     manifest {
         attributes('Automatic-Module-Name': 'dev.loaderbridge.fabric.api.object.builder',
                 'LICENSE': 'Apache-2.0',
-                'Implementation-Version': '15.2.1+40875a9319-loaderbridge.1',
+                'Implementation-Version': '15.2.1+40875a9319-loaderbridge.2',
                 'MixinConfigs': 'loaderbridge.fabric-object-builder.mixins.json')
     }
 }

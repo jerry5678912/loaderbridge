@@ -293,7 +293,7 @@ class FabricToForgeAdapterTest {
         assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
                 .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
-                .contains("fabric-object-builder-api-v1-bridge-15.2.1_40875a9319-loaderbridge.1.jar");
+                .contains("fabric-object-builder-api-v1-bridge-15.2.1_40875a9319-loaderbridge.2.jar");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
                 .contains("fabric-object-builder-api-v1-bridge");
     }

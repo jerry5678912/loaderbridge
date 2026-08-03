@@ -34,10 +34,16 @@ import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityT
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
+import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.SpawnPlacementTypes;
+import net.minecraft.world.entity.SpawnPlacements;
 import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
 import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.level.levelgen.Heightmap;
 
 /** Verifies Forge-to-Fabric server and world tick ordering at runtime. */
 public final class FabricLifecycleFixture implements ModInitializer {
@@ -60,6 +66,7 @@ public final class FabricLifecycleFixture implements ModInitializer {
     private static final AtomicInteger RESOURCE_RELOADS = new AtomicInteger();
     private static final int TEST_CHUNK = 725;
     private static EntityType<ArmorStand> attributeFixtureType;
+    private static EntityType<Zombie> mobBuilderFixtureType;
 
     @Override
     @SuppressWarnings("deprecation")
@@ -72,12 +79,29 @@ public final class FabricLifecycleFixture implements ModInitializer {
         Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
                 ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_block_entity"),
                 bridgedBlockEntityType);
-        attributeFixtureType = EntityType.Builder.<ArmorStand>of(ArmorStand::new, MobCategory.MISC)
-                .build("loaderbridge:fixture_attribute_entity");
+        attributeFixtureType = FabricEntityTypeBuilder.<ArmorStand>createLiving()
+                .spawnGroup(MobCategory.MISC)
+                .entityFactory(ArmorStand::new)
+                .dimensions(EntityDimensions.fixed(0.5F, 1.975F))
+                .trackRangeBlocks(80)
+                .trackedUpdateRate(3)
+                .forceTrackedVelocityUpdates(true)
+                .defaultAttributes(ArmorStand::createAttributes)
+                .build();
         Registry.register(BuiltInRegistries.ENTITY_TYPE,
                 ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_attribute_entity"),
                 attributeFixtureType);
-        FabricDefaultAttributeRegistry.register(attributeFixtureType, ArmorStand.createAttributes());
+        mobBuilderFixtureType = FabricEntityTypeBuilder.<Zombie>createMob()
+                .spawnGroup(MobCategory.MONSTER)
+                .entityFactory(Zombie::new)
+                .dimensions(EntityDimensions.fixed(0.6F, 1.95F))
+                .defaultAttributes(Zombie::createAttributes)
+                .spawnRestriction(SpawnPlacementTypes.ON_GROUND,
+                        Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Mob::checkMobSpawnRules)
+                .build();
+        Registry.register(BuiltInRegistries.ENTITY_TYPE,
+                ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_mob_builder_entity"),
+                mobBuilderFixtureType);
         if (!bridgedBlockEntityType.isValid(Blocks.STONE.defaultBlockState())
                 || !bridgedBlockEntityType.isValid(Blocks.DIRT.defaultBlockState())
                 || !bridgedBlockEntityType.isValid(Blocks.GRANITE.defaultBlockState())
@@ -86,6 +110,12 @@ public final class FabricLifecycleFixture implements ModInitializer {
             throw new IllegalStateException("LOADERBRIDGE_FABRIC_OBJECT_BUILDER_FAILED");
         }
         System.out.println("LOADERBRIDGE_FABRIC_OBJECT_BUILDER_READY");
+        if (SpawnPlacements.getPlacementType(mobBuilderFixtureType) != SpawnPlacementTypes.ON_GROUND
+                || SpawnPlacements.getHeightmapType(mobBuilderFixtureType)
+                        != Heightmap.Types.MOTION_BLOCKING_NO_LEAVES) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_ENTITY_BUILDER_FAILED");
+        }
+        System.out.println("LOADERBRIDGE_FABRIC_ENTITY_BUILDER_READY");
         PayloadTypeRegistry.playC2S().register(FabricNetworkingPayload.PONG_TYPE,
                 FabricNetworkingPayload.PONG_CODEC);
         PayloadTypeRegistry.playS2C().register(FabricNetworkingPayload.PING_TYPE,

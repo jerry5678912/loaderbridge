@@ -91,10 +91,12 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   Forge's payload channel without replacing Fabric payload objects in mod code.
 - A separately versioned Object Builder API v1 bridge matching
   `fabric-object-builder-api-v1:15.2.1+40875a9319`. It currently implements
-  `FabricBlockEntityTypeBuilder` and `FabricDefaultAttributeRegistry`, invokes
-  Fabric common entrypoints sequentially in resolved order inside Forge's
-  registration window, and preserves direct block-entity/entity registration
-  plus Forge-backed default attributes.
+  `FabricBlockEntityTypeBuilder`, `FabricDefaultAttributeRegistry`, and the
+  deprecated `FabricEntityTypeBuilder` base/living/mob contracts. Entity
+  dimensions, tracking, feature requirements, attributes, Fabric's unnamed
+  build behavior, and spawn restrictions are translated to Minecraft/Forge
+  behavior. Fabric common entrypoints run sequentially in resolved order inside
+  Forge's registration window.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -129,8 +131,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   In the graphical Forge 52.1.0 lab it additionally completes a real
   server-to-client `ping` and client-to-server `pong` in both the initial and
   reloaded integrated world, registers a Fabric-built block-entity type and a
-  custom living entity with default attributes, and completes clean saves with
-  no transformer exceptions.
+  custom living entity with default attributes, plus a custom mob with a native
+  spawn restriction, and completes clean saves with no transformer exceptions.
 - A controlled Fabric command fixture registers and executes a real Brigadier
   command before and after a Forge 52.1.16 dedicated-server restart, with world
   save and clean shutdown.

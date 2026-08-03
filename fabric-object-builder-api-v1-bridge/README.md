@@ -8,6 +8,9 @@ Implemented now:
 - `FabricBlockEntityTypeBuilder`, delegated to the official Minecraft builder.
 - `FabricDefaultAttributeRegistry`, transferred through Forge's native entity
   attribute creation event.
+- `FabricEntityTypeBuilder` base, living, and mob specializations, including
+  tracking options, attributes, Fabric-compatible unnamed builds, and native
+  spawn restrictions.
 
 Unimplemented public types remain unadvertised so preprocessing reports the stable
 missing-Fabric-API diagnostic instead of installing an incomplete bridge silently.

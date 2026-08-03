@@ -16,9 +16,11 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
-- Added the first Fabric Object Builder API v1 contracts for block-entity type
-  construction and living-entity default attributes, with content-driven
-  installation and real Forge client registration/save/reload coverage.
+- Expanded the Fabric Object Builder API v1 bridge with the deprecated entity
+  builder's base, living, and mob specializations, including Fabric-compatible
+  unnamed builds, attributes, tracking, and native spawn restrictions. A real
+  Forge client with FerriteCore verifies registration, world save, shutdown,
+  and reload.
 - Moved Fabric common entrypoints into a single resolved-order Forge common
   setup registration window, opening both Minecraft and Forge registry guards
   before direct Fabric registry writes and retaining final Forge freezing.
