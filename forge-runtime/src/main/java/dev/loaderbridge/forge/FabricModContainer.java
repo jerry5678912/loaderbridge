@@ -59,9 +59,12 @@ public final class FabricModContainer extends ModContainer {
         }
         net.fabricmc.api.EnvType environment = FMLEnvironment.dist.isClient()
                 ? net.fabricmc.api.EnvType.CLIENT : net.fabricmc.api.EnvType.SERVER;
-        BridgeFabricLoader.getInstance().configure(
+        BridgeFabricLoader.getInstance().configureHost(
                 environment, FMLPaths.GAMEDIR.get(), minecraftVersion,
-                !FMLEnvironment.production, null, new String[0]);
+                !FMLEnvironment.production);
+        if (environment == net.fabricmc.api.EnvType.SERVER) {
+            FabricServerGameInstanceRegistration.install(gameClassLoader);
+        }
         try {
             BridgeFabricLoader.getInstance().installMappings(
                     root.resolve("META-INF/loaderbridge/mappings.tiny"));

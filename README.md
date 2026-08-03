@@ -251,14 +251,17 @@ Fabric `preLaunch` and `main` ran on both sides, the correct Fabric `client` or
 `main` with its provider and definition intact, and `getRawGameVersion()`
 returned `1.21.1`. The same fixture resolved Fabric-compatible `minecraft`,
 `java`, and `fabricloader` containers with their expected metadata types,
-versions, and Minecraft-to-Java dependency. Both the dedicated server and
-graphical client completed world save, shutdown, and reload cycles. The server
-scenario repeated the complete cycle through two Forge launches and emitted a
-passing structured report. This is controlled-fixture evidence, not evidence
-that arbitrary Fabric mods are compatible. Catalog-wide measurement remains
-pending the frozen 1,000-project catalog. The real-mod probes above establish
-the M3/M4 reference gates on macOS; they do not establish Windows/Linux parity
-or a 95% result.
+versions, and Minecraft-to-Java dependency. It also observed each side's final
+Minecraft launch arguments. On the client, Fabric initialization received the
+real `Minecraft` instance; on the dedicated server, the instance was correctly
+null during initialization and became the constructed server at Forge's
+about-to-start boundary. Both sides completed world save, shutdown, and reload
+cycles. The server scenario repeated the complete cycle through two Forge
+launches and emitted a passing structured report. This is controlled-fixture
+evidence, not evidence that arbitrary Fabric mods are compatible. Catalog-wide
+measurement remains pending the frozen 1,000-project catalog. The real-mod
+probes above establish the M3/M4 reference gates on macOS; they do not establish
+Windows/Linux parity or a 95% result.
 
 ## Build and use
 

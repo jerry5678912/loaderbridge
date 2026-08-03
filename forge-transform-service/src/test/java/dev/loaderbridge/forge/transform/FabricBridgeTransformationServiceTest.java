@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -14,6 +16,22 @@ import org.junit.jupiter.api.io.TempDir;
 
 class FabricBridgeTransformationServiceTest {
     @TempDir Path temporaryDirectory;
+
+    @Test
+    @SuppressWarnings("rawtypes")
+    void alwaysCapturesTheFinalClientAndServerGameArguments() {
+        var service = new FabricBridgeTransformationService();
+
+        List<String> targets = new ArrayList<>();
+        for (var transformer : service.transformers()) {
+            for (Object target : transformer.targets()) {
+                targets.add(((cpw.mods.modlauncher.api.ITransformer.Target) target)
+                        .getClassName());
+            }
+        }
+        assertThat(targets)
+                .contains("net.minecraft.client.main.Main", "net.minecraft.server.Main");
+    }
 
     @Test
     void mergesVersionTwoAndTransitiveRulesFromDeterministicallyOrderedMods() throws Exception {

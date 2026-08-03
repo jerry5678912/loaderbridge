@@ -16,6 +16,12 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Captured the exact final client/server Minecraft argument arrays through a
+  structural ModLauncher transformer, preserving Fabric's sensitive-argument
+  sanitization contract without private reflection. Published the real client
+  instance before Fabric initialization and the real dedicated-server instance
+  after construction, matching Fabric's sided lifecycle timing in controlled
+  graphical and two-launch server scenarios.
 - Added Fabric-visible `minecraft`, `java`, and `fabricloader` runtime
   containers with target-compatible metadata types and versions, Minecraft's
   Java 21 dependency, stable registration, and one shared Fabric Loader

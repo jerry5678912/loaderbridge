@@ -37,6 +37,14 @@ metadata type remains `fabric`. LoaderBridge mirrors those observable
 containers and uses one `0.16.14` compatibility constant for both dependency
 planning and the runtime Loader container instead of allowing those phases to
 advertise different versions.
+Fabric's supplied Minecraft hooks pass the final game arguments through its
+game provider, give the live `Minecraft` object to client initialization, and
+deliberately pass null to dedicated-server initialization before publishing the
+server object after its constructor. LoaderBridge mirrors those observable
+timings: a structural transformer copies the argument array at the start of
+each Minecraft `main(String[])`, the Forge client initialization boundary
+publishes `Minecraft.getInstance()`, and `ServerAboutToStartEvent` publishes the
+constructed dedicated server. No private ModLauncher fields are accessed.
 
 ## Exact 1.21.1 authority
 

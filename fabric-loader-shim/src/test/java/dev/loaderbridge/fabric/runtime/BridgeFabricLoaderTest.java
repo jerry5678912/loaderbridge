@@ -156,6 +156,24 @@ class BridgeFabricLoaderTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
+    void hostReconfigurationPreservesCapturedArgumentsAndPublishedGameInstance() {
+        BridgeFabricLoader loader = BridgeFabricLoader.getInstance();
+        loader.resetForTests();
+        Object game = new Object();
+        BridgeFabricLoader.captureLaunchArguments(
+                new String[] {"--demo", "--accessToken", "secret"});
+        loader.publishGameInstance(game);
+
+        loader.configureHost(EnvType.CLIENT, Path.of("build/host-game"), "1.21.1", false);
+
+        assertThat(loader.getLaunchArguments(false))
+                .containsExactly("--demo", "--accessToken", "secret");
+        assertThat(loader.getLaunchArguments(true)).containsExactly("--demo");
+        assertThat(loader.getGameInstance()).isSameAs(game);
+    }
+
+    @Test
     void registersFabricCompatibleBuiltinAndLoaderContainersIdempotently() {
         BridgeFabricLoader loader = BridgeFabricLoader.getInstance();
         loader.resetForTests();

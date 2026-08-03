@@ -33,6 +33,11 @@ steps:
     timeout: PT30S
     parameters:
       contains: LOADERBRIDGE_FIXTURE_BUILTIN_MODS_READY
+  - id: fixture_launch_arguments
+    action: wait_for_log
+    timeout: PT30S
+    parameters:
+      contains: LOADERBRIDGE_FIXTURE_LAUNCH_ARGUMENTS_READY
   - id: fixture_prelaunch_entrypoint
     action: wait_for_log
     timeout: PT30S
@@ -48,6 +53,11 @@ steps:
     timeout: PT30S
     parameters:
       contains: LOADERBRIDGE_FIXTURE_SERVER_READY
+  - id: fixture_server_game_instance
+    action: wait_for_log
+    timeout: PT30S
+    parameters:
+      contains: LOADERBRIDGE_FIXTURE_SERVER_GAME_INSTANCE_READY
   - id: fixture_mixin
     action: wait_for_log
     timeout: PT30S

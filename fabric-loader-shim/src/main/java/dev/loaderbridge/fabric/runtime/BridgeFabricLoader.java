@@ -43,6 +43,10 @@ public final class BridgeFabricLoader implements FabricLoader {
         return INSTANCE;
     }
 
+    public static void captureLaunchArguments(String[] arguments) {
+        INSTANCE.launchArguments = arguments == null ? new String[0] : arguments.clone();
+    }
+
     public void configure(EnvType type, Path gameDir) {
         configure(type, gameDir, "unknown", false, null, new String[0]);
     }
@@ -54,13 +58,22 @@ public final class BridgeFabricLoader implements FabricLoader {
 
     public void configure(EnvType type, Path gameDir, String gameVersion, boolean development,
             Object game, String[] arguments) {
+        configureHost(type, gameDir, gameVersion, development);
+        gameInstance = game;
+        captureLaunchArguments(arguments);
+    }
+
+    public void configureHost(EnvType type, Path gameDir, String gameVersion,
+            boolean development) {
         environment = type;
         gameDirectory = gameDir.toAbsolutePath().normalize();
         rawGameVersion = java.util.Objects.requireNonNull(gameVersion, "gameVersion");
         developmentEnvironment = development;
-        gameInstance = game;
-        launchArguments = arguments.clone();
         registerRuntimeContainers(gameVersion);
+    }
+
+    public void publishGameInstance(Object game) {
+        gameInstance = java.util.Objects.requireNonNull(game, "game");
     }
 
     private void registerRuntimeContainers(String gameVersion) {

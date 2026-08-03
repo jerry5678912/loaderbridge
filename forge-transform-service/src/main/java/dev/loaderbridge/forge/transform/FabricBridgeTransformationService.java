@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -19,7 +20,7 @@ public final class FabricBridgeTransformationService implements ITransformationS
     private static final long MAXIMUM_ACCESS_WIDENER_BYTES = 4L << 20;
     private static final int MAXIMUM_MOD_JARS = 10_000;
     @SuppressWarnings("rawtypes")
-    private List<ITransformer> transformers = List.of();
+    private List<ITransformer> transformers = List.of(new LaunchArgumentsTransformer());
 
     @Override
     public String name() {
@@ -27,13 +28,18 @@ public final class FabricBridgeTransformationService implements ITransformationS
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
     public void initialize(IEnvironment environment) {
         Path gameDirectory = environment.getProperty(IEnvironment.Keys.GAMEDIR.get())
                 .orElseThrow(() -> new IllegalStateException("LB-AW-010: game directory is unavailable"));
         try {
             AccessWidener accessWidener = loadAccessWideners(gameDirectory.resolve("mods"));
-            transformers = accessWidener.getTargets().isEmpty()
-                    ? List.of() : List.of(new AccessWidenerTransformer(accessWidener));
+            List<ITransformer> configured = new ArrayList<>();
+            configured.add(new LaunchArgumentsTransformer());
+            if (!accessWidener.getTargets().isEmpty()) {
+                configured.add(new AccessWidenerTransformer(accessWidener));
+            }
+            transformers = List.copyOf(configured);
         } catch (IOException | RuntimeException exception) {
             throw new IllegalStateException("LB-AW-011: could not load access wideners", exception);
         }

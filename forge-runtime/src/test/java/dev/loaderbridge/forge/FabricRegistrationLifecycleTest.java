@@ -2,11 +2,42 @@ package dev.loaderbridge.forge;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.loaderbridge.fabric.runtime.BridgeFabricLoader;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class FabricRegistrationLifecycleTest {
+    @Test
+    @SuppressWarnings("deprecation")
+    void publishesTheClientGameInstanceBeforeFabricInitialization() {
+        BridgeFabricLoader loader = BridgeFabricLoader.getInstance();
+        loader.configure(net.fabricmc.api.EnvType.CLIENT, java.nio.file.Path.of("."),
+                "1.21.1", false, null, new String[0]);
+
+        FabricRegistrationLifecycle.publishClientGameInstance(getClass().getClassLoader());
+
+        assertThat(loader.getGameInstance()).isSameAs(net.minecraft.client.Minecraft.getInstance());
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void publishesTheDedicatedServerAfterItsConstructionEvent() {
+        BridgeFabricLoader loader = BridgeFabricLoader.getInstance();
+        loader.configure(net.fabricmc.api.EnvType.SERVER, java.nio.file.Path.of("."),
+                "1.21.1", false, null, new String[0]);
+        Object server = new Object();
+
+        FabricServerGameInstanceRegistration.publishServerInstance(new Object() {
+            @SuppressWarnings("unused")
+            public Object getServer() {
+                return server;
+            }
+        });
+
+        assertThat(loader.getGameInstance()).isSameAs(server);
+    }
+
     @Test
     void invokesAllPreLaunchCallbacksAtTheFirstConstructEvent() {
         var coordinator = new FabricRegistrationLifecycle.PreLaunchCoordinator();

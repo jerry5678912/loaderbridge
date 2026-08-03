@@ -5,6 +5,7 @@ import net.fabricmc.loader.api.FabricLoader;
 
 public final class MainFixture implements ModInitializer {
     @Override
+    @SuppressWarnings("deprecation")
     public void onInitialize() {
         var loader = FabricLoader.getInstance();
         var custom = loader.getEntrypointContainers(
@@ -26,9 +27,46 @@ public final class MainFixture implements ModInitializer {
         assertRuntimeContainer(loader, "java", "builtin",
                 System.getProperty("java.specification.version").replaceFirst("^1\\.", ""));
         assertRuntimeContainer(loader, "fabricloader", "fabric", "0.16.14");
+        String[] arguments = loader.getLaunchArguments(false);
+        boolean expectedArguments = loader.getEnvironmentType() == net.fabricmc.api.EnvType.CLIENT
+                ? java.util.List.of(arguments).contains("--gameDir")
+                : java.util.List.of(arguments).contains("nogui");
+        if (!expectedArguments) {
+            throw new IllegalStateException(
+                    "final Minecraft launch arguments were not captured: "
+                            + java.util.Arrays.toString(arguments));
+        }
+        if (loader.getEnvironmentType() == net.fabricmc.api.EnvType.CLIENT) {
+            Object game = loader.getGameInstance();
+            if (game == null || !game.getClass().getName().equals("net.minecraft.client.Minecraft")) {
+                throw new IllegalStateException("Fabric client game instance is unavailable");
+            }
+            System.out.println("LOADERBRIDGE_FIXTURE_CLIENT_GAME_INSTANCE_READY");
+        } else if (loader.getGameInstance() != null) {
+            throw new IllegalStateException(
+                    "Fabric server game instance must be null before server construction");
+        } else {
+            Thread.ofPlatform().daemon().name("loaderbridge-fixture-server-instance").start(() -> {
+                long deadline = System.nanoTime() + java.time.Duration.ofSeconds(30).toNanos();
+                while (System.nanoTime() < deadline) {
+                    if (loader.getGameInstance() != null) {
+                        System.out.println("LOADERBRIDGE_FIXTURE_SERVER_GAME_INSTANCE_READY");
+                        return;
+                    }
+                    try {
+                        Thread.sleep(25);
+                    } catch (InterruptedException exception) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
+                }
+                System.err.println("LOADERBRIDGE_FIXTURE_SERVER_GAME_INSTANCE_TIMEOUT");
+            });
+        }
         System.out.println("LOADERBRIDGE_FIXTURE_CUSTOM_ENTRYPOINT_READY");
         System.out.println("LOADERBRIDGE_FIXTURE_RAW_GAME_VERSION=1.21.1");
         System.out.println("LOADERBRIDGE_FIXTURE_BUILTIN_MODS_READY");
+        System.out.println("LOADERBRIDGE_FIXTURE_LAUNCH_ARGUMENTS_READY");
         System.out.println("LOADERBRIDGE_FIXTURE_MAIN_READY");
     }
 

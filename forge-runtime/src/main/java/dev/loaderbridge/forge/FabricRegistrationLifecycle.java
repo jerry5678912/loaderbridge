@@ -39,6 +39,9 @@ final class FabricRegistrationLifecycle {
         boolean initialization = MAIN_ENTRYPOINTS.invokeIfInitializationEvent(eventName,
                 () -> openForgeRegistryWindow(event),
                 () -> {
+                    if (CLIENT_RECIPE_BOOK_EVENT.equals(event.getClass().getName())) {
+                        publishClientGameInstance(event.getClass().getClassLoader());
+                    }
                     FabricClientModelRegistration.captureBeforeEntrypoints(event);
                     FabricClientRecipeBookRegistration.captureBeforeEntrypoints(event);
                 },
@@ -47,6 +50,26 @@ final class FabricRegistrationLifecycle {
                     FabricClientRecipeBookRegistration.captureAfterEntrypoints(event);
                 });
         return preLaunch || initialization;
+    }
+
+    static void publishClientGameInstance(ClassLoader gameClassLoader) {
+        try {
+            Class<?> minecraft = gameClassLoader.loadClass("net.minecraft.client.Minecraft");
+            Object instance = minecraft.getMethod("getInstance").invoke(null);
+            if (instance == null) {
+                throw new IllegalStateException(
+                        "LB-LOADER-GAME-001: Minecraft client instance is unavailable");
+            }
+            dev.loaderbridge.fabric.runtime.BridgeFabricLoader.getInstance()
+                    .publishGameInstance(instance);
+        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException exception) {
+            throw new IllegalStateException(
+                    "LB-LOADER-GAME-002: Minecraft client instance API is unavailable", exception);
+        } catch (InvocationTargetException exception) {
+            throw new IllegalStateException(
+                    "LB-LOADER-GAME-003: Minecraft rejected client instance lookup",
+                    exception.getCause());
+        }
     }
 
     static final class PreLaunchCoordinator {
