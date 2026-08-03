@@ -62,9 +62,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   utility constants. ServiceLoader selection is driven by bytecode references
   and declared dependencies, then recorded in the lock and report.
 - A separately versioned lifecycle bridge matching the complete server-tick,
-  common tag-loading, server lifecycle, world, entity, and block-entity surfaces of
+  common tag-loading, server lifecycle, world, entity, block-entity, and chunk surfaces of
   `fabric-lifecycle-events-v1:2.6.0+0865547519`. It maps Fabric server/world
-  tick, tag, server state, world/entity/block-entity load/unload, equipment,
+  tick, tag, server state, world/entity/block-entity/chunk load and unload,
+  chunk generation and full-status transitions, equipment,
   datapack sync, reload, and save callbacks through
   Forge events plus a version-pinned early Mixin, and automatically pulls in
   its API-base dependency.
@@ -94,7 +95,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   dedicated-server ready, world save, clean shutdown, and reload on Forge
   52.1.16.
 - A controlled Fabric lifecycle fixture passes automatic base+lifecycle module
-  installation, ordered ticks, world/entity/block-entity load/unload, equipment
+  installation, ordered ticks, world/entity/block-entity/chunk load/unload,
+  fresh chunk generation and full-status transitions, equipment
   changes, tag loading, server state,
   datapack reload, before/after save, dedicated-server ready, clean shutdown,
   and process reload on Forge 52.1.16.

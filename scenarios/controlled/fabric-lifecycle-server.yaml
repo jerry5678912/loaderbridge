@@ -78,6 +78,36 @@ steps:
     timeout: PT1M
     parameters:
       contains: LOADERBRIDGE_FABRIC_BLOCK_ENTITY_UNLOADED
+  - id: force_fresh_chunk
+    action: send_command
+    timeout: PT1M
+    parameters:
+      command: forceload add 10000 10000
+  - id: chunk_loaded
+    action: wait_for_log
+    timeout: PT3M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_CHUNK_LOADED
+  - id: chunk_generated
+    action: wait_for_log
+    timeout: PT3M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_CHUNK_GENERATED
+  - id: chunk_became_full
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_CHUNK_LEVEL:INACCESSIBLE->FULL
+  - id: release_fresh_chunk
+    action: send_command
+    timeout: PT1M
+    parameters:
+      command: forceload remove 10000 10000
+  - id: chunk_unloaded
+    action: wait_for_log
+    timeout: PT3M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_CHUNK_UNLOADED
   - id: datapack_reload
     action: send_command
     timeout: PT1M

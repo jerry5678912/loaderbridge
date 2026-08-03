@@ -10,6 +10,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerBlockEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import org.junit.jupiter.api.Test;
 
 class FabricLifecycleContractTest {
@@ -37,13 +38,15 @@ class FabricLifecycleContractTest {
 
         assertThat(descriptor.contractVersion()).isEqualTo("fabric-lifecycle-events-v1:2.6.0");
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("2.6.0+0865547519-loaderbridge.5");
+                .isEqualTo("2.6.0+0865547519-loaderbridge.6");
         assertThat(descriptor.providedModVersions())
                 .containsEntry("fabric-lifecycle-events-v1", "2.6.0+0865547519");
         assertThat(descriptor.requiredModules()).containsExactly("fabric-api-base-bridge");
         assertThat(descriptor.providedClasses()).contains(
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerBlockEntityEvents",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerBlockEntityEvents$Unload",
+                "net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents",
+                "net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents$LevelTypeChange",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents$TagsLoaded",
                 "net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents",
@@ -149,5 +152,24 @@ class FabricLifecycleContractTest {
         ServerBlockEntityEvents.BLOCK_ENTITY_UNLOAD.invoker().onUnload(null, null);
 
         assertThat(calls).containsExactly("load", "unload");
+    }
+
+    @Test
+    void serverChunkEventsPreserveEveryCallbackAndTransitionArgument() {
+        List<String> calls = new ArrayList<>();
+        ServerChunkEvents.CHUNK_LOAD.register((world, chunk) -> calls.add("load"));
+        ServerChunkEvents.CHUNK_GENERATE.register((world, chunk) -> calls.add("generate"));
+        ServerChunkEvents.CHUNK_LEVEL_TYPE_CHANGE.register((world, chunk, previous, current) ->
+                calls.add(previous + "->" + current));
+        ServerChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> calls.add("unload"));
+
+        ServerChunkEvents.CHUNK_LOAD.invoker().onChunkLoad(null, null);
+        ServerChunkEvents.CHUNK_GENERATE.invoker().onChunkGenerate(null, null);
+        ServerChunkEvents.CHUNK_LEVEL_TYPE_CHANGE.invoker().onChunkLevelTypeChange(
+                null, null, net.minecraft.server.level.FullChunkStatus.INACCESSIBLE,
+                net.minecraft.server.level.FullChunkStatus.FULL);
+        ServerChunkEvents.CHUNK_UNLOAD.invoker().onChunkUnload(null, null);
+
+        assertThat(calls).containsExactly("load", "generate", "INACCESSIBLE->FULL", "unload");
     }
 }

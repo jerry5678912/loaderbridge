@@ -8,6 +8,8 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerBlockEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
+import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -20,9 +22,35 @@ public final class FabricLifecycleFixture implements ModInitializer {
     private static final AtomicInteger WORLDS_LOADED = new AtomicInteger();
     private static final AtomicInteger WORLDS_UNLOADED = new AtomicInteger();
     private static final AtomicBoolean REPORTED = new AtomicBoolean();
+    private static final AtomicBoolean CHUNK_LOADED = new AtomicBoolean();
+    private static final AtomicBoolean CHUNK_GENERATED = new AtomicBoolean();
+    private static final AtomicBoolean CHUNK_FULL = new AtomicBoolean();
+    private static final AtomicBoolean CHUNK_UNLOADED = new AtomicBoolean();
+    private static final int TEST_CHUNK = 625;
 
     @Override
     public void onInitialize() {
+        ServerChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
+            if (isTestChunk(chunk) && CHUNK_LOADED.compareAndSet(false, true)) {
+                System.out.println("LOADERBRIDGE_FABRIC_CHUNK_LOADED");
+            }
+        });
+        ServerChunkEvents.CHUNK_GENERATE.register((world, chunk) -> {
+            if (isTestChunk(chunk) && CHUNK_GENERATED.compareAndSet(false, true)) {
+                System.out.println("LOADERBRIDGE_FABRIC_CHUNK_GENERATED");
+            }
+        });
+        ServerChunkEvents.CHUNK_LEVEL_TYPE_CHANGE.register((world, chunk, previous, current) -> {
+            if (isTestChunk(chunk) && previous == FullChunkStatus.INACCESSIBLE
+                    && current == FullChunkStatus.FULL && CHUNK_FULL.compareAndSet(false, true)) {
+                System.out.println("LOADERBRIDGE_FABRIC_CHUNK_LEVEL:INACCESSIBLE->FULL");
+            }
+        });
+        ServerChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {
+            if (isTestChunk(chunk) && CHUNK_UNLOADED.compareAndSet(false, true)) {
+                System.out.println("LOADERBRIDGE_FABRIC_CHUNK_UNLOADED");
+            }
+        });
         ServerBlockEntityEvents.BLOCK_ENTITY_LOAD.register((entity, world) -> {
             if (entity.getType() == BlockEntityType.CHEST) {
                 System.out.println("LOADERBRIDGE_FABRIC_BLOCK_ENTITY_LOADED");
@@ -99,5 +127,9 @@ public final class FabricLifecycleFixture implements ModInitializer {
                 System.out.println("LOADERBRIDGE_FABRIC_LIFECYCLE_TICKS_READY");
             }
         });
+    }
+
+    private static boolean isTestChunk(net.minecraft.world.level.chunk.LevelChunk chunk) {
+        return chunk.getPos().x == TEST_CHUNK && chunk.getPos().z == TEST_CHUNK;
     }
 }
