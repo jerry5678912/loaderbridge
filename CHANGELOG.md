@@ -16,6 +16,9 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Expanded Object Builder API v1 with Fabric-compatible block-set and wood-type
+  builders, including copy/build/register behavior and real-client native
+  record registration.
 - Added Fabric Item Group API v1 custom-tab builders and keyed/global entry
   callbacks with visibility and ordering behavior, automatic installation, and
   a real-client custom-tab rebuild on initial world join and reload.

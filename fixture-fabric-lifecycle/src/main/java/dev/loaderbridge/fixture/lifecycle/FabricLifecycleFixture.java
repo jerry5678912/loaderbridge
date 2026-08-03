@@ -35,6 +35,8 @@ import net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking;
 import net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
+import net.fabricmc.fabric.api.object.builder.v1.block.type.BlockSetTypeBuilder;
+import net.fabricmc.fabric.api.object.builder.v1.block.type.WoodTypeBuilder;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -94,6 +96,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.WeatheringCopper;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.properties.BlockSetType;
+import net.minecraft.world.level.block.state.properties.WoodType;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.network.chat.Component;
 
@@ -309,6 +313,21 @@ public final class FabricLifecycleFixture implements ModInitializer {
             throw new IllegalStateException("LOADERBRIDGE_FABRIC_CONTENT_REGISTRIES_FAILED");
         }
         System.out.println("LOADERBRIDGE_FABRIC_CONTENT_REGISTRIES_READY");
+        BlockSetType fixtureSet = new BlockSetTypeBuilder().openableByHand(false)
+                .buttonActivatedByArrows(false)
+                .register(ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_set"));
+        if (fixtureSet.canOpenByHand() || fixtureSet.canButtonBeActivatedByArrows()
+                || !fixtureSet.name().equals("loaderbridge:fixture_set")) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_BLOCK_SET_TYPE_FAILED");
+        }
+        System.out.println("LOADERBRIDGE_FABRIC_BLOCK_SET_TYPE_READY");
+        WoodType fixtureWood = new WoodTypeBuilder().register(
+                ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_wood"), fixtureSet);
+        if (fixtureWood.setType() != fixtureSet
+                || !fixtureWood.name().equals("loaderbridge:fixture_wood")) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_WOOD_TYPE_FAILED");
+        }
+        System.out.println("LOADERBRIDGE_FABRIC_WOOD_TYPE_READY");
         Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, ITEM_GROUP_KEY.location(),
                 FabricItemGroup.builder()
                         .title(Component.literal("LoaderBridge Fixture"))

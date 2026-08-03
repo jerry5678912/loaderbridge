@@ -108,7 +108,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   `FabricEntityType.Builder` interface injected into Minecraft's builder.
   Entity dimensions, tracking, velocity updates, feature requirements,
   attributes, Fabric's unnamed build behavior, and spawn restrictions are
-  translated to Minecraft/Forge behavior. Fabric common entrypoints run
+  translated to Minecraft/Forge behavior. `BlockSetTypeBuilder` and
+  `WoodTypeBuilder` also construct and register native behavior records with
+  Fabric-compatible copying and defaults. Fabric common entrypoints run
   sequentially in resolved order inside Forge's registration window.
 - A separately versioned API Lookup v1 bridge matching
   `fabric-api-lookup-api-v1:1.6.72+d30f6a7919`. It implements unique typed
