@@ -1,7 +1,7 @@
 # Oxidized 1.8.4 real-mod probe
 
-Status: core technology behavior passes; custom recipe-book category warnings
-remain.
+Status: block and inventory visuals plus core technology behavior pass; custom
+recipe-book category warnings remain.
 
 ## Pinned source
 
@@ -41,8 +41,10 @@ The repaired graphical run emitted:
 ```text
 LOADERBRIDGE_CLIENT_TITLE_READY
 LOADERBRIDGE_CLIENT_WORLD_READY
+LOADERBRIDGE_CONTENT_BLOCK_MODEL_READY=oxidized:copper_kiln
+LOADERBRIDGE_CONTENT_ITEM_MODEL_READY=oxidized:copper_kiln
 LOADERBRIDGE_CONTENT_REGISTRY_READY=oxidized:copper_kiln
-LOADERBRIDGE_CONTENT_BLOCK_PLACED=4, 130, -4
+LOADERBRIDGE_CONTENT_BLOCK_PLACED=-5, 112, -9
 LOADERBRIDGE_MACHINE_INPUT_READY=minecraft:clay_ball
 LOADERBRIDGE_MACHINE_OUTPUT_READY=minecraft:brick
 LOADERBRIDGE_CLIENT_WORLD_SAVED
@@ -64,6 +66,14 @@ The deep scenario placed the kiln, inserted `minecraft:clay_ball` and
 `minecraft:coal`, waited for the real block entity to produce
 `minecraft:brick`, saved, and verified that output in the reloaded machine.
 This proves the mod's core kiln behavior rather than startup alone.
+
+The client probe also compares the kiln's baked block and inventory models
+against Minecraft's missing model and compares their particle sprites against
+the missing texture. Both assertions pass. The repair snapshots the item
+registry around Fabric entrypoint execution, loads only newly registered item
+models through Forge's model events, aliases the normal `models/item/` resource
+to its logical inventory model ID, and updates the item renderer's early cache.
+It does not match Oxidized's filename or mod ID.
 
 The client still logs unknown `oxidized:kiln_smelting` recipe-book categories.
 That does not prevent server recipe processing, but recipe-book presentation is

@@ -16,6 +16,15 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added a generic late-Fabric-item model bridge based on Forge's
+  `RegisterAdditional`, `ModifyBakingResult`, and `BakingCompleted` model
+  events. It snapshots actual registry additions, loads `models/item/`
+  resources, aliases their logical inventory IDs, and updates the item
+  renderer cache without filename or mod-ID matching.
+- Added graphical assertions that reject Minecraft's missing block model,
+  missing inventory model, and missing textures. The official Fabric-only
+  Oxidized 1.8.4 probe now passes both model assertions, real kiln processing,
+  save, and reload.
 - Added a version-scoped, bytecode-shape repair for Fabric's no-argument
   `BlockEntityType.Builder.build()` ABI, supplying Forge 52.1.x's data-fixer
   argument. This moves the Fabric-only Oxidized 1.8.4 probe from construction

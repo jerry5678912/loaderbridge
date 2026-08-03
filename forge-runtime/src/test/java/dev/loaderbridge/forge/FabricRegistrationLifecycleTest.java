@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 class FabricRegistrationLifecycleTest {
     @Test
-    void invokesAllMainEntrypointsInRegistrationOrderDuringCommonSetup() {
+    void invokesResolvedEntrypointsTogetherDuringCommonSetup() {
         var coordinator = new FabricRegistrationLifecycle.Coordinator();
         List<String> order = new ArrayList<>();
         coordinator.registerMain(() -> order.add("main-one"));

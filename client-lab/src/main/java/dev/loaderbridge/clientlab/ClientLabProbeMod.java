@@ -12,6 +12,7 @@ import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen;
 import net.minecraft.client.gui.screens.BackupConfirmScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.PauseScreen;
+import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.level.GameRules;
@@ -127,6 +128,7 @@ public final class ClientLabProbeMod {
                 && minecraft.getSingleplayerServer().isReady()) {
             if (phase.compareAndSet(current, Phase.SAVING_FIRST)) {
                 System.out.println("LOADERBRIDGE_CLIENT_WORLD_READY");
+                if (!verifyContentModels(minecraft)) return;
                 var server = minecraft.getSingleplayerServer();
                 server.execute(() -> {
                     if (!prepareContentProbe(minecraft)) return;
@@ -206,6 +208,41 @@ public final class ClientLabProbeMod {
         System.out.println("LOADERBRIDGE_CONTENT_REGISTRY_READY=" + CONTENT_BLOCK_ID);
         System.out.println("LOADERBRIDGE_CONTENT_BLOCK_PLACED=" + contentPosition.toShortString());
         return prepareMachineProbe(minecraft, server);
+    }
+
+    private boolean verifyContentModels(Minecraft minecraft) {
+        if (CONTENT_BLOCK_ID.isBlank()) return true;
+        ResourceLocation id = ResourceLocation.tryParse(CONTENT_BLOCK_ID);
+        var block = id == null ? java.util.Optional.<Block>empty()
+                : BuiltInRegistries.BLOCK.getOptional(id);
+        if (block.isEmpty() || block.get().asItem() == net.minecraft.world.item.Items.AIR) {
+            fail(minecraft, "cannot inspect models for unregistered content: " + CONTENT_BLOCK_ID);
+            return false;
+        }
+        var missingModel = minecraft.getModelManager().getMissingModel();
+        var blockModel = minecraft.getBlockRenderer().getBlockModel(block.get().defaultBlockState());
+        var itemModel = minecraft.getItemRenderer().getModel(
+                new ItemStack(block.get()), minecraft.level, minecraft.player, 0);
+        if (blockModel == missingModel) {
+            fail(minecraft, "content block uses the missing model: " + CONTENT_BLOCK_ID);
+            return false;
+        }
+        if (itemModel == missingModel) {
+            fail(minecraft, "content item uses the missing inventory model: " + CONTENT_BLOCK_ID);
+            return false;
+        }
+        ResourceLocation missingTexture = MissingTextureAtlasSprite.getLocation();
+        if (blockModel.getParticleIcon().contents().name().equals(missingTexture)) {
+            fail(minecraft, "content block model uses the missing texture: " + CONTENT_BLOCK_ID);
+            return false;
+        }
+        if (itemModel.getParticleIcon().contents().name().equals(missingTexture)) {
+            fail(minecraft, "content inventory model uses the missing texture: " + CONTENT_BLOCK_ID);
+            return false;
+        }
+        System.out.println("LOADERBRIDGE_CONTENT_BLOCK_MODEL_READY=" + CONTENT_BLOCK_ID);
+        System.out.println("LOADERBRIDGE_CONTENT_ITEM_MODEL_READY=" + CONTENT_BLOCK_ID);
+        return true;
     }
 
     private boolean prepareMachineProbe(Minecraft minecraft,

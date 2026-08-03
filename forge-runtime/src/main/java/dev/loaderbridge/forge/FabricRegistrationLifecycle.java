@@ -25,7 +25,9 @@ final class FabricRegistrationLifecycle {
 
     static boolean invokeIfCommonSetupEvent(Event event) {
         return MAIN_ENTRYPOINTS.invokeIfCommonSetupEvent(event.getClass().getName(),
-                () -> openForgeRegistryWindow(event));
+                () -> openForgeRegistryWindow(event),
+                () -> FabricClientModelRegistration.captureBeforeEntrypoints(event),
+                () -> FabricClientModelRegistration.captureAfterEntrypoints(event));
     }
 
     static final class Coordinator {
@@ -51,13 +53,21 @@ final class FabricRegistrationLifecycle {
 
         synchronized boolean invokeIfCommonSetupEvent(String eventName,
                 Runnable openRegistryWindow) {
+            return invokeIfCommonSetupEvent(eventName, openRegistryWindow, () -> { }, () -> { });
+        }
+
+        synchronized boolean invokeIfCommonSetupEvent(String eventName,
+                Runnable openRegistryWindow, Runnable beforeEntrypoints,
+                Runnable afterEntrypoints) {
             if (!COMMON_SETUP_EVENT.equals(eventName) || invoked) {
                 return false;
             }
             invoked = true;
             openRegistryWindow.run();
+            beforeEntrypoints.run();
             pendingMain.forEach(Runnable::run);
             pendingClient.forEach(Runnable::run);
+            afterEntrypoints.run();
             pendingMain.clear();
             pendingClient.clear();
             return true;

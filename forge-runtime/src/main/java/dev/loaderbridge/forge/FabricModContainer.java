@@ -132,6 +132,9 @@ public final class FabricModContainer extends ModContainer {
         if (FabricRegistrationLifecycle.invokeIfCommonSetupEvent(event)) {
             return;
         }
+        if (FabricClientModelRegistration.registerIfModelEvent(event)) {
+            return;
+        }
         if (eventName.equals("net.minecraftforge.fml.event.lifecycle.FMLDedicatedServerSetupEvent")
                 && serverEntrypointsInvoked.compareAndSet(false, true)) {
             invokeEntrypoints(metadataPath, "server", DedicatedServerModInitializer.class,
