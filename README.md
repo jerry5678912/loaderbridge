@@ -128,6 +128,17 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   `SKIP_WHEN_EMPTY` filters registry payload and tag synchronization. Forge owns
   the connection registry handshake; the controlled client proves static and
   dynamic registration through save and reload.
+- A Convention Tags v2 bridge matching
+  `fabric-convention-tags-v2:2.12.0+c3656daa19`, with the standard `c:` biome
+  tag keys used by Fabric 1.21.1 mods.
+- An initial Biome API v1 bridge matching
+  `fabric-biome-api-v1:13.0.31+d527f9fd19`. Fabric biome selectors and placed
+  feature additions are translated into a codec-backed Forge biome modifier.
+- Initial Block Render Layer v1 and Rendering v1 bridges matching
+  `fabric-blockrenderlayer-v1:1.1.52+0af3f5a719` and
+  `fabric-rendering-v1:5.1.0+ab4c25a019`. They cover block render layers,
+  block/item colors, entity and block-entity renderers, entity model layers,
+  and late Fabric model-layer baking through Forge's existing Mixin runtime.
 - An initial Transfer API v1 bridge matching
   `fabric-transfer-api-v1:5.4.4+7b3d111d19`. Its transaction foundation
   implements thread-confined outer and nested scopes, LIFO close callbacks,
@@ -172,11 +183,12 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - Pinned real-mod probes for Lithium 0.14.3 and FerriteCore 7.0.3. Both pass
   client and dedicated-server ready, world save, clean shutdown, and reload on
   Forge 52.1.0 and 52.1.16 in the current macOS laboratory.
-- Blockus is the first pinned Fabric-only content probe. Its deep scenario
-  requires a real block and item to register, place, render, save, and persist
-  after reload. It is currently a measured failure while the missing content
-  registry, item-group, convention-tag, biome, and rendering APIs are built; it
-  is not counted as compatible merely because preprocessing found the JAR.
+- Blockus `2.9.18+1.21.1` is the first passing pinned Fabric-only content
+  probe. Official Modrinth metadata identifies version `BduJoveu` as Fabric and
+  returns no Forge 1.21.1 release for the same project. On Forge 52.1.0 the
+  deep graphical run registered `blockus:amethyst_bricks`, placed it, added its
+  item to the player inventory, saved, reloaded, verified both persisted, and
+  stopped cleanly. See [the pinned evidence](docs/real-mod-probes/blockus-2.9.18-1.21.1.md).
 - A controlled Fabric API base fixture passes automatic module installation,
   dedicated-server ready, world save, clean shutdown, and reload on Forge
   52.1.16.

@@ -16,6 +16,19 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added a same-repository-project catalog eligibility gate that queries the
+  target loader and excludes projects with a native non-alpha Forge 1.21.1
+  release; both Modrinth and CurseForge providers support this check. A frozen
+  score still requires cross-site provenance review before calling a project
+  Fabric-only.
+- Added initial Convention Tags v2, Biome API v1, Block Render Layer v1, and
+  Rendering v1 bridges with bytecode-driven automatic installation.
+- Added model-layer, renderer, and color-provider compatibility plus generic
+  registry-alias and Terraform boat-renderer bytecode repairs required by the
+  first Fabric-only content probe.
+- Passed the pinned Blockus `2.9.18+1.21.1` deep graphical probe on Forge
+  52.1.0: real block/item registration, placement, inventory insertion, save,
+  reload, persistence verification, and clean stop.
 - Added Fabric `TradeOfferHelper` villager and wandering-trader registration
   over Forge trade events; the graphical fixture observes its callback on both
   initial world creation and reload.
