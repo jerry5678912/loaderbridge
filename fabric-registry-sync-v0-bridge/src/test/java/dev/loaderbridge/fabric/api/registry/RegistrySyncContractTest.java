@@ -6,6 +6,7 @@ import com.mojang.serialization.Lifecycle;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
+import net.fabricmc.fabric.api.event.registry.DynamicRegistries;
 import net.fabricmc.fabric.api.event.registry.RegistryAttribute;
 import net.fabricmc.fabric.api.event.registry.RegistryAttributeHolder;
 import net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback;
@@ -21,9 +22,11 @@ class RegistrySyncContractTest {
     void providerAdvertisesOnlyImplementedPublicSurface() {
         var descriptor = new FabricRegistrySyncBridgeProvider().descriptor();
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("5.1.3+60c3209b19-loaderbridge.1");
+                .isEqualTo("5.1.3+60c3209b19-loaderbridge.2");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrderElementsOf(Set.of(
                 "net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder",
+                "net.fabricmc.fabric.api.event.registry.DynamicRegistries",
+                "net.fabricmc.fabric.api.event.registry.DynamicRegistries$SyncOption",
                 "net.fabricmc.fabric.api.event.registry.RegistryAttribute",
                 "net.fabricmc.fabric.api.event.registry.RegistryAttributeHolder",
                 "net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback",
@@ -65,6 +68,21 @@ class RegistrySyncContractTest {
         assertThat(FabricRegistryBuilder.createSimple(key)).isNotNull();
         assertThat(FabricRegistryBuilder.createDefaulted(key,
                 ResourceLocation.fromNamespaceAndPath("loaderbridge_test", "default"))).isNotNull();
+    }
+
+    @Test
+    void dynamicRegistryRegistrationSurfaceMatchesPinnedContract() throws Exception {
+        assertThat(DynamicRegistries.SyncOption.values())
+                .containsExactly(DynamicRegistries.SyncOption.SKIP_WHEN_EMPTY);
+        assertThat(DynamicRegistries.class.getMethod("register",
+                ResourceKey.class, com.mojang.serialization.Codec.class)).isNotNull();
+        assertThat(DynamicRegistries.class.getMethod("registerSynced",
+                ResourceKey.class, com.mojang.serialization.Codec.class,
+                DynamicRegistries.SyncOption[].class)).isNotNull();
+        assertThat(DynamicRegistries.class.getMethod("registerSynced",
+                ResourceKey.class, com.mojang.serialization.Codec.class,
+                com.mojang.serialization.Codec.class,
+                DynamicRegistries.SyncOption[].class)).isNotNull();
     }
 
     private static ResourceKey<Registry<String>> registryKey(String path) {

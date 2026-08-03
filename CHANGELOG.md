@@ -19,6 +19,9 @@ All notable user-facing changes will be recorded here.
 - Added the initial Fabric Registry Sync v0 bridge with custom static registry
   builders, MODDED/SYNCED attributes, registry-local entry/remap events,
   automatic module selection, and real Forge client save/reload coverage.
+- Added codec-backed Fabric dynamic registry registration, datapack loading,
+  Forge synchronization, automatic module selection, and initial/reloaded-world
+  behavioral coverage in the graphical client laboratory.
 
 - Added the complete public Fabric API Lookup v1 surface with unique typed
   lookup IDs; block, item, and entity direct/self/fallback providers; live

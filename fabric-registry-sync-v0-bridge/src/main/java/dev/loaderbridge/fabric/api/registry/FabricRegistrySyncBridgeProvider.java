@@ -15,10 +15,12 @@ public final class FabricRegistrySyncBridgeProvider implements RuntimeBridgeModu
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-registry-sync-v0-bridge",
             "fabric-registry-sync-v0:5.1.3",
-            "5.1.3+60c3209b19-loaderbridge.1",
+            "5.1.3+60c3209b19-loaderbridge.2",
             BridgeCapability.FABRIC_API,
             Set.of(
                     "net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder",
+                    "net.fabricmc.fabric.api.event.registry.DynamicRegistries",
+                    "net.fabricmc.fabric.api.event.registry.DynamicRegistries$SyncOption",
                     "net.fabricmc.fabric.api.event.registry.RegistryAttribute",
                     "net.fabricmc.fabric.api.event.registry.RegistryAttributeHolder",
                     "net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback",

@@ -44,6 +44,7 @@ import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
 import net.fabricmc.fabric.api.lookup.v1.item.ItemApiLookup;
 import net.fabricmc.fabric.api.lookup.v1.entity.EntityApiLookup;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
+import net.fabricmc.fabric.api.event.registry.DynamicRegistries;
 import net.fabricmc.fabric.api.event.registry.RegistryAttribute;
 import net.fabricmc.fabric.api.event.registry.RegistryAttributeHolder;
 import net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback;
@@ -104,10 +105,15 @@ public final class FabricLifecycleFixture implements ModInitializer {
                     "loaderbridge", "fixture_registry"));
     private static final MappedRegistry<String> CUSTOM_REGISTRY =
             new MappedRegistry<>(CUSTOM_REGISTRY_KEY, Lifecycle.stable(), false);
+    private static final ResourceKey<Registry<String>> DYNAMIC_REGISTRY_KEY =
+            ResourceKey.createRegistryKey(ResourceLocation.fromNamespaceAndPath(
+                    "loaderbridge", "fixture_dynamic"));
 
     @Override
     @SuppressWarnings("deprecation")
     public void onInitialize() {
+        DynamicRegistries.registerSynced(DYNAMIC_REGISTRY_KEY,
+                com.mojang.serialization.Codec.STRING);
         RegistryEntryAddedCallback.event(CUSTOM_REGISTRY).register((rawId, id, value) -> {
             if (rawId == 0
                     && id.equals(ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_value"))
@@ -331,6 +337,12 @@ public final class FabricLifecycleFixture implements ModInitializer {
         });
         ServerLifecycleEvents.SERVER_STARTING.register(server -> SERVER_STATE.compareAndSet(0, 1));
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            String dynamicValue = server.registryAccess().registryOrThrow(DYNAMIC_REGISTRY_KEY)
+                    .get(ResourceLocation.fromNamespaceAndPath("loaderbridge", "value"));
+            if (!"dynamic-value".equals(dynamicValue)) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_DYNAMIC_REGISTRY_FAILED");
+            }
+            System.out.println("LOADERBRIDGE_FABRIC_DYNAMIC_REGISTRY_READY");
             if (!DefaultAttributes.hasSupplier(attributeFixtureType)) {
                 throw new IllegalStateException("LOADERBRIDGE_FABRIC_DEFAULT_ATTRIBUTES_FAILED");
             }

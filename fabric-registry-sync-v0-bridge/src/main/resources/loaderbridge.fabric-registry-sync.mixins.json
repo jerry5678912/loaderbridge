@@ -3,6 +3,11 @@
   "minVersion": "0.8.7",
   "package": "dev.loaderbridge.fabric.api.registry.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": ["MappedRegistryMixin"],
+  "mixins": [
+    "MappedRegistryMixin",
+    "RegistryDataLoaderMutableMixin",
+    "RegistrySynchronizationMutableMixin",
+    "WorldLoaderMixin"
+  ],
   "injectors": {"defaultRequire": 1}
 }
