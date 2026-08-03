@@ -16,6 +16,12 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added the first Fabric Object Builder API v1 contracts for block-entity type
+  construction and living-entity default attributes, with content-driven
+  installation and real Forge client registration/save/reload coverage.
+- Moved Fabric common entrypoints into a single resolved-order Forge common
+  setup registration window, opening both Minecraft and Forge registry guards
+  before direct Fabric registry writes and retaining final Forge freezing.
 - Completed the Fabric lifecycle-events-v1 1.21.1 public surface with exact
   server chunk load, generation, full-status transition, and unload hooks plus
   a real Forge 52.1.16 force-load/save/restart behavioral scenario.

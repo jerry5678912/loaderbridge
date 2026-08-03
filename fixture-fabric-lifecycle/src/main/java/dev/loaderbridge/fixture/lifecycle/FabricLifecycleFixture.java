@@ -30,6 +30,14 @@ import net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents
 import net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking;
 import net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
+import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
+import net.minecraft.world.entity.decoration.ArmorStand;
 
 /** Verifies Forge-to-Fabric server and world tick ordering at runtime. */
 public final class FabricLifecycleFixture implements ModInitializer {
@@ -51,9 +59,33 @@ public final class FabricLifecycleFixture implements ModInitializer {
     private static final AtomicBoolean TRACKING_ENTITY_SPAWNED = new AtomicBoolean();
     private static final AtomicInteger RESOURCE_RELOADS = new AtomicInteger();
     private static final int TEST_CHUNK = 725;
+    private static EntityType<ArmorStand> attributeFixtureType;
 
     @Override
+    @SuppressWarnings("deprecation")
     public void onInitialize() {
+        var bridgedBlockEntityType = FabricBlockEntityTypeBuilder
+                .create((position, state) -> null, Blocks.STONE)
+                .addBlock(Blocks.DIRT)
+                .addBlocks(Blocks.GRANITE, Blocks.DIORITE)
+                .build();
+        Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
+                ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_block_entity"),
+                bridgedBlockEntityType);
+        attributeFixtureType = EntityType.Builder.<ArmorStand>of(ArmorStand::new, MobCategory.MISC)
+                .build("loaderbridge:fixture_attribute_entity");
+        Registry.register(BuiltInRegistries.ENTITY_TYPE,
+                ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_attribute_entity"),
+                attributeFixtureType);
+        FabricDefaultAttributeRegistry.register(attributeFixtureType, ArmorStand.createAttributes());
+        if (!bridgedBlockEntityType.isValid(Blocks.STONE.defaultBlockState())
+                || !bridgedBlockEntityType.isValid(Blocks.DIRT.defaultBlockState())
+                || !bridgedBlockEntityType.isValid(Blocks.GRANITE.defaultBlockState())
+                || !bridgedBlockEntityType.isValid(Blocks.DIORITE.defaultBlockState())
+                || bridgedBlockEntityType.isValid(Blocks.OAK_PLANKS.defaultBlockState())) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_OBJECT_BUILDER_FAILED");
+        }
+        System.out.println("LOADERBRIDGE_FABRIC_OBJECT_BUILDER_READY");
         PayloadTypeRegistry.playC2S().register(FabricNetworkingPayload.PONG_TYPE,
                 FabricNetworkingPayload.PONG_CODEC);
         PayloadTypeRegistry.playS2C().register(FabricNetworkingPayload.PING_TYPE,
@@ -195,6 +227,10 @@ public final class FabricLifecycleFixture implements ModInitializer {
         });
         ServerLifecycleEvents.SERVER_STARTING.register(server -> SERVER_STATE.compareAndSet(0, 1));
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            if (!DefaultAttributes.hasSupplier(attributeFixtureType)) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_DEFAULT_ATTRIBUTES_FAILED");
+            }
+            System.out.println("LOADERBRIDGE_FABRIC_DEFAULT_ATTRIBUTES_READY");
             if (SERVER_STATE.compareAndSet(1, 2)) {
                 System.out.println("LOADERBRIDGE_FABRIC_SERVER_LIFECYCLE_READY");
             }

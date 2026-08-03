@@ -35,6 +35,9 @@ dependencies {
     compileOnly(project(':fabric-game-rule-api-v1-bridge')) {
         transitive = false
     }
+    compileOnly(project(':fabric-object-builder-api-v1-bridge')) {
+        transitive = false
+    }
     compileOnly(project(':fabric-networking-api-v1-bridge')) {
         transitive = false
     }

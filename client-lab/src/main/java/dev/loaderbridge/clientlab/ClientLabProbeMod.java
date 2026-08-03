@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameType;
@@ -54,12 +55,18 @@ public final class ClientLabProbeMod {
             return;
         }
 
+        Phase current = phase.get();
+        if (screen instanceof PauseScreen
+                && (current == Phase.OPENING_FIRST || current == Phase.OPENING_RELOAD)) {
+            minecraft.setScreen(null);
+            return;
+        }
+
         if (screen instanceof LoadingErrorScreen && reportedLoadWarnings.compareAndSet(false, true)) {
             ModLoader.get().getWarnings().forEach(warning ->
                     System.out.println("LOADERBRIDGE_CLIENT_LOAD_WARNING=" + warning.formatToString()));
         }
 
-        Phase current = phase.get();
         if (current == Phase.WAITING_FOR_TITLE && screen instanceof TitleScreen) {
             System.out.println("LOADERBRIDGE_CLIENT_TITLE_READY");
             if (phase.compareAndSet(current, Phase.OPENING_FIRST)) {

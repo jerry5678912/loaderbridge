@@ -71,8 +71,9 @@ public final class FabricModContainer extends ModContainer {
         BridgeFabricLoader.getInstance().registerMod(bridgeModContainer);
         invokeEntrypoints(metadataPath, "preLaunch", PreLaunchEntrypoint.class,
                 entrypoint -> entrypoint.onPreLaunch());
-        invokeEntrypoints(metadataPath, "main", ModInitializer.class,
-                initializer -> initializer.onInitialize());
+        FabricRegistrationLifecycle.registerMainEntrypoints(
+                () -> invokeEntrypoints(metadataPath, "main", ModInitializer.class,
+                        initializer -> initializer.onInitialize()));
     }
 
     private <T> void invokeEntrypoints(Path metadataPath, String key, Class<T> contract,
@@ -117,6 +118,9 @@ public final class FabricModContainer extends ModContainer {
         }
         String eventName = event.getClass().getName();
         Path metadataPath = modInfo.getOwningFile().getFile().findResource("fabric.mod.json");
+        if (FabricRegistrationLifecycle.invokeIfCommonSetupEvent(event)) {
+            return;
+        }
         if (eventName.equals("net.minecraftforge.fml.event.lifecycle.FMLDedicatedServerSetupEvent")
                 && serverEntrypointsInvoked.compareAndSet(false, true)) {
             invokeEntrypoints(metadataPath, "server", DedicatedServerModInitializer.class,

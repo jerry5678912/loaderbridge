@@ -24,6 +24,9 @@ dependencies {
     runtimeOnly(project(":fabric-game-rule-api-v1-bridge")) {
         isTransitive = false
     }
+    runtimeOnly(project(":fabric-object-builder-api-v1-bridge")) {
+        isTransitive = false
+    }
     runtimeOnly(project(":fabric-networking-api-v1-bridge")) {
         isTransitive = false
     }
