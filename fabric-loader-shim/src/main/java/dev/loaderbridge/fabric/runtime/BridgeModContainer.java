@@ -39,6 +39,20 @@ public record BridgeModContainer(
         return create(id, version, name, aliases, "fabric", root);
     }
 
+    public static BridgeModContainer createLoader(String version, Path root) {
+        ModMetadata metadata = new SimpleMetadata(
+                "fabric", "fabricloader", List.of(), parseVersion(version), "Fabric Loader",
+                ModEnvironment.UNIVERSAL, List.of(), "The base mod loader.",
+                List.of(new FabricPerson("FabricMC", Map.of())), List.of(),
+                Map.of(
+                        "homepage", "https://fabricmc.net",
+                        "irc", "ircs://irc.esper.net:6697/fabric",
+                        "issues", "https://github.com/FabricMC/fabric-loader/issues",
+                        "sources", "https://github.com/FabricMC/fabric-loader"),
+                List.of("Apache-2.0"), Map.of(0, "assets/fabricloader/icon.png"), Map.of());
+        return new BridgeModContainer(metadata, List.of(root), null, null);
+    }
+
     public static BridgeModContainer createBuiltin(String id, String version, String name,
             Path root) {
         return createBuiltin(id, version, name, root, Map.of());

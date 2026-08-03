@@ -4,6 +4,8 @@ Copyright 2026 LoaderBridge contributors
 This product independently implements portions of the Fabric Loader public API
 contract. Fabric Loader is Copyright FabricMC and contributors and is licensed
 under the Apache License, Version 2.0.
+The Fabric Loader icon under `assets/fabricloader/icon.png` is included from
+Fabric Loader under that license.
 
 This product links to ForgeSPI, Forge/FML, ModLauncher, TinyRemapper, Mapping IO,
 ASM, Gson, and picocli. Those components remain under their respective licenses.

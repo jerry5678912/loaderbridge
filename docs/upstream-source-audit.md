@@ -58,6 +58,13 @@ into named layers, so a direct lookup from the bridge module cannot always read
 the target mod module. LoaderBridge preserves the typed method-handle behavior
 with public reflection-backed handles, avoiding private module mutation while
 supporting the complete standard member set.
+Fabric Loader is itself discovered as a normal Fabric mod, so its public
+container exposes the metadata and icon declared by its bundled
+`fabric.mod.json`. LoaderBridge mirrors those published fields and includes the
+Apache-licensed icon with explicit `NOTICE` attribution. Its root is derived
+from the marker resource path rather than the protection-domain JAR path, which
+keeps `findPath` valid in both ordinary directory tests and Forge's `union:`
+virtual filesystem.
 
 ## Exact 1.21.1 authority
 

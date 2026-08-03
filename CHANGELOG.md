@@ -16,6 +16,9 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Mirrored Fabric Loader's published self-container description, author,
+  contact, license, and icon metadata, and exposed the shim's real resource root
+  so `ModContainer.findPath` works on Forge `union:` filesystems.
 - Added Fabric default-language-adapter constructor entrypoints (`Class::<init>`)
   and reflection-backed typed member handles that remain usable across Forge's
   named game/plugin module layers.

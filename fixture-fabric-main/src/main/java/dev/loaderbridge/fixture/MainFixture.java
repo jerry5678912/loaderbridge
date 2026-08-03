@@ -34,6 +34,12 @@ public final class MainFixture implements ModInitializer {
         assertRuntimeContainer(loader, "java", "builtin",
                 System.getProperty("java.specification.version").replaceFirst("^1\\.", ""));
         assertRuntimeContainer(loader, "fabricloader", "fabric", "0.16.14");
+        var loaderContainer = loader.getModContainer("fabricloader").orElseThrow();
+        if (!loaderContainer.getMetadata().getLicense().contains("Apache-2.0")
+                || loaderContainer.findPath("assets/fabricloader/icon.png").isEmpty()) {
+            throw new IllegalStateException("Fabric Loader self metadata or resources are unavailable");
+        }
+        System.out.println("LOADERBRIDGE_FIXTURE_LOADER_METADATA_READY");
         var minecraftRoots = loader.getModContainer("minecraft").orElseThrow().getRootPaths();
         if (minecraftRoots.isEmpty()
                 || minecraftRoots.stream().anyMatch(loader.getGameDir()::equals)) {

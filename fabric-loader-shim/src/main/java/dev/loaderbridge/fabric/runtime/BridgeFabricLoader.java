@@ -22,6 +22,7 @@ import net.fabricmc.loader.api.ObjectShare;
 import net.fabricmc.loader.api.entrypoint.EntrypointContainer;
 
 public final class BridgeFabricLoader implements FabricLoader {
+    private static final String LOADER_ICON = "assets/fabricloader/icon.png";
     private static final BridgeFabricLoader INSTANCE = new BridgeFabricLoader();
     private static final Set<String> SENSITIVE_ARGUMENTS = Set.of(
             "accesstoken", "clientid", "profileproperties", "proxypass", "proxyuser",
@@ -92,9 +93,8 @@ public final class BridgeFabricLoader implements FabricLoader {
         Path javaRoot = Path.of(System.getProperty("java.home")).toAbsolutePath().normalize();
         Path loaderRoot = implementationRoot();
         synchronized (mods) {
-            mods.put("fabricloader", BridgeModContainer.create(
-                    "fabricloader", FabricLoaderCompatibility.VERSION, "Fabric Loader",
-                    List.of(), loaderRoot));
+            mods.put("fabricloader", BridgeModContainer.createLoader(
+                    FabricLoaderCompatibility.VERSION, loaderRoot));
             mods.put("java", BridgeModContainer.createBuiltin(
                     "java", javaVersion, System.getProperty("java.vm.name"), javaRoot));
             mods.put("minecraft", BridgeModContainer.createBuiltin(
@@ -106,6 +106,18 @@ public final class BridgeFabricLoader implements FabricLoader {
 
     private Path implementationRoot() {
         try {
+            ClassLoader loader = BridgeFabricLoader.class.getClassLoader();
+            java.net.URL marker = loader == null
+                    ? ClassLoader.getSystemResource(LOADER_ICON) : loader.getResource(LOADER_ICON);
+            if (marker != null) {
+                Path root = Path.of(marker.toURI());
+                for (int index = 0; index < Path.of(LOADER_ICON).getNameCount(); index++) {
+                    root = root.getParent();
+                }
+                if (root != null) {
+                    return root.toAbsolutePath().normalize();
+                }
+            }
             var source = BridgeFabricLoader.class.getProtectionDomain().getCodeSource();
             if (source != null) {
                 return Path.of(source.getLocation().toURI()).toAbsolutePath().normalize();

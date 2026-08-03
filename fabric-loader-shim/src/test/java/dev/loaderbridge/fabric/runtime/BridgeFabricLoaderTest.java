@@ -210,6 +210,18 @@ class BridgeFabricLoaderTest {
                     assertThat(container.getMetadata().getType()).isEqualTo("fabric");
                     assertThat(container.getMetadata().getVersion().getFriendlyString())
                             .isEqualTo("0.16.14");
+                    assertThat(container.getMetadata().getDescription())
+                            .isEqualTo("The base mod loader.");
+                    assertThat(container.getMetadata().getAuthors())
+                            .extracting(net.fabricmc.loader.api.metadata.Person::getName)
+                            .containsExactly("FabricMC");
+                    assertThat(container.getMetadata().getContact().get("homepage"))
+                            .contains("https://fabricmc.net");
+                    assertThat(container.getMetadata().getLicense())
+                            .containsExactly("Apache-2.0");
+                    assertThat(container.getMetadata().getIconPath(32))
+                            .contains("assets/fabricloader/icon.png");
+                    assertThat(container.findPath("assets/fabricloader/icon.png")).isPresent();
                 });
     }
 
