@@ -6,5 +6,7 @@ entry-added and remap event contracts. It also implements data-driven dynamic
 registry registration, codec loading, and synchronized client transfer. Forge
 remains responsible for the actual server/client registry handshake.
 
-Dynamic registry setup callbacks and `SKIP_WHEN_EMPTY` packet filtering remain
-gated until their mutation and empty-registry connection scenarios pass.
+Dynamic registry setup callbacks receive a mutable-registry view before datapack
+entries load, and `SKIP_WHEN_EMPTY` suppresses empty registry serialization and
+tag synchronization. Both behaviors are exercised before initial world entry
+and again during world reload in the graphical Forge laboratory.

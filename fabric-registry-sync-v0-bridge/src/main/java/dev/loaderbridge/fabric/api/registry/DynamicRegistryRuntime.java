@@ -17,7 +17,6 @@ public final class DynamicRegistryRuntime {
     private static final List<RegistryDataLoader.RegistryData<?>> DESCRIPTORS =
             new ArrayList<>(RegistryDataLoader.WORLDGEN_REGISTRIES);
     private static final Set<ResourceKey<? extends Registry<?>>> KEYS = new HashSet<>();
-    private static final Set<ResourceKey<? extends Registry<?>>> SKIP_WHEN_EMPTY = new HashSet<>();
 
     static {
         RegistryDataLoader.WORLDGEN_REGISTRIES.forEach(data -> KEYS.add(data.key()));
@@ -50,13 +49,13 @@ public final class DynamicRegistryRuntime {
         RegistrySynchronization.NETWORKABLE_REGISTRIES.add(castKey(key));
         for (DynamicRegistries.SyncOption option : options) {
             if (option == DynamicRegistries.SyncOption.SKIP_WHEN_EMPTY) {
-                SKIP_WHEN_EMPTY.add(castKey(key));
+                DynamicRegistrySyncOptions.markSkipWhenEmpty(castKey(key));
             }
         }
     }
 
     public static synchronized boolean skipWhenEmpty(ResourceKey<? extends Registry<?>> key) {
-        return SKIP_WHEN_EMPTY.contains(key);
+        return DynamicRegistrySyncOptions.skipWhenEmpty(key);
     }
 
     @SuppressWarnings("unchecked")

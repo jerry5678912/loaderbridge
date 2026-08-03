@@ -45,6 +45,7 @@ import net.fabricmc.fabric.api.lookup.v1.item.ItemApiLookup;
 import net.fabricmc.fabric.api.lookup.v1.entity.EntityApiLookup;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.fabricmc.fabric.api.event.registry.DynamicRegistries;
+import net.fabricmc.fabric.api.event.registry.DynamicRegistrySetupCallback;
 import net.fabricmc.fabric.api.event.registry.RegistryAttribute;
 import net.fabricmc.fabric.api.event.registry.RegistryAttributeHolder;
 import net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback;
@@ -82,6 +83,8 @@ public final class FabricLifecycleFixture implements ModInitializer {
     private static final AtomicBoolean TRACKING_ENTITY_SPAWNED = new AtomicBoolean();
     private static final AtomicInteger RESOURCE_RELOADS = new AtomicInteger();
     private static final AtomicBoolean CUSTOM_REGISTRY_CALLBACK = new AtomicBoolean();
+    private static final AtomicBoolean DYNAMIC_REGISTRY_SETUP = new AtomicBoolean();
+    private static final AtomicBoolean DYNAMIC_REGISTRY_CALLBACK = new AtomicBoolean();
     private static final int TEST_CHUNK = 725;
     private static EntityType<ArmorStand> attributeFixtureType;
     private static EntityType<Zombie> mobBuilderFixtureType;
@@ -108,12 +111,32 @@ public final class FabricLifecycleFixture implements ModInitializer {
     private static final ResourceKey<Registry<String>> DYNAMIC_REGISTRY_KEY =
             ResourceKey.createRegistryKey(ResourceLocation.fromNamespaceAndPath(
                     "loaderbridge", "fixture_dynamic"));
+    private static final ResourceKey<Registry<String>> EMPTY_DYNAMIC_REGISTRY_KEY =
+            ResourceKey.createRegistryKey(ResourceLocation.fromNamespaceAndPath(
+                    "loaderbridge", "fixture_empty_dynamic"));
 
     @Override
     @SuppressWarnings("deprecation")
     public void onInitialize() {
+        DynamicRegistrySetupCallback.EVENT.register(view -> {
+            if (view.getOptional(DYNAMIC_REGISTRY_KEY).isEmpty()) return;
+            if (view.asDynamicRegistryManager().registry(DYNAMIC_REGISTRY_KEY).isEmpty()
+                    || view.stream().noneMatch(registry -> registry.key() == DYNAMIC_REGISTRY_KEY)) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_DYNAMIC_VIEW_FAILED");
+            }
+            DYNAMIC_REGISTRY_SETUP.set(true);
+            view.registerEntryAdded(DYNAMIC_REGISTRY_KEY, (rawId, id, value) -> {
+                if (id.equals(ResourceLocation.fromNamespaceAndPath("loaderbridge", "value"))
+                        && value.equals("dynamic-value")) {
+                    DYNAMIC_REGISTRY_CALLBACK.set(true);
+                }
+            });
+        });
         DynamicRegistries.registerSynced(DYNAMIC_REGISTRY_KEY,
                 com.mojang.serialization.Codec.STRING);
+        DynamicRegistries.registerSynced(EMPTY_DYNAMIC_REGISTRY_KEY,
+                com.mojang.serialization.Codec.STRING,
+                DynamicRegistries.SyncOption.SKIP_WHEN_EMPTY);
         RegistryEntryAddedCallback.event(CUSTOM_REGISTRY).register((rawId, id, value) -> {
             if (rawId == 0
                     && id.equals(ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_value"))
@@ -339,9 +362,13 @@ public final class FabricLifecycleFixture implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             String dynamicValue = server.registryAccess().registryOrThrow(DYNAMIC_REGISTRY_KEY)
                     .get(ResourceLocation.fromNamespaceAndPath("loaderbridge", "value"));
-            if (!"dynamic-value".equals(dynamicValue)) {
+            if (!"dynamic-value".equals(dynamicValue)
+                    || !DYNAMIC_REGISTRY_SETUP.get()
+                    || !DYNAMIC_REGISTRY_CALLBACK.get()
+                    || server.registryAccess().registryOrThrow(EMPTY_DYNAMIC_REGISTRY_KEY).size() != 0) {
                 throw new IllegalStateException("LOADERBRIDGE_FABRIC_DYNAMIC_REGISTRY_FAILED");
             }
+            System.out.println("LOADERBRIDGE_FABRIC_DYNAMIC_REGISTRY_SETUP_READY");
             System.out.println("LOADERBRIDGE_FABRIC_DYNAMIC_REGISTRY_READY");
             if (!DefaultAttributes.hasSupplier(attributeFixtureType)) {
                 throw new IllegalStateException("LOADERBRIDGE_FABRIC_DEFAULT_ATTRIBUTES_FAILED");

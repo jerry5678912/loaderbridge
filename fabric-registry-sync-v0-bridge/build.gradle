@@ -19,7 +19,7 @@ tasks.named('jar') {
     manifest {
         attributes('Automatic-Module-Name': 'dev.loaderbridge.fabric.registry.sync',
                 'LICENSE': 'Apache-2.0',
-                'Implementation-Version': '5.1.3+60c3209b19-loaderbridge.2',
+                'Implementation-Version': '5.1.3+60c3209b19-loaderbridge.4',
                 'MixinConfigs': 'loaderbridge.fabric-registry-sync.mixins.json')
     }
 }

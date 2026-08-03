@@ -7,6 +7,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.fabricmc.fabric.api.event.registry.DynamicRegistries;
+import net.fabricmc.fabric.api.event.registry.DynamicRegistrySetupCallback;
+import net.fabricmc.fabric.api.event.registry.DynamicRegistryView;
 import net.fabricmc.fabric.api.event.registry.RegistryAttribute;
 import net.fabricmc.fabric.api.event.registry.RegistryAttributeHolder;
 import net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback;
@@ -22,11 +24,13 @@ class RegistrySyncContractTest {
     void providerAdvertisesOnlyImplementedPublicSurface() {
         var descriptor = new FabricRegistrySyncBridgeProvider().descriptor();
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("5.1.3+60c3209b19-loaderbridge.2");
+                .isEqualTo("5.1.3+60c3209b19-loaderbridge.4");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrderElementsOf(Set.of(
                 "net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder",
                 "net.fabricmc.fabric.api.event.registry.DynamicRegistries",
                 "net.fabricmc.fabric.api.event.registry.DynamicRegistries$SyncOption",
+                "net.fabricmc.fabric.api.event.registry.DynamicRegistrySetupCallback",
+                "net.fabricmc.fabric.api.event.registry.DynamicRegistryView",
                 "net.fabricmc.fabric.api.event.registry.RegistryAttribute",
                 "net.fabricmc.fabric.api.event.registry.RegistryAttributeHolder",
                 "net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback",
@@ -83,6 +87,36 @@ class RegistrySyncContractTest {
                 ResourceKey.class, com.mojang.serialization.Codec.class,
                 com.mojang.serialization.Codec.class,
                 DynamicRegistries.SyncOption[].class)).isNotNull();
+    }
+
+    @Test
+    void dynamicSetupSurfaceMatchesPinnedContract() throws Exception {
+        assertThat(DynamicRegistrySetupCallback.EVENT).isNotNull();
+        assertThat(DynamicRegistrySetupCallback.class.getMethod(
+                "onRegistrySetup", DynamicRegistryView.class)).isNotNull();
+        assertThat(DynamicRegistryView.class.getMethod("asDynamicRegistryManager")).isNotNull();
+        assertThat(DynamicRegistryView.class.getMethod("stream")).isNotNull();
+        assertThat(DynamicRegistryView.class.getMethod("getOptional", ResourceKey.class)).isNotNull();
+        assertThat(DynamicRegistryView.class.getMethod("registerEntryAdded",
+                ResourceKey.class, RegistryEntryAddedCallback.class)).isNotNull();
+    }
+
+    @Test
+    void skipWhenEmptyTracksOnlyRegistriesUsingTheOption() {
+        ResourceKey<Registry<String>> skipped = registryKey("skipped_empty");
+        ResourceKey<Registry<String>> ordinary = registryKey("ordinary_empty");
+        DynamicRegistrySyncOptions.markSkipWhenEmpty(skipped);
+
+        MappedRegistry<String> skippedRegistry =
+                new MappedRegistry<>(skipped, Lifecycle.stable());
+        MappedRegistry<String> ordinaryRegistry =
+                new MappedRegistry<>(ordinary, Lifecycle.stable());
+        assertThat(DynamicRegistrySyncOptions.shouldSkipEmpty(skipped, skippedRegistry)).isTrue();
+        assertThat(DynamicRegistrySyncOptions.shouldSkipEmpty(ordinary, ordinaryRegistry)).isFalse();
+        skippedRegistry.register(ResourceKey.create(skipped,
+                        ResourceLocation.fromNamespaceAndPath("loaderbridge_test", "value")),
+                "value", RegistrationInfo.BUILT_IN);
+        assertThat(DynamicRegistrySyncOptions.shouldSkipEmpty(skipped, skippedRegistry)).isFalse();
     }
 
     private static ResourceKey<Registry<String>> registryKey(String path) {

@@ -3,7 +3,7 @@ loaderVersion="[52,)"
 license="Apache-2.0"
 [[mods]]
 modId="loaderbridge_fabric_registry_sync_v0"
-version="5.1.3.2"
+version="5.1.3.4"
 displayName="LoaderBridge Fabric Registry Sync v0 Bridge"
 [[dependencies.loaderbridge_fabric_registry_sync_v0]]
 modId="forge"

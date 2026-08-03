@@ -22,6 +22,9 @@ All notable user-facing changes will be recorded here.
 - Added codec-backed Fabric dynamic registry registration, datapack loading,
   Forge synchronization, automatic module selection, and initial/reloaded-world
   behavioral coverage in the graphical client laboratory.
+- Added Fabric dynamic registry setup views and entry callbacks before datapack
+  population, plus `SKIP_WHEN_EMPTY` filtering for registry and tag sync; both
+  are verified during initial connection and world reload.
 
 - Added the complete public Fabric API Lookup v1 surface with unique typed
   lookup IDs; block, item, and entity direct/self/fallback providers; live

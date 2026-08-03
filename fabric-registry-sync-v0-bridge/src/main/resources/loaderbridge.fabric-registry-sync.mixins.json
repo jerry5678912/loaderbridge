@@ -5,8 +5,11 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "MappedRegistryMixin",
+    "RegistryDataLoaderLoaderAccessor",
     "RegistryDataLoaderMutableMixin",
+    "RegistryDataLoaderSetupMixin",
     "RegistrySynchronizationMutableMixin",
+    "RegistrySynchronizationMixin",
     "WorldLoaderMixin"
   ],
   "injectors": {"defaultRequire": 1}
