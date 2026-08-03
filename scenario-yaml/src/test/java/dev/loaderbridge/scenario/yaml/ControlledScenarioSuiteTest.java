@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 class ControlledScenarioSuiteTest {
     @Test
-    void definesTwentyFiveUniqueCrossSideBehavioralScenarios() throws Exception {
+    void definesAtLeastTwentyFiveUniqueCrossSideBehavioralScenarios() throws Exception {
         Path directory = Path.of(System.getProperty("loaderbridge.controlledScenarios"));
         var parser = new ScenarioYamlParser();
         var scenarios = new java.util.ArrayList<dev.loaderbridge.scenario.CompatibilityScenario>();
@@ -22,7 +22,7 @@ class ControlledScenarioSuiteTest {
             }
         }
 
-        assertThat(scenarios).hasSize(25);
+        assertThat(scenarios).hasSizeGreaterThanOrEqualTo(25);
         assertThat(scenarios).extracting(dev.loaderbridge.scenario.CompatibilityScenario::id)
                 .doesNotHaveDuplicates();
         assertThat(scenarios).extracting(dev.loaderbridge.scenario.CompatibilityScenario::side)

@@ -1,0 +1,35 @@
+schemaVersion: 1
+id: fabric_api_base_server
+description: Proves automatic Fabric API base selection through server ready, save, reload, and shutdown.
+side: server
+mods:
+  - loaderbridge_fabric_api_base_fixture
+steps:
+  - id: start
+    action: start_instance
+    timeout: PT3M
+  - id: api_ready
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_API_BASE_READY
+  - id: server_ready
+    action: wait_for_log
+    timeout: PT3M
+    parameters:
+      contains: "Done ("
+  - id: save
+    action: save
+    timeout: PT1M
+    parameters:
+      marker: All dimensions are saved
+  - id: reload
+    action: reload
+    timeout: PT3M
+    parameters:
+      marker: LOADERBRIDGE_FABRIC_API_BASE_READY
+  - id: shutdown
+    action: shutdown
+    timeout: PT1M
+    parameters:
+      marker: All dimensions are saved

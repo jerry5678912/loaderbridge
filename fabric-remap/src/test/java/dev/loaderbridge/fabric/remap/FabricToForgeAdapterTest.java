@@ -1,6 +1,7 @@
 package dev.loaderbridge.fabric.remap;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.loaderbridge.api.BridgeAdapter;
 import dev.loaderbridge.api.BridgeCapability;
@@ -8,11 +9,15 @@ import dev.loaderbridge.api.BridgeEnvironment;
 import dev.loaderbridge.api.BridgeRequest;
 import dev.loaderbridge.api.DiagnosticSeverity;
 import dev.loaderbridge.api.LoaderId;
+import dev.loaderbridge.api.RuntimeBridgeModule;
+import dev.loaderbridge.api.RuntimeBridgeModuleProvider;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
@@ -47,7 +52,7 @@ class FabricToForgeAdapterTest {
         assertThat(result.artifacts()).hasSize(1).allMatch(Files::exists);
         assertThat(Files.readString(result.report())).contains("fixture", "main");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
-                .contains("sourceSha256", "outputSha256", "\"adapterVersion\": \"0.3.11\"",
+                .contains("sourceSha256", "outputSha256", "\"adapterVersion\": \"0.4.0\"",
                         "adapterArtifactSha256");
         try (JarFile jar = new JarFile(result.artifacts().getFirst().toFile())) {
             assertThat(jar.getEntry("pack.mcmeta")).isNotNull();
@@ -183,6 +188,60 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsAndInstallsFabricApiBaseBridge() throws Exception {
+        Path source = referencedMod("event_api", "fabric-api-base", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
+            method.visitMethodInsn(Opcodes.INVOKESTATIC,
+                    "net/fabricmc/fabric/api/event/EventFactory", "createArrayBacked",
+                    "(Ljava/lang/Class;Ljava/util/function/Function;)"
+                            + "Lnet/fabricmc/fabric/api/event/Event;", false);
+            method.visitInsn(Opcodes.POP);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(2, 1);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "event-api");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-DEPS-002", "LB-FAPI-001");
+        assertThat(plan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-FAPI-100");
+            assertThat(diagnostic.severity()).isEqualTo(DiagnosticSeverity.INFO);
+            assertThat(diagnostic.message()).contains("fabric-api-base-bridge");
+        });
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains("fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar");
+        assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
+                .contains("runtime-bridge-module", "fabric-api-base-bridge");
+        try (JarFile jar = new JarFile(result.artifacts().stream()
+                .filter(path -> path.getFileName().toString().startsWith("event_api-"))
+                .findFirst().orElseThrow().toFile())) {
+            String forgeMetadata = new String(jar.getInputStream(
+                    jar.getJarEntry("META-INF/mods.toml")).readAllBytes(), StandardCharsets.UTF_8);
+            assertThat(forgeMetadata).doesNotContain("fabric_api_base");
+        }
+    }
+
+    @Test
+    void rejectsOverlappingRuntimeBridgeModules() {
+        RuntimeBridgeModuleProvider first = moduleProvider("first", "example.Shared", "example-api");
+        RuntimeBridgeModuleProvider second = moduleProvider("second", "example.Shared", "other-api");
+
+        assertThatThrownBy(() -> new FabricToForgeAdapter(
+                (version, cache, refresh) -> { throw new AssertionError("unused"); },
+                (version, cache) -> { throw new AssertionError("unused"); },
+                (cache, refresh) -> { throw new AssertionError("unused"); },
+                List.of(first, second)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("LB-MODULE-001", "example.Shared");
+    }
+
+    @Test
     void recursivelyPreparesAndDeduplicatesNestedMods() throws Exception {
         byte[] child = jarBytes("""
                 {"schemaVersion":1,"id":"nested_child","version":"1.0.0"}
@@ -309,6 +368,21 @@ class FabricToForgeAdapterTest {
         return new BridgeRequest("1.21.1", new LoaderId("forge"), "52.1.0",
                 BridgeEnvironment.SERVER, List.of(source), temporaryDirectory.resolve(directory),
                 temporaryDirectory.resolve(directory + "-cache"));
+    }
+
+    private RuntimeBridgeModuleProvider moduleProvider(String id, String className, String modId) {
+        return new RuntimeBridgeModuleProvider() {
+            @Override
+            public RuntimeBridgeModule descriptor() {
+                return new RuntimeBridgeModule(id, "test:1", "1.0.0",
+                        BridgeCapability.FABRIC_API, Set.of(className), Map.of(modId, "1.0.0"));
+            }
+
+            @Override
+            public Path artifact() {
+                return temporaryDirectory.resolve(id + ".jar");
+            }
+        };
     }
 
     private static byte[] jarBytes(String metadata) throws Exception {

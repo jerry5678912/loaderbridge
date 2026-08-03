@@ -12,4 +12,7 @@ dependencies {
     implementation("net.fabricmc:mapping-io:0.6.1")
     implementation("net.fabricmc:access-widener:2.1.0")
     runtimeOnly("net.fabricmc:intermediary:1.21.1:v2")
+    testRuntimeOnly(project(":fabric-api-base-bridge")) {
+        isTransitive = false
+    }
 }

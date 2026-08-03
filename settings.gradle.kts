@@ -33,9 +33,11 @@ include(
     "fabric-metadata",
     "fabric-remap",
     "fabric-loader-shim",
+    "fabric-api-base-bridge",
     "forge-runtime",
     "forge-transform-service",
     "integration-harness",
     "cli",
     "fixture-fabric-main",
+    "fixture-fabric-api-base",
 )

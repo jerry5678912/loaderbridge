@@ -13,6 +13,7 @@ import dev.loaderbridge.api.DiagnosticSeverity;
 import dev.loaderbridge.api.LoaderId;
 import dev.loaderbridge.api.ModInspection;
 import dev.loaderbridge.api.PreparationResult;
+import dev.loaderbridge.api.RuntimeBridgeModuleProvider;
 import dev.loaderbridge.fabric.metadata.FabricDependencyResolver;
 import dev.loaderbridge.fabric.metadata.FabricEntrypoint;
 import dev.loaderbridge.fabric.metadata.FabricModInspector;
@@ -31,6 +32,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.LinkedHashSet;
 import java.util.zip.ZipFile;
@@ -49,10 +51,11 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
     private final MinecraftArtifactsProvider minecraftArtifacts;
     private final IntermediaryMappingsProvider intermediaryMappings;
     private final RuntimeLibraryProvider mixinExtrasRuntime;
+    private final List<RuntimeBridgeModuleProvider> bridgeModules;
 
     public FabricToForgeAdapter() {
         this(new MinecraftArtifactResolver(), new BundledIntermediaryMappings(),
-                new MixinExtrasRuntimeResolver());
+                new MixinExtrasRuntimeResolver(), discoverBridgeModules());
     }
 
     FabricToForgeAdapter(MinecraftArtifactsProvider minecraftArtifacts,
@@ -63,9 +66,19 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
     FabricToForgeAdapter(MinecraftArtifactsProvider minecraftArtifacts,
             IntermediaryMappingsProvider intermediaryMappings,
             RuntimeLibraryProvider mixinExtrasRuntime) {
+        this(minecraftArtifacts, intermediaryMappings, mixinExtrasRuntime, discoverBridgeModules());
+    }
+
+    FabricToForgeAdapter(MinecraftArtifactsProvider minecraftArtifacts,
+            IntermediaryMappingsProvider intermediaryMappings,
+            RuntimeLibraryProvider mixinExtrasRuntime,
+            List<RuntimeBridgeModuleProvider> bridgeModules) {
         this.minecraftArtifacts = java.util.Objects.requireNonNull(minecraftArtifacts, "minecraftArtifacts");
         this.intermediaryMappings = java.util.Objects.requireNonNull(intermediaryMappings, "intermediaryMappings");
         this.mixinExtrasRuntime = java.util.Objects.requireNonNull(mixinExtrasRuntime, "mixinExtrasRuntime");
+        this.bridgeModules = validateBridgeModules(bridgeModules.stream()
+                .sorted(java.util.Comparator.comparing(provider -> provider.descriptor().id()))
+                .toList());
     }
 
     @Override
@@ -87,6 +100,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         List<Diagnostic> diagnostics = new ArrayList<>();
         List<ModInspection> inspections = new ArrayList<>();
         List<FabricModMetadata> allMetadata = new ArrayList<>();
+        Map<String, RuntimeBridgeModuleProvider> plannedBridgeModules = new LinkedHashMap<>();
         EnumSet<BridgeCapability> required = EnumSet.of(BridgeCapability.METADATA,
                 BridgeCapability.DEPENDENCY_RESOLUTION);
 
@@ -97,7 +111,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                 collectMetadata(tree, allMetadata);
                 FabricModMetadata metadata = tree.root();
                 ReferenceInventory inventory = analyzer.analyze(artifact);
-                analyzeRequirements(artifact, metadata, inventory, required, diagnostics, request);
+                analyzeRequirements(artifact, metadata, inventory, required, diagnostics, request,
+                        plannedBridgeModules);
                 inspections.add(inspection(artifact, metadata, List.of()));
             } catch (IOException exception) {
                 diagnostics.add(error("LB-INSPECT-001", BridgePhase.INSPECT, null, artifact,
@@ -105,9 +120,13 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             }
         }
         diagnoseDuplicateIds(allMetadata, diagnostics);
-        diagnostics.addAll(new FabricDependencyResolver().resolve(null, allMetadata,
-                Map.of("minecraft", request.minecraftVersion(), "java", Runtime.version().feature() + ".0.0",
-                        "fabricloader", "0.16.10")));
+        Map<String, String> builtinVersions = new LinkedHashMap<>(Map.of(
+                "minecraft", request.minecraftVersion(),
+                "java", Runtime.version().feature() + ".0.0",
+                "fabricloader", "0.16.10"));
+        plannedBridgeModules.values().forEach(provider ->
+                builtinVersions.putAll(provider.descriptor().providedModVersions()));
+        diagnostics.addAll(new FabricDependencyResolver().resolve(null, allMetadata, builtinVersions));
         return new BridgePlan(descriptor(), inspections, List.copyOf(required), diagnostics);
     }
 
@@ -128,6 +147,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         Map<String, String> seenModVersions = new LinkedHashMap<>();
         String adapterFingerprint = implementationFingerprint();
         boolean needsMixinExtras = false;
+        Map<String, RuntimeBridgeModuleProvider> selectedBridgeModules = new LinkedHashMap<>();
         for (Path source : request.inputArtifacts()) {
             collectPreparationInputs(source, source.toString(), null, null,
                     request.cacheDirectory(), inputs, seenArtifacts, seenModVersions);
@@ -137,6 +157,13 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             FabricModMetadata metadata = input.metadata();
             ReferenceInventory inventory = analyzer.analyze(source);
             needsMixinExtras |= !inventory.mixinExtrasClasses().isEmpty();
+            List<RuntimeBridgeModuleProvider> inputBridgeModules = modulesFor(
+                    inventory.fabricApiClasses(), metadata);
+            Map<String, String> fulfilledFabricDependencies = new java.util.TreeMap<>();
+            for (RuntimeBridgeModuleProvider provider : inputBridgeModules) {
+                selectedBridgeModules.put(provider.descriptor().id(), provider);
+                fulfilledFabricDependencies.putAll(provider.descriptor().providedModVersions());
+            }
             SourceNamespace namespace = sourceNamespace(request, inventory, null, metadata.id(), source);
             String sourceHash = sha256(source);
             Path preparationInput = source;
@@ -172,13 +199,15 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                     : input.parentModId() + "!/" + input.parentSubLocation();
             String cacheKey = sha256((sourceHash + "|" + FabricAdapterVersion.CURRENT + "|"
                     + adapterFingerprint + "|" + request.minecraftVersion() + "|"
-                    + request.hostVersion() + "|" + mappingKey + "|" + containmentKey)
+                    + request.hostVersion() + "|" + mappingKey + "|" + containmentKey + "|"
+                    + fulfilledFabricDependencies)
                     .getBytes(StandardCharsets.UTF_8));
             Path cached = request.cacheDirectory().resolve(cacheKey + ".jar");
             if (!Files.exists(cached)) {
                 PreparationManifest manifest = PreparationManifest.pinned(
                         request.minecraftVersion(), request.hostVersion())
-                        .namespaces(namespace.name().toLowerCase(java.util.Locale.ROOT), "official");
+                        .namespaces(namespace.name().toLowerCase(java.util.Locale.ROOT), "official")
+                        .fulfilledFabricDependencies(fulfilledFabricDependencies);
                 if (input.parentModId() != null) {
                     manifest = manifest.nested(input.parentModId(), input.parentSubLocation());
                 }
@@ -202,6 +231,20 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             prepared.add(new PreparedArtifact(library.id(), library.url().toString(), library.sha256(),
                     output.toString(), sha256(output), library.sha256(), "runtime-library"));
         }
+        for (RuntimeBridgeModuleProvider provider : selectedBridgeModules.values()) {
+            Path module = provider.artifact();
+            if (!Files.isRegularFile(module, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+                throw new IOException("LB-MODULE-002: missing bridge module artifact: " + module);
+            }
+            var descriptor = provider.descriptor();
+            String moduleHash = sha256(module);
+            Path output = request.outputDirectory().resolve(
+                    safe(descriptor.id()) + "-" + safe(descriptor.implementationVersion()) + ".jar");
+            Files.copy(module, output, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            outputs.add(output);
+            prepared.add(new PreparedArtifact(descriptor.id(), module.toString(), moduleHash,
+                    output.toString(), sha256(output), moduleHash, "runtime-bridge-module"));
+        }
         Path report = writeReport(request, plan, prepared);
         writeLock(request, prepared, resolvedMinecraft, resolvedIntermediaryMappings,
                 adapterFingerprint);
@@ -209,7 +252,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
     }
 
     private void analyzeRequirements(Path artifact, FabricModMetadata metadata, ReferenceInventory inventory,
-            Set<BridgeCapability> required, List<Diagnostic> diagnostics, BridgeRequest request) {
+            Set<BridgeCapability> required, List<Diagnostic> diagnostics, BridgeRequest request,
+            Map<String, RuntimeBridgeModuleProvider> selectedBridgeModules) {
         if (!metadata.mixins().isEmpty()) {
             required.add(BridgeCapability.MIXINS);
         }
@@ -231,17 +275,32 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             diagnostics.add(unsupported("LB-LANG-001", metadata.id(), artifact,
                     "Unsupported Fabric language adapters: " + adapters));
         }
-        if (!inventory.fabricApiClasses().isEmpty()) {
+        List<RuntimeBridgeModuleProvider> modules = modulesFor(inventory.fabricApiClasses(), metadata);
+        modules.forEach(provider -> selectedBridgeModules.put(provider.descriptor().id(), provider));
+        if (!modules.isEmpty()) {
             required.add(BridgeCapability.FABRIC_API);
-            String references = "Fabric API references: "
-                    + inventory.fabricApiClasses().stream().limit(5).toList();
-            boolean declared = metadata.dependencies().depends().keySet().stream()
-                    .anyMatch(FabricToForgeAdapter::isFabricApiDependency);
-            diagnostics.add(declared
-                    ? unsupported("LB-FAPI-001", metadata.id(), artifact,
-                            "Unbridged required " + references)
-                    : warning("LB-FAPI-002", metadata.id(), artifact,
-                            "Undeclared, potentially optional " + references));
+        }
+        if (inventory.fabricApiClasses().isEmpty() && !modules.isEmpty()) {
+            diagnostics.add(info("LB-FAPI-100", metadata.id(), artifact,
+                    "Automatically selected Fabric API bridges from dependencies: "
+                            + moduleVersions(modules)));
+        } else if (!inventory.fabricApiClasses().isEmpty()) {
+            Set<String> uncovered = new LinkedHashSet<>(inventory.fabricApiClasses());
+            modules.forEach(provider -> uncovered.removeAll(provider.descriptor().providedClasses()));
+            if (uncovered.isEmpty()) {
+                diagnostics.add(info("LB-FAPI-100", metadata.id(), artifact,
+                        "Automatically selected Fabric API bridges: " + moduleVersions(modules)));
+            } else {
+                String references = "Unbridged Fabric API references: "
+                        + uncovered.stream().limit(5).toList();
+                boolean declared = metadata.dependencies().depends().keySet().stream()
+                        .anyMatch(FabricToForgeAdapter::isFabricApiDependency);
+                diagnostics.add(declared
+                        ? unsupported("LB-FAPI-001", metadata.id(), artifact,
+                                "Unbridged required " + references)
+                        : warning("LB-FAPI-002", metadata.id(), artifact,
+                                "Undeclared, potentially optional " + references));
+            }
         }
         if (!inventory.loaderApiClasses().isEmpty()) {
             required.add(BridgeCapability.LOADER_API);
@@ -253,6 +312,48 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         SourceNamespace namespace = sourceNamespace(request, inventory, diagnostics, metadata.id(), artifact);
         if (namespace == SourceNamespace.INTERMEDIARY) {
             required.add(BridgeCapability.REMAPPING);
+        }
+    }
+
+    private List<RuntimeBridgeModuleProvider> modulesFor(Set<String> references,
+            FabricModMetadata metadata) {
+        Set<String> dependencies = metadata.dependencies().depends().keySet();
+        return bridgeModules.stream().filter(provider ->
+                provider.descriptor().providedClasses().stream().anyMatch(references::contains)
+                        || provider.descriptor().providedModVersions().keySet().stream()
+                                .anyMatch(dependencies::contains))
+                .toList();
+    }
+
+    private static List<String> moduleVersions(List<RuntimeBridgeModuleProvider> modules) {
+        return modules.stream().map(provider -> provider.descriptor().id() + "@"
+                + provider.descriptor().implementationVersion()).toList();
+    }
+
+    private static List<RuntimeBridgeModuleProvider> discoverBridgeModules() {
+        return ServiceLoader.load(RuntimeBridgeModuleProvider.class).stream()
+                .map(ServiceLoader.Provider::get).toList();
+    }
+
+    private static List<RuntimeBridgeModuleProvider> validateBridgeModules(
+            List<RuntimeBridgeModuleProvider> providers) {
+        Map<String, String> owners = new LinkedHashMap<>();
+        for (RuntimeBridgeModuleProvider provider : providers) {
+            var descriptor = provider.descriptor();
+            claimModuleKey(owners, "module:" + descriptor.id(), descriptor.id());
+            descriptor.providedClasses().forEach(className ->
+                    claimModuleKey(owners, "class:" + className, descriptor.id()));
+            descriptor.providedModVersions().keySet().forEach(modId ->
+                    claimModuleKey(owners, "mod:" + modId, descriptor.id()));
+        }
+        return List.copyOf(providers);
+    }
+
+    private static void claimModuleKey(Map<String, String> owners, String key, String moduleId) {
+        String previous = owners.putIfAbsent(key, moduleId);
+        if (previous != null) {
+            throw new IllegalStateException("LB-MODULE-001: bridge modules " + previous + " and "
+                    + moduleId + " both claim " + key.substring(key.indexOf(':') + 1));
         }
     }
 
@@ -392,6 +493,11 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
     private static Diagnostic warning(String code, String modId, Path artifact, String message) {
         return new Diagnostic(DiagnosticSeverity.WARNING, code, BridgePhase.PLAN,
                 modId, artifact, message, null);
+    }
+
+    private static Diagnostic info(String code, String modId, Path artifact, String message) {
+        return new Diagnostic(DiagnosticSeverity.INFO, code, BridgePhase.PLAN, modId,
+                artifact, message, null);
     }
 
     private static boolean isFabricApiDependency(String id) {

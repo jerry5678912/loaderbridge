@@ -57,6 +57,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - Fabric access-widener v1/v2 remapping and early Forge transformation for
   accessible, extendable, mutable, and transitive class/member rules, with
   bounded resource loading and stable malformed-target diagnostics.
+- A separately versioned Fabric API base bridge matching
+  `fabric-api-base:0.4.42+6573ed8c19`: events, ordered phases, TriState, and
+  utility constants. ServiceLoader selection is driven by bytecode references
+  and declared dependencies, then recorded in the lock and report.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -75,13 +79,17 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - Pinned real-mod probes for Lithium 0.14.3 and FerriteCore 7.0.3. Both pass
   client and dedicated-server ready, world save, clean shutdown, and reload on
   Forge 52.1.0 and 52.1.16 in the current macOS laboratory.
+- A controlled Fabric API base fixture passes automatic module installation,
+  dedicated-server ready, world save, clean shutdown, and reload on Forge
+  52.1.16.
 
 ## Intentionally gated
 
-The adapter currently rejects Fabric API modules, unknown custom language
-adapters, Loader API calls outside the current shim, and mods requiring
-unreviewed native-library behavior. Signed patch packs, broad semantic graphical
-assertions, and catalog-wide compatibility measurement are not yet implemented.
+The adapter currently rejects Fabric API surfaces outside the implemented base
+module, unknown custom language adapters, Loader API calls outside the current
+shim, and mods requiring unreviewed native-library behavior. Signed patch packs,
+broad semantic graphical assertions, and catalog-wide compatibility measurement
+are not yet implemented.
 These gaps produce stable diagnostics instead of a JAR that is falsely labeled
 compatible.
 

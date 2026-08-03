@@ -44,13 +44,18 @@ public final class ForgeServerVerifier {
         boolean reachedReady = false;
         boolean savedWorld = false;
         boolean stopSent = false;
+        boolean outputEnded = false;
         var missingMarkers = new LinkedHashSet<>(expectedMarkers);
         long deadline = System.nanoTime() + timeout.toNanos();
         try (PrintWriter input = new PrintWriter(process.outputWriter(StandardCharsets.UTF_8), true)) {
             while (System.nanoTime() < deadline) {
                 long remaining = Math.max(1, deadline - System.nanoTime());
                 Object event = lines.poll(remaining, TimeUnit.NANOSECONDS);
-                if (event == null || event == END_OF_OUTPUT) {
+                if (event == null) {
+                    break;
+                }
+                if (event == END_OF_OUTPUT) {
+                    outputEnded = true;
                     break;
                 }
                 String line = (String) event;
@@ -74,6 +79,16 @@ public final class ForgeServerVerifier {
                     "Verification was interrupted");
         }
 
+        if (process.isAlive() && outputEnded) {
+            try {
+                process.waitFor(1, TimeUnit.SECONDS);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                terminate(process);
+                return VerificationResult.failure(reachedReady, savedWorld, -1, "LB-VERIFY-004",
+                        "Verification was interrupted while waiting for process exit");
+            }
+        }
         if (process.isAlive()) {
             terminate(process);
             return VerificationResult.failure(reachedReady, savedWorld, -1, "LB-VERIFY-003",

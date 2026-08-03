@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "loaderbridge_fabric_api_base_fixture",
+  "version": "1.0.0",
+  "name": "LoaderBridge Fabric API Base Fixture",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["dev.loaderbridge.fixture.api.FabricApiBaseFixture"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric-api-base": ">=0.4.42"
+  }
+}

@@ -13,14 +13,20 @@ The engine is split so a future GUI can call the same Java API as the CLI.
 | `fabric-metadata` | Safe archive inspection and local dependency planning |
 | `fabric-remap` | Reference analysis, TinyRemapper wrapper, deterministic preparation, lock/report writing |
 | `fabric-loader-shim` | Independently implemented common Fabric Loader API surface |
+| `fabric-api-base-bridge` | Versioned Fabric API event and utility contracts selected from inspected references |
 | `forge-runtime` | Forge language provider and custom mod-container boundary |
 | `forge-transform-service` | Early ModLauncher transformation-service boundary |
 | `integration-harness` | Pinned disposable Forge installation, scenario execution, reload, bounded commands, and artifacts |
 | `cli` | ServiceLoader discovery and machine-oriented commands/exit codes |
 | `fixture-fabric-main` | Controlled Fabric `main` entrypoint probe |
+| `fixture-fabric-api-base` | Controlled automatic API-module selection and runtime probe |
 
 Adapter discovery is exclusively through Java `ServiceLoader`. A future loader
 direction can be added as another provider without editing the CLI.
+Runtime API bridges use a separate `RuntimeBridgeModuleProvider` service. Each
+module advertises exact binary classes and Fabric mod versions; overlapping
+unimplemented references remain gated instead of turning on a broad Fabric API
+claim. Selected modules are copied into prepared output and locked by checksum.
 
 The prepare cache key includes the source SHA-256, adapter version, Minecraft
 version, Forge version, Mojang client/mapping checksums, and intermediary

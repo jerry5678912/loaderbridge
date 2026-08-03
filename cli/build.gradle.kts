@@ -9,6 +9,9 @@ dependencies {
     implementation(project(":scenario-yaml"))
     implementation(project(":compatibility-catalog"))
     runtimeOnly(project(":fabric-remap"))
+    runtimeOnly(project(":fabric-api-base-bridge")) {
+        isTransitive = false
+    }
     runtimeOnly(project(":repository-modrinth"))
     runtimeOnly(project(":repository-curseforge"))
     implementation("info.picocli:picocli:4.7.6")
