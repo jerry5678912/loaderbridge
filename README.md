@@ -82,6 +82,11 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   double, enum, visitor, callback, custom-category, command, serialization,
   save, and process-restart persistence behavior use Minecraft's native rule
   registry in Forge's transformed game layer.
+- A separately versioned Networking API v1 play bridge matching
+  `fabric-networking-api-v1:4.3.1+d30f6a7919`. It implements payload codecs,
+  global and connection-scoped server receivers, client receivers, Fabric
+  packet senders, channel queries, and server play connection events over
+  Forge's payload channel without replacing Fabric payload objects in mod code.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -113,6 +118,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   listener on initial server resources, `/reload`, and the restarted process.
   It also registers a Fabric custom game rule, changes it through the native
   command, saves it, and verifies the value after a full JVM restart.
+  In the graphical Forge 52.1.0 lab it additionally completes a real
+  server-to-client `ping` and client-to-server `pong` in both the initial and
+  reloaded integrated world, with clean saves and no transformer exceptions.
 - A controlled Fabric command fixture registers and executes a real Brigadier
   command before and after a Forge 52.1.16 dedicated-server restart, with world
   save and clean shutdown.

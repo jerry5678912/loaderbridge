@@ -22,6 +22,9 @@ import net.minecraft.server.packs.resources.ResourceManager;
 import net.fabricmc.fabric.api.gamerule.v1.GameRuleFactory;
 import net.fabricmc.fabric.api.gamerule.v1.GameRuleRegistry;
 import net.minecraft.world.level.GameRules;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 
 /** Verifies Forge-to-Fabric server and world tick ordering at runtime. */
 public final class FabricLifecycleFixture implements ModInitializer {
@@ -44,6 +47,19 @@ public final class FabricLifecycleFixture implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        PayloadTypeRegistry.playC2S().register(FabricNetworkingPayload.PONG_TYPE,
+                FabricNetworkingPayload.PONG_CODEC);
+        PayloadTypeRegistry.playS2C().register(FabricNetworkingPayload.PING_TYPE,
+                FabricNetworkingPayload.PING_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(FabricNetworkingPayload.PONG_TYPE,
+                (payload, context) -> {
+                    if (payload.value().equals("pong")) {
+                        System.out.println("LOADERBRIDGE_FABRIC_NETWORK_SERVER_ROUNDTRIP");
+                    }
+                });
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
+                sender.sendPacket(new FabricNetworkingPayload(
+                        FabricNetworkingPayload.PING_TYPE, "ping")));
         ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(
                 new SimpleSynchronousResourceReloadListener() {
                     @Override

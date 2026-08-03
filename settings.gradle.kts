@@ -38,6 +38,7 @@ include(
     "fabric-lifecycle-events-bridge",
     "fabric-resource-loader-v0-bridge",
     "fabric-game-rule-api-v1-bridge",
+    "fabric-networking-api-v1-bridge",
     "forge-runtime",
     "forge-transform-service",
     "integration-harness",

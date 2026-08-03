@@ -33,7 +33,8 @@ abstract class LevelChunkBlockEntityMixin {
     @Redirect(method = {
             "getBlockEntity(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/chunk/LevelChunk$EntityCreationType;)Lnet/minecraft/world/level/block/entity/BlockEntity;",
             "removeBlockEntity"
-    }, at = @At(value = "INVOKE", target = "Ljava/util/Map;remove(Ljava/lang/Object;)Ljava/lang/Object;"))
+    }, at = @At(value = "INVOKE", target = "Ljava/util/Map;remove(Ljava/lang/Object;)Ljava/lang/Object;",
+            ordinal = 0))
     private Object loaderbridge$removeBlockEntity(Map<BlockPos, BlockEntity> entities, Object position) {
         BlockEntity removed = entities.remove(position);
         if (removed != null && ((LevelChunk) (Object) this).getLevel() instanceof ServerLevel world) {

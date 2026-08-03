@@ -1,0 +1,16 @@
+modLoader="javafml"
+loaderVersion="[52,)"
+license="Apache-2.0"
+
+[[mods]]
+modId="loaderbridge_fabric_networking"
+version="${file.jarVersion}"
+displayName="LoaderBridge Fabric Networking API v1"
+description='''Binary-compatible Fabric Networking API server bridge.'''
+
+[[dependencies.loaderbridge_fabric_networking]]
+modId="forge"
+mandatory=true
+versionRange="[52.1.0,53)"
+ordering="NONE"
+side="BOTH"
