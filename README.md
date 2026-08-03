@@ -31,8 +31,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   language-adapter declarations.
 - Fabric Loader 0.16 runtime contracts for containers, rich metadata, versions,
   dependency predicates, aliases, object sharing, classpath roots, environment
-  filtering, entrypoint containers and failures, and intermediary-to-runtime
-  `MappingResolver` lookups.
+  filtering, raw game version, arbitrary lazily resolved entrypoint containers,
+  per-requested-type instance caching and aggregated failures, and
+  intermediary-to-runtime `MappingResolver` lookups.
 - Early registration of universal Fabric Mixin configurations through Forge's
   existing Mixin 0.8.7 runtime, proven by a controlled injection into a real
   Minecraft server class on dedicated and integrated servers.
@@ -244,9 +245,11 @@ compatible.
 
 The controlled M2 fixture has passed on Minecraft 1.21.1 with Forge 52.1.0:
 Fabric `preLaunch` and `main` ran on both sides, the correct Fabric `client` or
-`server` entrypoint ran, and both the dedicated server and graphical client
-completed world save, shutdown, and reload cycles. The server scenario repeated
-the complete cycle through two Forge launches and emitted a passing structured
+`server` entrypoint ran, a custom API entrypoint was discovered lazily from
+`main` with its provider and definition intact, and `getRawGameVersion()`
+returned `1.21.1`. Both the dedicated server and graphical client completed
+world save, shutdown, and reload cycles. The server scenario repeated the
+complete cycle through two Forge launches and emitted a passing structured
 report. This is controlled-fixture evidence, not evidence that arbitrary Fabric
 mods are compatible. Catalog-wide measurement remains pending the frozen
 1,000-project catalog. The real-mod probes above establish the M3/M4 reference

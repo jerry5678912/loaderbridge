@@ -170,6 +170,9 @@ public final class LoaderBridgeCli implements Runnable {
                 return result.succeeded() ? 0 : TRANSFORMATION_FAILURE;
             } catch (IOException | RuntimeException exception) {
                 System.err.println("Transformation failed: " + exception.getMessage());
+                if (Boolean.getBoolean("loaderbridge.debug")) {
+                    exception.printStackTrace(System.err);
+                }
                 return TRANSFORMATION_FAILURE;
             }
         }

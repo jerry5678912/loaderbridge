@@ -18,6 +18,16 @@ steps:
     timeout: PT30S
     parameters:
       contains: LOADERBRIDGE_FIXTURE_MAIN_READY
+  - id: fixture_custom_entrypoint
+    action: wait_for_log
+    timeout: PT30S
+    parameters:
+      contains: LOADERBRIDGE_FIXTURE_CUSTOM_ENTRYPOINT_READY
+  - id: fixture_raw_game_version
+    action: wait_for_log
+    timeout: PT30S
+    parameters:
+      contains: LOADERBRIDGE_FIXTURE_RAW_GAME_VERSION=1.21.1
   - id: fixture_prelaunch_entrypoint
     action: wait_for_log
     timeout: PT30S

@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.EntrypointException;
@@ -66,6 +67,32 @@ class BridgeFabricLoaderTest {
     }
 
     @Test
+    void resolvesCustomEntrypointsLazilyAndCachesOneInstancePerRequestedType() {
+        BridgeFabricLoader loader = BridgeFabricLoader.getInstance();
+        loader.resetForTests();
+        ModContainer provider = BridgeModContainer.create(
+                "provider", "1", "Provider", List.of(), Path.of("provider"));
+        AtomicInteger creations = new AtomicInteger();
+        Runnable value = () -> { };
+        loader.registerEntrypointDefinition("fixture-api", provider, "example.Api::INSTANCE",
+                type -> {
+                    creations.incrementAndGet();
+                    return type.cast(value);
+                });
+
+        var containers = loader.getEntrypointContainers("fixture-api", Runnable.class);
+
+        assertThat(creations).hasValue(0);
+        assertThat(containers).singleElement().satisfies(container -> {
+            assertThat(container.getProvider()).isSameAs(provider);
+            assertThat(container.getDefinition()).isEqualTo("example.Api::INSTANCE");
+            assertThat(container.getEntrypoint()).isSameAs(value);
+            assertThat(container.getEntrypoint()).isSameAs(value);
+        });
+        assertThat(creations).hasValue(1);
+    }
+
+    @Test
     void reportsFabricCompatibleEntrypointResolutionFailures() {
         BridgeFabricLoader loader = BridgeFabricLoader.getInstance();
         loader.resetForTests();
@@ -74,7 +101,9 @@ class BridgeFabricLoaderTest {
         loader.registerMod(provider);
         loader.registerEntrypoint("client", provider, "example.NotRunnable", new Object());
 
-        assertThatThrownBy(() -> loader.getEntrypointContainers("client", Runnable.class))
+        var containers = loader.getEntrypointContainers("client", Runnable.class);
+        assertThat(containers).hasSize(1);
+        assertThatThrownBy(() -> containers.getFirst().getEntrypoint())
                 .isInstanceOf(EntrypointException.class)
                 .hasMessageContaining("provided by 'provider'")
                 .satisfies(error -> assertThat(((EntrypointException) error).getKey())
@@ -113,9 +142,10 @@ class BridgeFabricLoaderTest {
         BridgeFabricLoader loader = BridgeFabricLoader.getInstance();
         loader.resetForTests();
         Object game = new Object();
-        loader.configure(EnvType.CLIENT, Path.of("build/test-game"), true, game,
+        loader.configure(EnvType.CLIENT, Path.of("build/test-game"), "1.21.1", true, game,
                 new String[] {"--username", "Jerry", "--demo", "--accessToken", "secret"});
 
+        assertThat(loader.getRawGameVersion()).isEqualTo("1.21.1");
         assertThat(loader.isDevelopmentEnvironment()).isTrue();
         assertThat(loader.getGameInstance()).isSameAs(game);
         assertThat(loader.getGameDirectory()).isEqualTo(loader.getGameDir().toFile());

@@ -17,6 +17,9 @@
     "main": [
       "dev.loaderbridge.fixture.MainFixture"
     ],
+    "loaderbridge:fixture_api": [
+      "dev.loaderbridge.fixture.FixtureApiProvider"
+    ],
     "server": [
       "dev.loaderbridge.fixture.ServerFixture"
     ],

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,6 +31,7 @@ public final class BridgeFabricLoader implements FabricLoader {
     private final BridgeMappingResolver mappingResolver = new BridgeMappingResolver();
     private volatile EnvType environment = EnvType.CLIENT;
     private volatile Path gameDirectory = Path.of(".").toAbsolutePath().normalize();
+    private volatile String rawGameVersion = "unknown";
     private volatile boolean developmentEnvironment;
     private volatile Object gameInstance;
     private volatile String[] launchArguments = new String[0];
@@ -41,13 +43,19 @@ public final class BridgeFabricLoader implements FabricLoader {
     }
 
     public void configure(EnvType type, Path gameDir) {
-        configure(type, gameDir, false, null, new String[0]);
+        configure(type, gameDir, "unknown", false, null, new String[0]);
     }
 
     public void configure(EnvType type, Path gameDir, boolean development, Object game,
             String[] arguments) {
+        configure(type, gameDir, "unknown", development, game, arguments);
+    }
+
+    public void configure(EnvType type, Path gameDir, String gameVersion, boolean development,
+            Object game, String[] arguments) {
         environment = type;
         gameDirectory = gameDir.toAbsolutePath().normalize();
+        rawGameVersion = java.util.Objects.requireNonNull(gameVersion, "gameVersion");
         developmentEnvironment = development;
         gameInstance = game;
         launchArguments = arguments.clone();
@@ -73,12 +81,36 @@ public final class BridgeFabricLoader implements FabricLoader {
 
     public void registerEntrypoint(String key, ModContainer provider, String definition, Object entrypoint) {
         entrypoints.computeIfAbsent(key, ignored -> Collections.synchronizedList(new ArrayList<>()))
-                .add(new RegisteredEntrypoint(provider, definition, entrypoint));
+                .add(new RegisteredEntrypoint(provider, definition, type -> type.cast(entrypoint)));
+    }
+
+    public void registerEntrypointDefinition(String key, ModContainer provider, String definition,
+            EntrypointFactory factory) {
+        entrypoints.computeIfAbsent(key, ignored -> Collections.synchronizedList(new ArrayList<>()))
+                .add(new RegisteredEntrypoint(provider, definition, factory));
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public <T> List<T> getEntrypoints(String key, Class<T> type) {
-        return getEntrypointContainers(key, type).stream().map(EntrypointContainer::getEntrypoint).toList();
+        List<T> resolved = new ArrayList<>();
+        EntrypointException failure = null;
+        for (RegisteredEntrypoint entrypoint : entrypoints.getOrDefault(key, List.of())) {
+            try {
+                resolved.add(entrypoint.resolve(type));
+            } catch (Throwable cause) {
+                if (failure == null) {
+                    failure = new EntrypointException(key,
+                            entrypoint.provider.getMetadata().getId(), cause);
+                } else {
+                    failure.addSuppressed(cause);
+                }
+            }
+        }
+        if (failure != null) {
+            throw failure;
+        }
+        return List.copyOf(resolved);
     }
 
     @Override
@@ -86,12 +118,7 @@ public final class BridgeFabricLoader implements FabricLoader {
     public <T> List<EntrypointContainer<T>> getEntrypointContainers(String key, Class<T> type) {
         List<EntrypointContainer<T>> containers = new ArrayList<>();
         for (RegisteredEntrypoint entrypoint : entrypoints.getOrDefault(key, List.of())) {
-            try {
-                containers.add(entrypoint.container(type));
-            } catch (Throwable cause) {
-                throw new EntrypointException(key,
-                        entrypoint.provider().getMetadata().getId(), cause);
-            }
+            containers.add(entrypoint.container(key, type));
         }
         return List.copyOf(containers);
     }
@@ -142,6 +169,7 @@ public final class BridgeFabricLoader implements FabricLoader {
 
     @Override public boolean isModLoaded(String id) { return mods.containsKey(id); }
     @Override public EnvType getEnvironmentType() { return environment; }
+    @Override public String getRawGameVersion() { return rawGameVersion; }
     @Override @Deprecated public Object getGameInstance() { return gameInstance; }
     @Override public Path getGameDir() { return gameDirectory; }
     @Override @Deprecated public File getGameDirectory() { return gameDirectory.toFile(); }
@@ -174,14 +202,57 @@ public final class BridgeFabricLoader implements FabricLoader {
         mods.clear();
         entrypoints.clear();
         objectShare.clear();
-        configure(EnvType.CLIENT, Path.of("."), false, null, new String[0]);
+        configure(EnvType.CLIENT, Path.of("."), "unknown", false, null, new String[0]);
     }
 
-    private record RegisteredEntrypoint(ModContainer provider, String definition, Object value) {
-        <T> EntrypointContainer<T> container(Class<T> type) {
-            T typed = type.cast(value);
+    @FunctionalInterface
+    public interface EntrypointFactory {
+        Object create(Class<?> type) throws Exception;
+    }
+
+    private static final class RegisteredEntrypoint {
+        private final ModContainer provider;
+        private final String definition;
+        private final EntrypointFactory factory;
+        private final Map<Class<?>, Object> instances = new IdentityHashMap<>();
+
+        private RegisteredEntrypoint(ModContainer provider, String definition,
+                EntrypointFactory factory) {
+            this.provider = provider;
+            this.definition = definition;
+            this.factory = factory;
+        }
+
+        private synchronized <T> T resolve(Class<T> type) throws Exception {
+            Object value = instances.get(type);
+            if (value == null) {
+                value = java.util.Objects.requireNonNull(factory.create(type),
+                        "language adapter returned null");
+                Object previous = instances.putIfAbsent(type, value);
+                if (previous != null) {
+                    value = previous;
+                }
+            }
+            return type.cast(value);
+        }
+
+        @SuppressWarnings("deprecation")
+        private <T> EntrypointContainer<T> container(String key, Class<T> type) {
             return new EntrypointContainer<>() {
-                @Override public T getEntrypoint() { return typed; }
+                private T instance;
+
+                @Override
+                public synchronized T getEntrypoint() {
+                    if (instance == null) {
+                        try {
+                            instance = resolve(type);
+                        } catch (Exception exception) {
+                            throw new EntrypointException(
+                                    key, provider.getMetadata().getId(), exception);
+                        }
+                    }
+                    return instance;
+                }
                 @Override public ModContainer getProvider() { return provider; }
                 @Override public String getDefinition() { return definition; }
             };

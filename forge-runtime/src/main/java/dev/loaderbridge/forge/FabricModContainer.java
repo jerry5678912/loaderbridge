@@ -1,6 +1,5 @@
 package dev.loaderbridge.forge;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dev.loaderbridge.fabric.runtime.BridgeFabricLoader;
@@ -8,7 +7,6 @@ import dev.loaderbridge.fabric.runtime.BridgeModContainer;
 import dev.loaderbridge.fabric.runtime.BridgeKotlinLanguageAdapter;
 import dev.loaderbridge.fabric.metadata.FabricMetadataParser;
 import java.io.IOException;
-import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -18,7 +16,6 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.LanguageAdapter;
-import net.fabricmc.loader.api.LanguageAdapterException;
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.fml.ModContainer;
@@ -41,9 +38,12 @@ public final class FabricModContainer extends ModContainer {
         this.contextExtension = () -> null;
         Path metadataPath = info.getOwningFile().getFile().findResource("fabric.mod.json");
         Path root = metadataPath.getParent();
+        String minecraftVersion;
+        List<FabricEntrypointDefinitions.Declaration> entrypointDefinitions;
         try {
             JsonObject bridgeMetadata = JsonParser.parseString(Files.readString(
                     root.resolve("META-INF/loaderbridge.json"))).getAsJsonObject();
+            minecraftVersion = bridgeMetadata.get("minecraftVersion").getAsString();
             String parentModId = bridgeMetadata.has("parentModId")
                     ? bridgeMetadata.get("parentModId").getAsString() : null;
             String parentSubLocation = bridgeMetadata.has("parentSubLocation")
@@ -51,13 +51,17 @@ public final class FabricModContainer extends ModContainer {
             bridgeModContainer = BridgeModContainer.create(
                     new FabricMetadataParser().parse(Files.readAllBytes(metadataPath)), root,
                     parentModId, parentSubLocation);
+            entrypointDefinitions = FabricEntrypointDefinitions.parse(
+                    JsonParser.parseString(Files.readString(metadataPath)).getAsJsonObject());
         } catch (IOException exception) {
             throw new IllegalStateException("LB-META-010: failed to register runtime metadata for "
                     + info.getModId(), exception);
         }
         net.fabricmc.api.EnvType environment = FMLEnvironment.dist.isClient()
                 ? net.fabricmc.api.EnvType.CLIENT : net.fabricmc.api.EnvType.SERVER;
-        BridgeFabricLoader.getInstance().configure(environment, FMLPaths.GAMEDIR.get());
+        BridgeFabricLoader.getInstance().configure(
+                environment, FMLPaths.GAMEDIR.get(), minecraftVersion,
+                !FMLEnvironment.production, null, new String[0]);
         try {
             BridgeFabricLoader.getInstance().installMappings(
                     root.resolve("META-INF/loaderbridge/mappings.tiny"));
@@ -70,55 +74,62 @@ public final class FabricModContainer extends ModContainer {
             return;
         }
         BridgeFabricLoader.getInstance().registerMod(bridgeModContainer);
-        invokeEntrypoints(metadataPath, "preLaunch", PreLaunchEntrypoint.class,
+        registerEntrypointDefinitions(entrypointDefinitions);
+        invokeEntrypoints("preLaunch", PreLaunchEntrypoint.class,
                 entrypoint -> entrypoint.onPreLaunch());
         FabricRegistrationLifecycle.registerMainEntrypoints(
-                () -> invokeEntrypoints(metadataPath, "main", ModInitializer.class,
+                () -> invokeEntrypoints("main", ModInitializer.class,
                         initializer -> initializer.onInitialize()));
         if (FMLEnvironment.dist.isClient()) {
             FabricRegistrationLifecycle.registerClientEntrypoints(
-                    () -> invokeEntrypoints(metadataPath, "client", ClientModInitializer.class,
+                    () -> invokeEntrypoints("client", ClientModInitializer.class,
                             initializer -> initializer.onInitializeClient()));
         }
     }
 
     @SuppressWarnings("try")
-    private <T> void invokeEntrypoints(Path metadataPath, String key, Class<T> contract,
+    private void registerEntrypointDefinitions(
+            List<FabricEntrypointDefinitions.Declaration> declarations) {
+        for (FabricEntrypointDefinitions.Declaration declaration : declarations) {
+            LanguageAdapter adapter = languageAdapter(declaration.adapter());
+            BridgeFabricLoader.getInstance().registerEntrypointDefinition(
+                    declaration.key(), bridgeModContainer, declaration.value(), type -> {
+                        Object instance;
+                        try (ContextClassLoaderScope ignored =
+                                ContextClassLoaderScope.open(gameClassLoader)) {
+                            instance = adapter.create(
+                                    bridgeModContainer, declaration.value(), type);
+                        }
+                        rememberModInstance(instance);
+                        return instance;
+                    });
+        }
+    }
+
+    private LanguageAdapter languageAdapter(String adapter) {
+        return switch (adapter) {
+            case "default" -> LanguageAdapter.getDefault();
+            case "kotlin" -> BridgeKotlinLanguageAdapter.INSTANCE;
+            default -> throw new IllegalStateException(
+                    "LB-ENTRY-004: unsupported language adapter '" + adapter + "' for " + modId);
+        };
+    }
+
+    private <T> void invokeEntrypoints(String key, Class<T> contract,
             EntrypointInvoker<T> invoker) {
-        try (Reader reader = Files.newBufferedReader(metadataPath)) {
-            JsonObject metadata = JsonParser.parseReader(reader).getAsJsonObject();
-            JsonObject entrypoints = metadata.getAsJsonObject("entrypoints");
-            if (entrypoints == null || !entrypoints.has(key)) {
-                return;
-            }
-            JsonElement selected = entrypoints.get(key);
-            Iterable<JsonElement> declarations = selected.isJsonArray() ? selected.getAsJsonArray()
-                    : List.of(selected);
-            for (JsonElement declaration : declarations) {
-                String className = declaration.isJsonPrimitive() ? declaration.getAsString()
-                        : declaration.getAsJsonObject().get("value").getAsString();
-                String adapter = declaration.isJsonPrimitive() ? "default"
-                        : declaration.getAsJsonObject().has("adapter")
-                                ? declaration.getAsJsonObject().get("adapter").getAsString()
-                                : "default";
-                LanguageAdapter languageAdapter = switch (adapter) {
-                    case "default" -> LanguageAdapter.getDefault();
-                    case "kotlin" -> BridgeKotlinLanguageAdapter.INSTANCE;
-                    default -> throw new IllegalStateException("LB-ENTRY-004: unsupported language adapter '"
-                            + adapter + "' for " + modId);
-                };
-                T instance;
-                try (ContextClassLoaderScope ignored =
-                        ContextClassLoaderScope.open(gameClassLoader)) {
-                    instance = languageAdapter.create(bridgeModContainer, className, contract);
-                }
-                modInstances.add(instance);
-                BridgeFabricLoader.getInstance().registerEntrypoint(
-                        key, bridgeModContainer, className, instance);
+        for (var container : BridgeFabricLoader.getInstance()
+                .getEntrypointContainers(key, contract)) {
+            if (container.getProvider() == bridgeModContainer) {
+                T instance = container.getEntrypoint();
+                rememberModInstance(instance);
                 invoker.invoke(instance);
             }
-        } catch (IOException | LanguageAdapterException exception) {
-            throw new IllegalStateException("LB-ENTRY-001: failed to initialize " + modId, exception);
+        }
+    }
+
+    private synchronized void rememberModInstance(Object instance) {
+        if (!modInstances.contains(instance)) {
+            modInstances.add(instance);
         }
     }
 
@@ -128,7 +139,6 @@ public final class FabricModContainer extends ModContainer {
             return;
         }
         String eventName = event.getClass().getName();
-        Path metadataPath = modInfo.getOwningFile().getFile().findResource("fabric.mod.json");
         FabricRegistrationLifecycle.invokeIfInitializationEvent(event);
         if (FabricClientModelRegistration.registerIfModelEvent(event)) {
             return;
@@ -138,7 +148,7 @@ public final class FabricModContainer extends ModContainer {
         }
         if (eventName.equals("net.minecraftforge.fml.event.lifecycle.FMLDedicatedServerSetupEvent")
                 && serverEntrypointsInvoked.compareAndSet(false, true)) {
-            invokeEntrypoints(metadataPath, "server", DedicatedServerModInitializer.class,
+            invokeEntrypoints("server", DedicatedServerModInitializer.class,
                     initializer -> initializer.onInitializeServer());
         }
     }

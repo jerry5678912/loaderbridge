@@ -16,6 +16,15 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added Fabric Loader's raw game-version contract and source it from the
+  transformed artifact's locked Minecraft version at Forge runtime.
+- Added arbitrary Fabric entrypoint keys with lazy language-adapter resolution,
+  one cached instance per requested contract type, provider/definition
+  containers, and aggregated resolution failures. The transformed controlled
+  fixture discovers a custom API entrypoint during `main` on both dedicated and
+  graphical Forge runs, then passes save and reload.
+- Added opt-in CLI exception detail through `-Dloaderbridge.debug=true` while
+  retaining concise default transformation errors.
 - Added generic recipe-book category discovery for Fabric cooking recipe types.
   LoaderBridge snapshots actual recipe-type registry additions around Fabric
   entrypoints and maps `AbstractCookingRecipe` instances to Forge's vanilla

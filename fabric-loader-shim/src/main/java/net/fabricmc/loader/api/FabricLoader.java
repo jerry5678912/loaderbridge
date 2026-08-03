@@ -34,6 +34,8 @@ public interface FabricLoader {
 
     EnvType getEnvironmentType();
 
+    String getRawGameVersion();
+
     @Deprecated
     Object getGameInstance();
 

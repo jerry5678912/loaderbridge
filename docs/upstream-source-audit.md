@@ -17,6 +17,14 @@ The upstream repositories are
 [Fabric Loader](https://github.com/FabricMC/fabric-loader) and
 [MinecraftForge](https://github.com/MinecraftForge/MinecraftForge).
 
+Fabric's supplied `EntrypointStorage` source records every metadata key before
+normal initialization, creates modern entrypoints lazily, and caches a separate
+instance for each requested contract type. LoaderBridge now follows those
+observable contracts for both lifecycle and arbitrary API entrypoint keys.
+The supplied public `FabricLoader` interface also exposed the previously missing
+`getRawGameVersion()` binary contract; Forge runtime now obtains it from
+`META-INF/loaderbridge.json`.
+
 ## Exact 1.21.1 authority
 
 The implementation is compiled and tested against the pinned Maven artifacts
