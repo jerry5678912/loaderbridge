@@ -327,6 +327,7 @@ class BridgeFabricLoaderTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void resolvesClasspathResourcesAcrossMultipleRootsInOrder() throws Exception {
         Path first = Files.createDirectories(temporaryDirectory.resolve("first"));
         Path second = Files.createDirectories(temporaryDirectory.resolve("second/assets/fixture"));
@@ -337,6 +338,14 @@ class BridgeFabricLoaderTest {
 
         assertThat(container.getRootPaths()).containsExactly(first, temporaryDirectory.resolve("second"));
         assertThat(container.findPath("assets/fixture/value.txt")).contains(resource);
+        assertThat(container.getPath("assets/fixture/value.txt")).isEqualTo(resource);
         assertThat(container.findPath("assets/fixture/missing.txt")).isEmpty();
+        assertThat(container.getPath("assets/fixture/missing.txt"))
+                .isEqualTo(first.resolve("assets/fixture/missing.txt"));
+
+        ModContainer synthetic = new BridgeModContainer(container.getMetadata(), List.of(), null, null);
+        assertThat(synthetic.getRootPaths()).isEmpty();
+        assertThat(synthetic.getPath("assets/fixture/missing.txt").toString())
+                .contains("missing_ae236f4970ce");
     }
 }

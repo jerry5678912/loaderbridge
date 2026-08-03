@@ -41,6 +41,11 @@ the shim now reports `official`, exposes only the available `intermediary` and
 `official` namespaces, and embeds that semantic header in new prepared JARs.
 The older internal `named` header is accepted on input so existing prepared
 caches remain usable, but it is never advertised as a Yarn mapping namespace.
+Fabric's legacy `ModContainer.getPath` searches every active root before
+falling back to a path under the first root, and returns a stable dummy path for
+synthetic containers without roots. LoaderBridge mirrors this behavior so a
+resource in the second root of a multi-project or multi-path mod is not silently
+resolved to a nonexistent location in the first root.
 The supplied discovery implementation creates `java` from
 `java.specification.version`, marks Java and Minecraft metadata as `builtin`,
 and gives Minecraft a dependency on the Java class version it requires. Fabric

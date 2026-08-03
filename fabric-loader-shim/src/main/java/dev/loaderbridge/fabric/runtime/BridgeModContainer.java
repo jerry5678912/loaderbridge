@@ -3,6 +3,7 @@ package dev.loaderbridge.fabric.runtime;
 import dev.loaderbridge.fabric.metadata.FabricDependencies;
 import dev.loaderbridge.fabric.metadata.FabricModMetadata;
 import dev.loaderbridge.fabric.metadata.FabricPerson;
+import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -177,7 +178,16 @@ public record BridgeModContainer(
                 .toList();
     }
     @Override @Deprecated public Path getRootPath() { return rootPaths.getFirst(); }
-    @Override @Deprecated public Path getPath(String file) { return getRootPath().resolve(file); }
+    @Override @Deprecated public Path getPath(String file) {
+        Optional<Path> existing = findPath(file);
+        if (existing.isPresent()) return existing.get();
+        if (!rootPaths.isEmpty()) {
+            Path root = rootPaths.getFirst();
+            return root.resolve(file.replace("/", root.getFileSystem().getSeparator()));
+        }
+        return Path.of(".").resolve("missing_ae236f4970ce")
+                .resolve(file.replace('/', File.separatorChar));
+    }
 
     private record SimpleMetadata(
             String type,
