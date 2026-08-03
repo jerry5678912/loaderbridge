@@ -28,6 +28,11 @@ steps:
     timeout: PT30S
     parameters:
       contains: LOADERBRIDGE_FIXTURE_RAW_GAME_VERSION=1.21.1
+  - id: fixture_builtin_mods
+    action: wait_for_log
+    timeout: PT30S
+    parameters:
+      contains: LOADERBRIDGE_FIXTURE_BUILTIN_MODS_READY
   - id: fixture_prelaunch_entrypoint
     action: wait_for_log
     timeout: PT30S

@@ -1,5 +1,6 @@
 package dev.loaderbridge.fabric.runtime;
 
+import dev.loaderbridge.fabric.metadata.FabricLoaderCompatibility;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -59,6 +60,36 @@ public final class BridgeFabricLoader implements FabricLoader {
         developmentEnvironment = development;
         gameInstance = game;
         launchArguments = arguments.clone();
+        registerRuntimeContainers(gameVersion);
+    }
+
+    private void registerRuntimeContainers(String gameVersion) {
+        String javaVersion = System.getProperty("java.specification.version").replaceFirst("^1\\.", "");
+        Path javaRoot = Path.of(System.getProperty("java.home")).toAbsolutePath().normalize();
+        Path loaderRoot = implementationRoot();
+        synchronized (mods) {
+            mods.put("fabricloader", BridgeModContainer.create(
+                    "fabricloader", FabricLoaderCompatibility.VERSION, "Fabric Loader",
+                    List.of(), loaderRoot));
+            mods.put("java", BridgeModContainer.createBuiltin(
+                    "java", javaVersion, System.getProperty("java.vm.name"), javaRoot));
+            mods.put("minecraft", BridgeModContainer.createBuiltin(
+                    "minecraft", gameVersion, "Minecraft", gameDirectory,
+                    Map.of("java", List.of(">="
+                            + FabricLoaderCompatibility.MINECRAFT_JAVA_VERSION))));
+        }
+    }
+
+    private Path implementationRoot() {
+        try {
+            var source = BridgeFabricLoader.class.getProtectionDomain().getCodeSource();
+            if (source != null) {
+                return Path.of(source.getLocation().toURI()).toAbsolutePath().normalize();
+            }
+        } catch (Exception ignored) {
+            // Secure module layers may not expose a file-backed code source.
+        }
+        return gameDirectory;
     }
 
     public void registerMod(ModContainer container) {

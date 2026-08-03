@@ -249,13 +249,16 @@ The controlled M2 fixture has passed on Minecraft 1.21.1 with Forge 52.1.0:
 Fabric `preLaunch` and `main` ran on both sides, the correct Fabric `client` or
 `server` entrypoint ran, a custom API entrypoint was discovered lazily from
 `main` with its provider and definition intact, and `getRawGameVersion()`
-returned `1.21.1`. Both the dedicated server and graphical client completed
-world save, shutdown, and reload cycles. The server scenario repeated the
-complete cycle through two Forge launches and emitted a passing structured
-report. This is controlled-fixture evidence, not evidence that arbitrary Fabric
-mods are compatible. Catalog-wide measurement remains pending the frozen
-1,000-project catalog. The real-mod probes above establish the M3/M4 reference
-gates on macOS; they do not establish Windows/Linux parity or a 95% result.
+returned `1.21.1`. The same fixture resolved Fabric-compatible `minecraft`,
+`java`, and `fabricloader` containers with their expected metadata types,
+versions, and Minecraft-to-Java dependency. Both the dedicated server and
+graphical client completed world save, shutdown, and reload cycles. The server
+scenario repeated the complete cycle through two Forge launches and emitted a
+passing structured report. This is controlled-fixture evidence, not evidence
+that arbitrary Fabric mods are compatible. Catalog-wide measurement remains
+pending the frozen 1,000-project catalog. The real-mod probes above establish
+the M3/M4 reference gates on macOS; they do not establish Windows/Linux parity
+or a 95% result.
 
 ## Build and use
 

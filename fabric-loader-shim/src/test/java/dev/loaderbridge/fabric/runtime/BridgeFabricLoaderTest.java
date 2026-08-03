@@ -156,6 +156,46 @@ class BridgeFabricLoaderTest {
     }
 
     @Test
+    void registersFabricCompatibleBuiltinAndLoaderContainersIdempotently() {
+        BridgeFabricLoader loader = BridgeFabricLoader.getInstance();
+        loader.resetForTests();
+        loader.configure(EnvType.CLIENT, Path.of("build/test-game"), "1.21.1", false,
+                null, new String[0]);
+        loader.configure(EnvType.CLIENT, Path.of("build/test-game"), "1.21.1", false,
+                null, new String[0]);
+
+        assertThat(loader.getAllMods())
+                .extracting(container -> container.getMetadata().getId())
+                .startsWith("fabricloader", "java", "minecraft")
+                .doesNotHaveDuplicates();
+        assertThat(loader.getModContainer("minecraft")).get()
+                .satisfies(container -> {
+                    assertThat(container.getMetadata().getType()).isEqualTo("builtin");
+                    assertThat(container.getMetadata().getVersion().getFriendlyString())
+                            .isEqualTo("1.21.1");
+                    assertThat(container.getMetadata().getDepends()).singleElement()
+                            .satisfies(dependency -> {
+                                assertThat(dependency.getModId()).isEqualTo("java");
+                                assertThat(dependency.matches(loader.getModContainer("java")
+                                        .orElseThrow().getMetadata().getVersion())).isTrue();
+                            });
+                });
+        assertThat(loader.getModContainer("java")).get()
+                .satisfies(container -> {
+                    assertThat(container.getMetadata().getType()).isEqualTo("builtin");
+                    assertThat(container.getMetadata().getVersion().getFriendlyString())
+                            .isEqualTo(System.getProperty("java.specification.version")
+                                    .replaceFirst("^1\\.", ""));
+                });
+        assertThat(loader.getModContainer("fabricloader")).get()
+                .satisfies(container -> {
+                    assertThat(container.getMetadata().getType()).isEqualTo("fabric");
+                    assertThat(container.getMetadata().getVersion().getFriendlyString())
+                            .isEqualTo("0.16.14");
+                });
+    }
+
+    @Test
     void exposesParsedAliasesEnvironmentAndDependencyKindsAtRuntime() throws Exception {
         var parsed = new FabricMetadataParser().parse("""
                 {

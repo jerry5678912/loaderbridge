@@ -29,6 +29,14 @@ registrations have completed by then, while the later registry-dependent
 The supplied public `FabricLoader` interface also exposed the previously missing
 `getRawGameVersion()` binary contract; Forge runtime now obtains it from
 `META-INF/loaderbridge.json`.
+The supplied discovery implementation creates `java` from
+`java.specification.version`, marks Java and Minecraft metadata as `builtin`,
+and gives Minecraft a dependency on the Java class version it requires. Fabric
+Loader itself is discovered from its ordinary `fabric.mod.json`, so its
+metadata type remains `fabric`. LoaderBridge mirrors those observable
+containers and uses one `0.16.14` compatibility constant for both dependency
+planning and the runtime Loader container instead of allowing those phases to
+advertise different versions.
 
 ## Exact 1.21.1 authority
 

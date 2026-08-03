@@ -63,6 +63,25 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void plansAgainstTheSameFabricLoaderVersionExposedAtRuntime() throws Exception {
+        Path compatible = fabricLoaderDependentMod("compatible_loader", ">=0.16.14");
+        Path future = fabricLoaderDependentMod("future_loader", ">=0.16.15");
+
+        var compatiblePlan = new FabricToForgeAdapter().plan(
+                requestFor(compatible, "compatible-loader"));
+        var futurePlan = new FabricToForgeAdapter().plan(requestFor(future, "future-loader"));
+
+        assertThat(compatiblePlan.canPrepare()).isTrue();
+        assertThat(compatiblePlan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-002");
+        assertThat(futurePlan.canPrepare()).isFalse();
+        assertThat(futurePlan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-DEPS-002");
+            assertThat(diagnostic.message()).contains("fabricloader has 0.16.14");
+        });
+    }
+
+    @Test
     void inventoriesImplementedMixinAccessWidenerAndNestedJarCapabilities() throws Exception {
         Path nested = temporaryDirectory.resolve("nested.jar");
         try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(nested))) {
@@ -767,6 +786,19 @@ class FabricToForgeAdapterTest {
             jar.closeEntry();
             jar.putNextEntry(new JarEntry("META-INF/jars/second.jar"));
             jar.write(second);
+            jar.closeEntry();
+        }
+        return source;
+    }
+
+    private Path fabricLoaderDependentMod(String id, String predicate) throws Exception {
+        Path source = temporaryDirectory.resolve(id + ".jar");
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(source))) {
+            jar.putNextEntry(new JarEntry("fabric.mod.json"));
+            jar.write(("{\"schemaVersion\":1,\"id\":\"" + id
+                    + "\",\"version\":\"1\",\"depends\":{\"fabricloader\":\""
+                    + predicate + "\"}}")
+                    .getBytes(StandardCharsets.UTF_8));
             jar.closeEntry();
         }
         return source;

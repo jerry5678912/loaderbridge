@@ -36,9 +36,32 @@ public record BridgeModContainer(
 
     public static BridgeModContainer create(String id, String version, String name,
             Collection<String> aliases, Path root) {
+        return create(id, version, name, aliases, "fabric", root);
+    }
+
+    public static BridgeModContainer createBuiltin(String id, String version, String name,
+            Path root) {
+        return createBuiltin(id, version, name, root, Map.of());
+    }
+
+    public static BridgeModContainer createBuiltin(String id, String version, String name,
+            Path root, Map<String, List<String>> requiredDependencies) {
+        List<ModDependency> dependencies = new ArrayList<>();
+        addDependencies(dependencies, ModDependency.Kind.DEPENDS, requiredDependencies);
+        return create(id, version, name, List.of(), "builtin", root, dependencies);
+    }
+
+    private static BridgeModContainer create(String id, String version, String name,
+            Collection<String> aliases, String type, Path root) {
+        return create(id, version, name, aliases, type, root, List.of());
+    }
+
+    private static BridgeModContainer create(String id, String version, String name,
+            Collection<String> aliases, String type, Path root,
+            Collection<ModDependency> dependencies) {
         Version parsedVersion = parseVersion(version);
         ModMetadata metadata = new SimpleMetadata(
-                id, aliases, parsedVersion, name, ModEnvironment.UNIVERSAL, List.of(), "",
+                type, id, aliases, parsedVersion, name, ModEnvironment.UNIVERSAL, dependencies, "",
                 List.of(), List.of(), Map.of(), List.of(), Map.of(), Map.of());
         return new BridgeModContainer(metadata, List.of(root), null, null);
     }
@@ -50,6 +73,7 @@ public record BridgeModContainer(
     public static BridgeModContainer create(FabricModMetadata source, Path root,
             String parentModId, String parentSubLocation) {
         ModMetadata metadata = new SimpleMetadata(
+                "fabric",
                 source.id(),
                 source.provides(),
                 parseVersion(source.version()),
@@ -133,6 +157,7 @@ public record BridgeModContainer(
     @Override @Deprecated public Path getPath(String file) { return getRootPath().resolve(file); }
 
     private record SimpleMetadata(
+            String type,
             String id,
             Collection<String> provides,
             Version version,
@@ -157,6 +182,7 @@ public record BridgeModContainer(
             icons = Map.copyOf(icons);
             customJson = Map.copyOf(customJson);
         }
+        @Override public String getType() { return type; }
         @Override public String getId() { return id; }
         @Override public Collection<String> getProvides() { return provides; }
         @Override public Version getVersion() { return version; }

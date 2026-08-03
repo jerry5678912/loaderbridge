@@ -22,8 +22,24 @@ public final class MainFixture implements ModInitializer {
             throw new IllegalStateException(
                     "unexpected raw game version: " + loader.getRawGameVersion());
         }
+        assertRuntimeContainer(loader, "minecraft", "builtin", "1.21.1");
+        assertRuntimeContainer(loader, "java", "builtin",
+                System.getProperty("java.specification.version").replaceFirst("^1\\.", ""));
+        assertRuntimeContainer(loader, "fabricloader", "fabric", "0.16.14");
         System.out.println("LOADERBRIDGE_FIXTURE_CUSTOM_ENTRYPOINT_READY");
         System.out.println("LOADERBRIDGE_FIXTURE_RAW_GAME_VERSION=1.21.1");
+        System.out.println("LOADERBRIDGE_FIXTURE_BUILTIN_MODS_READY");
         System.out.println("LOADERBRIDGE_FIXTURE_MAIN_READY");
+    }
+
+    private static void assertRuntimeContainer(FabricLoader loader, String id, String type,
+            String version) {
+        var container = loader.getModContainer(id).orElseThrow(
+                () -> new IllegalStateException("missing Fabric runtime container: " + id));
+        if (!loader.isModLoaded(id)
+                || !container.getMetadata().getType().equals(type)
+                || !container.getMetadata().getVersion().getFriendlyString().equals(version)) {
+            throw new IllegalStateException("invalid Fabric runtime container: " + id);
+        }
     }
 }

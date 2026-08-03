@@ -18,6 +18,7 @@ import dev.loaderbridge.fabric.metadata.FabricDependencyResolver;
 import dev.loaderbridge.fabric.metadata.FabricEntrypoint;
 import dev.loaderbridge.fabric.metadata.FabricModInspector;
 import dev.loaderbridge.fabric.metadata.FabricModMetadata;
+import dev.loaderbridge.fabric.metadata.FabricLoaderCompatibility;
 import dev.loaderbridge.fabric.metadata.FabricModTree;
 import dev.loaderbridge.fabric.metadata.JarReadLimits;
 import java.io.IOException;
@@ -123,8 +124,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         diagnoseDuplicateIds(allMetadata, diagnostics);
         Map<String, String> builtinVersions = new LinkedHashMap<>(Map.of(
                 "minecraft", request.minecraftVersion(),
-                "java", Runtime.version().feature() + ".0.0",
-                "fabricloader", "0.16.10"));
+                "java", System.getProperty("java.specification.version").replaceFirst("^1\\.", ""),
+                "fabricloader", FabricLoaderCompatibility.VERSION));
         plannedBridgeModules.values().forEach(provider ->
                 builtinVersions.putAll(provider.descriptor().providedModVersions()));
         diagnostics.addAll(new FabricDependencyResolver().resolve(null, allMetadata, builtinVersions));

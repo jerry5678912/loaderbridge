@@ -16,6 +16,12 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added Fabric-visible `minecraft`, `java`, and `fabricloader` runtime
+  containers with target-compatible metadata types and versions, Minecraft's
+  Java 21 dependency, stable registration, and one shared Fabric Loader
+  compatibility version for preprocessing and runtime. The controlled Forge
+  server and graphical client fixtures validate these containers before world
+  save and reload.
 - Deferred Fabric `preLaunch` callbacks until Forge's construct event, after all
   active mod containers have installed their entrypoint definitions. The
   controlled fixture discovers a custom API entrypoint from `preLaunch` on
