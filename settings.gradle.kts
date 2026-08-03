@@ -36,6 +36,7 @@ include(
     "fabric-api-base-bridge",
     "fabric-command-api-v2-bridge",
     "fabric-lifecycle-events-bridge",
+    "fabric-resource-loader-v0-bridge",
     "forge-runtime",
     "forge-transform-service",
     "integration-harness",

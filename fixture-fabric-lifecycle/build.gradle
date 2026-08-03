@@ -29,6 +29,9 @@ dependencies {
     compileOnly(project(':fabric-lifecycle-events-bridge')) {
         transitive = false
     }
+    compileOnly(project(':fabric-resource-loader-v0-bridge')) {
+        transitive = false
+    }
 }
 
 tasks.named('jar') {

@@ -73,6 +73,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   `fabric-command-api-v2:2.2.28+6ced4dd919`. Fabric server command callbacks
   receive Forge's live dispatcher, registry build context, and dedicated or
   integrated command environment without wrapper substitution.
+- A separately versioned Resource Loader v0 bridge matching
+  `fabric-resource-loader-v0:1.3.1+5b5275af19`. Server-data listeners and
+  registry-aware factories preserve Fabric IDs and dependency order through
+  initial load, datapack reload, save, and process restart.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -100,6 +104,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   changes, tag loading, server state,
   datapack reload, before/after save, dedicated-server ready, clean shutdown,
   and process reload on Forge 52.1.16.
+  The same fixture automatically selects Resource Loader v0 and proves its
+  listener on initial server resources, `/reload`, and the restarted process.
 - A controlled Fabric command fixture registers and executes a real Brigadier
   command before and after a Forge 52.1.16 dedicated-server restart, with world
   save and clean shutdown.

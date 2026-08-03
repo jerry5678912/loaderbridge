@@ -14,6 +14,11 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
+import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.resources.ResourceManager;
 
 /** Verifies Forge-to-Fabric server and world tick ordering at runtime. */
 public final class FabricLifecycleFixture implements ModInitializer {
@@ -26,10 +31,24 @@ public final class FabricLifecycleFixture implements ModInitializer {
     private static final AtomicBoolean CHUNK_GENERATED = new AtomicBoolean();
     private static final AtomicBoolean CHUNK_FULL = new AtomicBoolean();
     private static final AtomicBoolean CHUNK_UNLOADED = new AtomicBoolean();
-    private static final int TEST_CHUNK = 625;
+    private static final AtomicInteger RESOURCE_RELOADS = new AtomicInteger();
+    private static final int TEST_CHUNK = 700;
 
     @Override
     public void onInitialize() {
+        ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(
+                new SimpleSynchronousResourceReloadListener() {
+                    @Override
+                    public ResourceLocation getFabricId() {
+                        return ResourceLocation.fromNamespaceAndPath("loaderbridge", "server_resources");
+                    }
+
+                    @Override
+                    public void onResourceManagerReload(ResourceManager manager) {
+                        System.out.println("LOADERBRIDGE_FABRIC_RESOURCE_RELOADED:"
+                                + RESOURCE_RELOADS.incrementAndGet());
+                    }
+                });
         ServerChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
             if (isTestChunk(chunk) && CHUNK_LOADED.compareAndSet(false, true)) {
                 System.out.println("LOADERBRIDGE_FABRIC_CHUNK_LOADED");

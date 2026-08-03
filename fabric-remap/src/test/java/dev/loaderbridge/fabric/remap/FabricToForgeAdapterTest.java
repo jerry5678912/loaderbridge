@@ -264,6 +264,37 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsResourceLoaderBridgeAndItsBaseDependency() throws Exception {
+        Path source = referencedMod("resource_loader_api", "fabric-resource-loader-v0", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
+            method.visitFieldInsn(Opcodes.GETSTATIC, "net/minecraft/server/packs/PackType",
+                    "SERVER_DATA", "Lnet/minecraft/server/packs/PackType;");
+            method.visitMethodInsn(Opcodes.INVOKESTATIC,
+                    "net/fabricmc/fabric/api/resource/ResourceManagerHelper", "get",
+                    "(Lnet/minecraft/server/packs/PackType;)Lnet/fabricmc/fabric/api/resource/ResourceManagerHelper;",
+                    true);
+            method.visitInsn(Opcodes.POP);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(1, 1);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "resource-loader-api");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains("fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
+                        "fabric-resource-loader-v0-bridge-1.3.1_5b5275af19-loaderbridge.1.jar");
+        assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
+                .contains("fabric-api-base-bridge", "fabric-resource-loader-v0-bridge");
+    }
+
+    @Test
     void automaticallySelectsCommandBridgeAndItsBaseDependency() throws Exception {
         Path source = referencedMod("command_api", "fabric-command-api-v2", writer -> {
             var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);

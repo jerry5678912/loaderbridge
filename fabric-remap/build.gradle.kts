@@ -21,4 +21,7 @@ dependencies {
     testRuntimeOnly(project(":fabric-lifecycle-events-bridge")) {
         isTransitive = false
     }
+    testRuntimeOnly(project(":fabric-resource-loader-v0-bridge")) {
+        isTransitive = false
+    }
 }

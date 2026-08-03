@@ -28,6 +28,11 @@ steps:
     timeout: PT1M
     parameters:
       contains: LOADERBRIDGE_FABRIC_LIFECYCLE_TAGS_READY
+  - id: resources_ready
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_RESOURCE_RELOADED:1
   - id: summon_entity
     action: send_command
     timeout: PT1M
@@ -82,7 +87,7 @@ steps:
     action: send_command
     timeout: PT1M
     parameters:
-      command: forceload add 10000 10000
+      command: forceload add 11200 11200
   - id: chunk_loaded
     action: wait_for_log
     timeout: PT3M
@@ -102,7 +107,7 @@ steps:
     action: send_command
     timeout: PT1M
     parameters:
-      command: forceload remove 10000 10000
+      command: forceload remove 11200 11200
   - id: chunk_unloaded
     action: wait_for_log
     timeout: PT3M
@@ -123,6 +128,11 @@ steps:
     timeout: PT2M
     parameters:
       contains: LOADERBRIDGE_FABRIC_RELOAD_FINISHED
+  - id: resources_reloaded
+    action: wait_for_log
+    timeout: PT1M
+    parameters:
+      contains: LOADERBRIDGE_FABRIC_RESOURCE_RELOADED:2
   - id: save
     action: save
     timeout: PT1M

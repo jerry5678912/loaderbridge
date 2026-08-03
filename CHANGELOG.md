@@ -19,6 +19,8 @@ All notable user-facing changes will be recorded here.
 - Completed the Fabric lifecycle-events-v1 1.21.1 public surface with exact
   server chunk load, generation, full-status transition, and unload hooks plus
   a real Forge 52.1.16 force-load/save/restart behavioral scenario.
+- Added the exact Fabric resource-loader-v0 1.21.1 public types and ordered,
+  registry-aware Forge server-data reload listener registration.
 
 - Initial LoaderBridge project scaffold.
 - Added validated, launcher-neutral repository provider, artifact, dependency,
