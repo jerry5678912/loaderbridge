@@ -131,6 +131,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   component-aware stack identity, sided slot rules, capacity limits, rollback,
   commit, and dirty notification. The graphical client verifies a 70-item
   two-slot split and committed extraction before creating and reloading a world.
+  `ItemStorage.SIDED` now discovers vanilla container block entities through the
+  standard Fabric block lookup, with automatic lookup-module dependencies. A
+  real chest lookup and insertion passes on initial load and world reload.
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -181,8 +184,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 ## Intentionally gated
 
 The adapter currently rejects Fabric API surfaces outside the implemented
-modules, including Transfer API item-lookup registration, player-inventory
-special views, fluid/container-context/rendering surfaces, unknown custom
+modules, including Transfer API full container-item contexts, item-provided
+storage registration, player-inventory special views, fluid/rendering surfaces,
+unknown custom
 language adapters, Loader API calls outside the current
 shim, and mods requiring unreviewed native-library behavior. Signed patch packs,
 broad semantic graphical assertions, and catalog-wide compatibility measurement

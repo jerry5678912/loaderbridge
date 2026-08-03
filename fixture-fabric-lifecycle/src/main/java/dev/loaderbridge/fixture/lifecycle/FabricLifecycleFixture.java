@@ -57,11 +57,13 @@ import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageUtil;
 import net.fabricmc.fabric.api.transfer.v1.item.InventoryStorage;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedSlottedStorage;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.FilteringStorage;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.SingleSlotStorage;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.resources.ResourceKey;
 import com.mojang.serialization.Lifecycle;
@@ -506,6 +508,25 @@ public final class FabricLifecycleFixture implements ModInitializer {
                 throw new IllegalStateException("LOADERBRIDGE_FABRIC_ITEM_LOOKUP_FAILED");
             }
             System.out.println("LOADERBRIDGE_FABRIC_ITEM_LOOKUP_READY");
+            BlockPos chestPos = lookupPos.above();
+            world.setBlockAndUpdate(chestPos, Blocks.CHEST.defaultBlockState());
+            if (!(world.getBlockEntity(chestPos) instanceof net.minecraft.world.Container chest)) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_ITEM_SIDED_CHEST_FAILED");
+            }
+            chest.clearContent();
+            Storage<ItemVariant> discoveredStorage =
+                    ItemStorage.SIDED.find(world, chestPos, Direction.UP);
+            try (Transaction committed = Transaction.openOuter()) {
+                if (discoveredStorage == null
+                        || discoveredStorage.insert(ItemVariant.of(Items.DIAMOND), 3, committed) != 3) {
+                    throw new IllegalStateException("LOADERBRIDGE_FABRIC_ITEM_SIDED_INSERT_FAILED");
+                }
+                committed.commit();
+            }
+            if (chest.getItem(0).getCount() != 3) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_ITEM_SIDED_STORAGE_FAILED");
+            }
+            System.out.println("LOADERBRIDGE_FABRIC_ITEM_SIDED_LOOKUP_READY");
             Entity armorStand = EntityType.ARMOR_STAND.create(world);
             Entity zombie = EntityType.ZOMBIE.create(world);
             if (armorStand == null || zombie == null

@@ -37,6 +37,9 @@ All notable user-facing changes will be recorded here.
 - Moved the Transfer API bridge into Forge's transformed game layer and made
   Fabric language adapters resolve entrypoints through that layer, preventing
   duplicate Minecraft class identities when API bridges link game classes.
+- Added `ItemStorage.SIDED` with automatic lookup-module dependency selection
+  and vanilla container fallback wrapping; the graphical client discovers a
+  chest, inserts transactionally, saves, and repeats the lookup after reload.
 
 - Added the initial Fabric Registry Sync v0 bridge with custom static registry
   builders, MODDED/SYNCED attributes, registry-local entry/remap events,
