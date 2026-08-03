@@ -1,0 +1,16 @@
+schemaVersion: 1
+id: blockus_content_save_reload
+description: Proves the pinned Fabric-only Blockus artifact registers real blocks and items, places content, saves, reloads, and renders it.
+side: client
+mods:
+  - blockus
+steps:
+  - {id: start, action: start_instance, timeout: PT3M}
+  - {id: block, action: assert_registry, timeout: PT30S, parameters: {subject: "block/blockus:amethyst_bricks", equals: "registered"}}
+  - {id: item, action: assert_registry, timeout: PT30S, parameters: {subject: "item/blockus:amethyst_bricks", equals: "registered"}}
+  - {id: place, action: assert_world, timeout: PT1M, parameters: {subject: "place/blockus:amethyst_bricks", equals: "placed"}}
+  - {id: render, action: assert_render, timeout: PT1M, parameters: {subject: "block/blockus:amethyst_bricks", equals: "visible"}}
+  - {id: save, action: save, timeout: PT1M, parameters: {marker: "All dimensions are saved"}}
+  - {id: reload, action: reload, timeout: PT3M, parameters: {marker: "LOADERBRIDGE_CLIENT_WORLD_RELOADED"}}
+  - {id: persisted, action: assert_world, timeout: PT1M, parameters: {subject: "block/blockus:amethyst_bricks", equals: "persisted"}}
+  - {id: shutdown, action: shutdown, timeout: PT1M, parameters: {marker: "LOADERBRIDGE_CLIENT_STOPPED"}}

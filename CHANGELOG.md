@@ -16,6 +16,9 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added the first Fabric-only content-mod deep scenario for Blockus, requiring
+  real block/item registration, placement, rendering, save, and reload rather
+  than treating startup as compatibility.
 - Added the first Fabric Transfer API v1 bridge slice with thread-confined
   outer/nested transactions, rollback and commit propagation, LIFO close and
   outer-close callbacks, snapshot participants, automatic bytecode selection,

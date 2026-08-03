@@ -156,6 +156,11 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - Pinned real-mod probes for Lithium 0.14.3 and FerriteCore 7.0.3. Both pass
   client and dedicated-server ready, world save, clean shutdown, and reload on
   Forge 52.1.0 and 52.1.16 in the current macOS laboratory.
+- Blockus is the first pinned Fabric-only content probe. Its deep scenario
+  requires a real block and item to register, place, render, save, and persist
+  after reload. It is currently a measured failure while the missing content
+  registry, item-group, convention-tag, biome, and rendering APIs are built; it
+  is not counted as compatible merely because preprocessing found the JAR.
 - A controlled Fabric API base fixture passes automatic module installation,
   dedicated-server ready, world save, clean shutdown, and reload on Forge
   52.1.16.

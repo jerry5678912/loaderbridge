@@ -19,6 +19,13 @@ final class FabricModInspectorTest {
     Path tempDirectory;
 
     @Test
+    void defaultLimitsAllowResourceHeavyContentMods() {
+        assertThat(JarReadLimits.DEFAULT.maxEntries()).isGreaterThanOrEqualTo(20_000);
+        assertThat(JarReadLimits.DEFAULT.maxEntryBytes()).isEqualTo(64L << 20);
+        assertThat(JarReadLimits.DEFAULT.maxTotalBytes()).isEqualTo(512L << 20);
+    }
+
+    @Test
     void parsesFabricMetadataFromJarContentsRatherThanFilename() throws IOException {
         Path jar = tempDirectory.resolve("definitely-not-fabric.bin");
         writeJar(jar, Map.of(
