@@ -30,7 +30,7 @@ class TransactionContractTest {
     void providerAdvertisesOnlyImplementedTransactionSurface() {
         var descriptor = new FabricTransferApiBridgeProvider().descriptor();
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("5.4.4+7b3d111d19-loaderbridge.4");
+                .isEqualTo("5.4.4+7b3d111d19-loaderbridge.5");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrderElementsOf(Set.of(
                 "net.fabricmc.fabric.api.transfer.v1.transaction.Transaction",
                 "net.fabricmc.fabric.api.transfer.v1.transaction.Transaction$Lifecycle",
@@ -53,7 +53,11 @@ class TransactionContractTest {
                 "net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedSlottedStorage",
                 "net.fabricmc.fabric.api.transfer.v1.storage.base.ExtractionOnlyStorage",
                 "net.fabricmc.fabric.api.transfer.v1.storage.base.InsertionOnlyStorage",
-                "net.fabricmc.fabric.api.transfer.v1.storage.base.FilteringStorage"));
+                "net.fabricmc.fabric.api.transfer.v1.storage.base.FilteringStorage",
+                "net.fabricmc.fabric.api.transfer.v1.item.ItemVariant",
+                "net.fabricmc.fabric.api.transfer.v1.item.InventoryStorage",
+                "net.fabricmc.fabric.api.transfer.v1.item.base.SingleItemStorage",
+                "net.fabricmc.fabric.api.transfer.v1.item.base.SingleStackStorage"));
     }
 
     @Test

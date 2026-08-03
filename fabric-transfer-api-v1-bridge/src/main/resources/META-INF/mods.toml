@@ -1,0 +1,15 @@
+modLoader="javafml"
+loaderVersion="[52,)"
+license="Apache-2.0"
+
+[[mods]]
+modId="loaderbridge_fabric_transfer_api_v1"
+version="5.4.4.5"
+displayName="LoaderBridge Fabric Transfer API v1 Bridge"
+
+[[dependencies.loaderbridge_fabric_transfer_api_v1]]
+modId="forge"
+mandatory=true
+versionRange="[52.1.0,53)"
+ordering="NONE"
+side="BOTH"

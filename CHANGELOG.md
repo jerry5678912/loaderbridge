@@ -31,6 +31,12 @@ All notable user-facing changes will be recorded here.
   contracts for atomic moves, simulations, stacking, resource queries,
   comparator output, snapshots, capacity hints, and NBT codecs; a real client
   verifies utility movement through the complete world lifecycle.
+- Added Fabric item variants, single-stack/item storage, and vanilla inventory
+  wrappers with component-aware identity, sided slot access, transactional
+  rollback/commit, capacity rules, and a real-client two-slot behavioral test.
+- Moved the Transfer API bridge into Forge's transformed game layer and made
+  Fabric language adapters resolve entrypoints through that layer, preventing
+  duplicate Minecraft class identities when API bridges link game classes.
 
 - Added the initial Fabric Registry Sync v0 bridge with custom static registry
   builders, MODDED/SYNCED attributes, registry-local entry/remap events,

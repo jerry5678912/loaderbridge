@@ -31,12 +31,14 @@ import net.minecraftforge.forgespi.language.ModFileScanData;
 public final class FabricModContainer extends ModContainer {
     private final List<Object> modInstances = new ArrayList<>();
     private final BridgeModContainer bridgeModContainer;
+    private final ClassLoader gameClassLoader;
     private final boolean active;
     private final AtomicBoolean clientEntrypointsInvoked = new AtomicBoolean();
     private final AtomicBoolean serverEntrypointsInvoked = new AtomicBoolean();
 
     public FabricModContainer(IModInfo info, ModFileScanData scanData, ModuleLayer gameLayer) {
         super(info);
+        gameClassLoader = gameLayer.findLoader("minecraft");
         this.contextExtension = () -> null;
         Path metadataPath = info.getOwningFile().getFile().findResource("fabric.mod.json");
         Path root = metadataPath.getParent();
@@ -76,6 +78,7 @@ public final class FabricModContainer extends ModContainer {
                         initializer -> initializer.onInitialize()));
     }
 
+    @SuppressWarnings("try")
     private <T> void invokeEntrypoints(Path metadataPath, String key, Class<T> contract,
             EntrypointInvoker<T> invoker) {
         try (Reader reader = Files.newBufferedReader(metadataPath)) {
@@ -100,7 +103,11 @@ public final class FabricModContainer extends ModContainer {
                     default -> throw new IllegalStateException("LB-ENTRY-004: unsupported language adapter '"
                             + adapter + "' for " + modId);
                 };
-                T instance = languageAdapter.create(bridgeModContainer, className, contract);
+                T instance;
+                try (ContextClassLoaderScope ignored =
+                        ContextClassLoaderScope.open(gameClassLoader)) {
+                    instance = languageAdapter.create(bridgeModContainer, className, contract);
+                }
                 modInstances.add(instance);
                 BridgeFabricLoader.getInstance().registerEntrypoint(
                         key, bridgeModContainer, className, instance);

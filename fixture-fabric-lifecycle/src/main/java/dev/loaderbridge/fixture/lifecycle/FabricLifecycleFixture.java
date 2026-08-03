@@ -16,6 +16,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
@@ -54,6 +55,8 @@ import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageUtil;
+import net.fabricmc.fabric.api.transfer.v1.item.InventoryStorage;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedSlottedStorage;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.FilteringStorage;
@@ -198,6 +201,33 @@ public final class FabricLifecycleFixture implements ModInitializer {
             throw new IllegalStateException("LOADERBRIDGE_FABRIC_TRANSFER_UTILITIES_FAILED");
         }
         System.out.println("LOADERBRIDGE_FABRIC_TRANSFER_UTILITIES_READY");
+        SimpleContainer itemInventory = new SimpleContainer(2);
+        InventoryStorage itemStorage = InventoryStorage.of(itemInventory, null);
+        ItemVariant diamonds = ItemVariant.of(Items.DIAMOND);
+        try (Transaction aborted = Transaction.openOuter()) {
+            if (itemStorage.insert(diamonds, 70, aborted) != 70) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_ITEM_ABORT_SETUP_FAILED");
+            }
+        }
+        try (Transaction committed = Transaction.openOuter()) {
+            if (itemStorage.insert(diamonds, 70, committed) != 70) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_ITEM_INSERT_FAILED");
+            }
+            committed.commit();
+        }
+        try (Transaction committed = Transaction.openOuter()) {
+            if (itemStorage.getSlot(0).extract(diamonds, 9, committed) != 9) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_ITEM_EXTRACT_FAILED");
+            }
+            committed.commit();
+        }
+        if (itemStorage.getSlotCount() != 2
+                || itemInventory.getItem(0).getCount() != 55
+                || itemInventory.getItem(1).getCount() != 6
+                || !diamonds.matches(itemInventory.getItem(0))) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_ITEM_STORAGE_FAILED");
+        }
+        System.out.println("LOADERBRIDGE_FABRIC_ITEM_STORAGE_READY");
         DynamicRegistrySetupCallback.EVENT.register(view -> {
             if (view.getOptional(DYNAMIC_REGISTRY_KEY).isEmpty()) return;
             if (view.asDynamicRegistryManager().registry(DYNAMIC_REGISTRY_KEY).isEmpty()
