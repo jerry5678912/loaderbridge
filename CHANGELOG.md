@@ -16,6 +16,10 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Batched Fabric `preLaunch`, `main`, `client`, and `server` entrypoints in
+  canonical mod-ID order, independent of Forge container discovery order.
+  Dedicated-server entrypoints now use the same once-only global coordination
+  as the other Fabric stages.
 - Replaced iterative nested-version choice with a deterministic bounded
   backtracking selector. It now chooses versions whose own hard dependencies,
   host-version predicates, aliases, identity claims, and `breaks` constraints

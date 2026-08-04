@@ -3,6 +3,7 @@ package dev.loaderbridge.forge;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import net.minecraftforge.eventbus.api.Event;
 
@@ -17,25 +18,31 @@ final class FabricRegistrationLifecycle {
     private static final Coordinator MAIN_ENTRYPOINTS = new Coordinator();
     private static final PreLaunchCoordinator PRE_LAUNCH_ENTRYPOINTS =
             new PreLaunchCoordinator();
+    private static final ServerCoordinator SERVER_ENTRYPOINTS = new ServerCoordinator();
 
     private FabricRegistrationLifecycle() {
     }
 
-    static void registerPreLaunchEntrypoints(Runnable entrypoints) {
-        PRE_LAUNCH_ENTRYPOINTS.register(entrypoints);
+    static void registerPreLaunchEntrypoints(String modId, Runnable entrypoints) {
+        PRE_LAUNCH_ENTRYPOINTS.register(modId, entrypoints);
     }
 
-    static void registerMainEntrypoints(Runnable entrypoints) {
-        MAIN_ENTRYPOINTS.registerMain(entrypoints);
+    static void registerMainEntrypoints(String modId, Runnable entrypoints) {
+        MAIN_ENTRYPOINTS.registerMain(modId, entrypoints);
     }
 
-    static void registerClientEntrypoints(Runnable entrypoints) {
-        MAIN_ENTRYPOINTS.registerClient(entrypoints);
+    static void registerClientEntrypoints(String modId, Runnable entrypoints) {
+        MAIN_ENTRYPOINTS.registerClient(modId, entrypoints);
+    }
+
+    static void registerServerEntrypoints(String modId, Runnable entrypoints) {
+        SERVER_ENTRYPOINTS.register(modId, entrypoints);
     }
 
     static boolean invokeIfInitializationEvent(Event event) {
         String eventName = event.getClass().getName();
         boolean preLaunch = PRE_LAUNCH_ENTRYPOINTS.invokeIfConstructEvent(eventName);
+        boolean server = SERVER_ENTRYPOINTS.invokeIfServerSetupEvent(eventName);
         boolean initialization = MAIN_ENTRYPOINTS.invokeIfInitializationEvent(eventName,
                 () -> openForgeRegistryWindow(event),
                 () -> {
@@ -49,7 +56,7 @@ final class FabricRegistrationLifecycle {
                     FabricClientModelRegistration.captureAfterEntrypoints(event);
                     FabricClientRecipeBookRegistration.captureAfterEntrypoints(event);
                 });
-        return preLaunch || initialization;
+        return preLaunch || initialization || server;
     }
 
     static void publishClientGameInstance(ClassLoader gameClassLoader) {
@@ -73,15 +80,15 @@ final class FabricRegistrationLifecycle {
     }
 
     static final class PreLaunchCoordinator {
-        private final List<Runnable> pending = new ArrayList<>();
+        private final List<RegisteredEntrypoints> pending = new ArrayList<>();
         private boolean invoked;
 
-        synchronized void register(Runnable entrypoints) {
+        synchronized void register(String modId, Runnable entrypoints) {
             if (invoked) {
                 throw new IllegalStateException(
                         "LB-ENTRY-007: Fabric preLaunch entrypoint registered after construct");
             }
-            pending.add(entrypoints);
+            pending.add(new RegisteredEntrypoints(modId, entrypoints));
         }
 
         synchronized boolean invokeIfConstructEvent(String eventName) {
@@ -89,31 +96,31 @@ final class FabricRegistrationLifecycle {
                 return false;
             }
             invoked = true;
-            pending.forEach(Runnable::run);
+            invokeInModOrder(pending);
             pending.clear();
             return true;
         }
     }
 
     static final class Coordinator {
-        private final List<Runnable> pendingMain = new ArrayList<>();
-        private final List<Runnable> pendingClient = new ArrayList<>();
+        private final List<RegisteredEntrypoints> pendingMain = new ArrayList<>();
+        private final List<RegisteredEntrypoints> pendingClient = new ArrayList<>();
         private boolean invoked;
 
-        synchronized void registerMain(Runnable entrypoints) {
+        synchronized void registerMain(String modId, Runnable entrypoints) {
             if (invoked) {
                 throw new IllegalStateException(
                         "LB-ENTRY-005: Fabric main entrypoint registered after common setup");
             }
-            pendingMain.add(entrypoints);
+            pendingMain.add(new RegisteredEntrypoints(modId, entrypoints));
         }
 
-        synchronized void registerClient(Runnable entrypoints) {
+        synchronized void registerClient(String modId, Runnable entrypoints) {
             if (invoked) {
                 throw new IllegalStateException(
                         "LB-ENTRY-006: Fabric client entrypoint registered after common setup");
             }
-            pendingClient.add(entrypoints);
+            pendingClient.add(new RegisteredEntrypoints(modId, entrypoints));
         }
 
         synchronized boolean invokeIfInitializationEvent(String eventName,
@@ -133,14 +140,44 @@ final class FabricRegistrationLifecycle {
             invoked = true;
             openRegistryWindow.run();
             beforeEntrypoints.run();
-            pendingMain.forEach(Runnable::run);
-            pendingClient.forEach(Runnable::run);
+            invokeInModOrder(pendingMain);
+            invokeInModOrder(pendingClient);
             afterEntrypoints.run();
             pendingMain.clear();
             pendingClient.clear();
             return true;
         }
     }
+
+    static final class ServerCoordinator {
+        private static final String SERVER_SETUP_EVENT =
+                "net.minecraftforge.fml.event.lifecycle.FMLDedicatedServerSetupEvent";
+        private final List<RegisteredEntrypoints> pending = new ArrayList<>();
+        private boolean invoked;
+
+        synchronized void register(String modId, Runnable entrypoints) {
+            if (invoked) {
+                throw new IllegalStateException(
+                        "LB-ENTRY-008: Fabric server entrypoint registered after server setup");
+            }
+            pending.add(new RegisteredEntrypoints(modId, entrypoints));
+        }
+
+        synchronized boolean invokeIfServerSetupEvent(String eventName) {
+            if (!SERVER_SETUP_EVENT.equals(eventName) || invoked) return false;
+            invoked = true;
+            invokeInModOrder(pending);
+            pending.clear();
+            return true;
+        }
+    }
+
+    private static void invokeInModOrder(List<RegisteredEntrypoints> entrypoints) {
+        entrypoints.stream().sorted(Comparator.comparing(RegisteredEntrypoints::modId))
+                .map(RegisteredEntrypoints::action).forEach(Runnable::run);
+    }
+
+    private record RegisteredEntrypoints(String modId, Runnable action) {}
 
     private static void openForgeRegistryWindow(Event registerEvent) {
         try {

@@ -40,6 +40,11 @@ LoaderBridge's transformed root and recursively extracted nested JARs share
 Forge's game layer. A controlled parent now directly loads a non-entrypoint
 class and resource present only in its nested child; the dedicated-server
 scenario observed that marker in both launches around a world save and reload.
+LoaderBridge now also attaches each queued lifecycle callback to its provider
+ID and sorts the complete `preLaunch`, `main`, `client`, and dedicated-server
+batches before invocation. This extends the pinned resolver's canonical order
+from public API views to actual lifecycle execution, independent of Forge's
+discovery order.
 Fabric's `CustomValueImpl` parses one immutable object/array tree, represents
 numbers as `Double`, returns the stored nested value on repeated lookup, and
 throws a type-specific `ClassCastException` instead of coercing values.

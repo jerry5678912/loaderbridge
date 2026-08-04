@@ -11,7 +11,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.api.ModInitializer;
@@ -31,7 +30,6 @@ public final class FabricModContainer extends ModContainer {
     private final BridgeModContainer bridgeModContainer;
     private final ClassLoader gameClassLoader;
     private final boolean active;
-    private final AtomicBoolean serverEntrypointsInvoked = new AtomicBoolean();
 
     public FabricModContainer(IModInfo info, ModFileScanData scanData, ModuleLayer gameLayer) {
         super(info);
@@ -85,15 +83,23 @@ public final class FabricModContainer extends ModContainer {
         BridgeFabricLoader.getInstance().registerMod(bridgeModContainer);
         registerEntrypointDefinitions(entrypointDefinitions);
         FabricRegistrationLifecycle.registerPreLaunchEntrypoints(
+                bridgeModContainer.getMetadata().getId(),
                 () -> invokeEntrypoints("preLaunch", PreLaunchEntrypoint.class,
                         entrypoint -> entrypoint.onPreLaunch()));
         FabricRegistrationLifecycle.registerMainEntrypoints(
+                bridgeModContainer.getMetadata().getId(),
                 () -> invokeEntrypoints("main", ModInitializer.class,
                         initializer -> initializer.onInitialize()));
         if (FMLEnvironment.dist.isClient()) {
             FabricRegistrationLifecycle.registerClientEntrypoints(
+                    bridgeModContainer.getMetadata().getId(),
                     () -> invokeEntrypoints("client", ClientModInitializer.class,
                             initializer -> initializer.onInitializeClient()));
+        } else {
+            FabricRegistrationLifecycle.registerServerEntrypoints(
+                    bridgeModContainer.getMetadata().getId(),
+                    () -> invokeEntrypoints("server", DedicatedServerModInitializer.class,
+                            initializer -> initializer.onInitializeServer()));
         }
     }
 
@@ -148,18 +154,12 @@ public final class FabricModContainer extends ModContainer {
         if (!active) {
             return;
         }
-        String eventName = event.getClass().getName();
         FabricRegistrationLifecycle.invokeIfInitializationEvent(event);
         if (FabricClientModelRegistration.registerIfModelEvent(event)) {
             return;
         }
         if (FabricClientRecipeBookRegistration.registerIfEvent(event)) {
             return;
-        }
-        if (eventName.equals("net.minecraftforge.fml.event.lifecycle.FMLDedicatedServerSetupEvent")
-                && serverEntrypointsInvoked.compareAndSet(false, true)) {
-            invokeEntrypoints("server", DedicatedServerModInitializer.class,
-                    initializer -> initializer.onInitializeServer());
         }
     }
 

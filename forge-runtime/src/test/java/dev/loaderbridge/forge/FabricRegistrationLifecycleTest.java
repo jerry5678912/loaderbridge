@@ -42,8 +42,8 @@ class FabricRegistrationLifecycleTest {
     void invokesAllPreLaunchCallbacksAtTheFirstConstructEvent() {
         var coordinator = new FabricRegistrationLifecycle.PreLaunchCoordinator();
         List<String> order = new ArrayList<>();
-        coordinator.register(() -> order.add("pre-one"));
-        coordinator.register(() -> order.add("pre-two"));
+        coordinator.register("zulu", () -> order.add("pre-zulu"));
+        coordinator.register("alpha", () -> order.add("pre-alpha"));
 
         assertThat(coordinator.invokeIfConstructEvent(
                 "net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent")).isFalse();
@@ -52,17 +52,17 @@ class FabricRegistrationLifecycleTest {
         assertThat(coordinator.invokeIfConstructEvent(
                 "net.minecraftforge.fml.event.lifecycle.FMLConstructModEvent")).isFalse();
 
-        assertThat(order).containsExactly("pre-one", "pre-two");
+        assertThat(order).containsExactly("pre-alpha", "pre-zulu");
     }
 
     @Test
     void invokesResolvedEntrypointsTogetherDuringCommonSetup() {
         var coordinator = new FabricRegistrationLifecycle.Coordinator();
         List<String> order = new ArrayList<>();
-        coordinator.registerMain(() -> order.add("main-one"));
-        coordinator.registerClient(() -> order.add("client-one"));
-        coordinator.registerMain(() -> order.add("main-two"));
-        coordinator.registerClient(() -> order.add("client-two"));
+        coordinator.registerMain("zulu", () -> order.add("main-zulu"));
+        coordinator.registerClient("zulu", () -> order.add("client-zulu"));
+        coordinator.registerMain("alpha", () -> order.add("main-alpha"));
+        coordinator.registerClient("alpha", () -> order.add("client-alpha"));
 
         assertThat(coordinator.invokeIfInitializationEvent(
                 "net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent",
@@ -75,20 +75,37 @@ class FabricRegistrationLifecycleTest {
                 () -> order.add("open-again"))).isFalse();
 
         assertThat(order).containsExactly(
-                "open", "main-one", "main-two", "client-one", "client-two");
+                "open", "main-alpha", "main-zulu", "client-alpha", "client-zulu");
     }
 
     @Test
     void clientRecipeBookEventCanInitializeBeforeItsSnapshot() {
         var coordinator = new FabricRegistrationLifecycle.Coordinator();
         List<String> order = new ArrayList<>();
-        coordinator.registerMain(() -> order.add("main"));
-        coordinator.registerClient(() -> order.add("client"));
+        coordinator.registerMain("fixture", () -> order.add("main"));
+        coordinator.registerClient("fixture", () -> order.add("client"));
 
         assertThat(coordinator.invokeIfInitializationEvent(
                 "net.minecraftforge.client.event.RegisterRecipeBookCategoriesEvent",
                 () -> order.add("open"))).isTrue();
 
         assertThat(order).containsExactly("open", "main", "client");
+    }
+
+    @Test
+    void invokesDedicatedServerEntrypointsInCanonicalModOrderOnce() {
+        var coordinator = new FabricRegistrationLifecycle.ServerCoordinator();
+        List<String> order = new ArrayList<>();
+        coordinator.register("zulu", () -> order.add("server-zulu"));
+        coordinator.register("alpha", () -> order.add("server-alpha"));
+
+        assertThat(coordinator.invokeIfServerSetupEvent(
+                "net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent")).isFalse();
+        assertThat(coordinator.invokeIfServerSetupEvent(
+                "net.minecraftforge.fml.event.lifecycle.FMLDedicatedServerSetupEvent")).isTrue();
+        assertThat(coordinator.invokeIfServerSetupEvent(
+                "net.minecraftforge.fml.event.lifecycle.FMLDedicatedServerSetupEvent")).isFalse();
+
+        assertThat(order).containsExactly("server-alpha", "server-zulu");
     }
 }
