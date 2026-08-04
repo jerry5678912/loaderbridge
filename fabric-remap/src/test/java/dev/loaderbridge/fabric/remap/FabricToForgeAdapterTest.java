@@ -268,6 +268,46 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void rejectsReservedAndDuplicateLanguageAdapterDefinitions() throws Exception {
+        Path reserved = temporaryDirectory.resolve("reserved-adapter.jar");
+        Files.write(reserved, jarBytes("""
+                {"schemaVersion":1,"id":"reserved_adapter","version":"1",
+                 "languageAdapters":{"default":"fixture.Replacement"}}
+                """));
+        Path first = temporaryDirectory.resolve("first-kotlin-adapter.jar");
+        Files.write(first, jarBytes("""
+                {"schemaVersion":1,"id":"first_kotlin_adapter","version":"1",
+                 "languageAdapters":{"kotlin":"fixture.First"}}
+                """));
+        Path second = temporaryDirectory.resolve("second-kotlin-adapter.jar");
+        Files.write(second, jarBytes("""
+                {"schemaVersion":1,"id":"second_kotlin_adapter","version":"1",
+                 "languageAdapters":{"kotlin":"fixture.Second"}}
+                """));
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var reservedPlan = adapter.plan(requestFor(reserved, "reserved-adapter"));
+        BridgeRequest duplicateRequest = new BridgeRequest("1.21.1", new LoaderId("forge"),
+                "52.1.0", BridgeEnvironment.SERVER, List.of(first, second),
+                temporaryDirectory.resolve("duplicate-adapter"),
+                temporaryDirectory.resolve("duplicate-adapter-cache"));
+        var duplicatePlan = adapter.plan(duplicateRequest);
+
+        assertThat(reservedPlan.canPrepare()).isFalse();
+        assertThat(reservedPlan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-LANG-002");
+            assertThat(diagnostic.modId()).isEqualTo("reserved_adapter");
+            assertThat(diagnostic.message()).contains("default", "fabricloader");
+        });
+        assertThat(duplicatePlan.canPrepare()).isFalse();
+        assertThat(duplicatePlan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-LANG-002");
+            assertThat(diagnostic.modId()).isEqualTo("second_kotlin_adapter");
+            assertThat(diagnostic.message()).contains("kotlin", "first_kotlin_adapter");
+        });
+    }
+
+    @Test
     void automaticallySelectsAndInstallsFabricApiBaseBridge() throws Exception {
         Path source = referencedMod("event_api", "fabric-api-base", writer -> {
             var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);

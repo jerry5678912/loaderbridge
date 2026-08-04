@@ -91,6 +91,10 @@ than only the user-installed root archives. Each selected nested archive is
 extracted under the bounded preprocessing cache and statically analyzed without
 class loading, so its API, namespace, native-library, MixinExtras, and language
 adapter requirements cannot appear for the first time during preparation.
+Fabric Loader installs its `default` adapter before processing mod-defined
+adapters and fails when any later definition reuses an installed key.
+LoaderBridge now performs the same global collision check over selected mods
+before Forge construction and reports `LB-LANG-002` deterministically.
 Fabric Loader completes this setup for every active mod before invoking the
 `preLaunch` stage. LoaderBridge therefore queues prelaunch callbacks until
 Forge's first `FMLConstructModEvent`; all container constructors and entrypoint

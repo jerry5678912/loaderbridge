@@ -133,6 +133,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         }
         List<FabricModMetadata> allMetadata = selectMetadataCandidates(allCandidates, diagnostics)
                 .stream().map(MetadataCandidate::metadata).toList();
+        diagnoseLanguageAdapterCollisions(allMetadata, diagnostics);
         boolean candidateSelectionFailed = diagnostics.stream().anyMatch(diagnostic ->
                 diagnostic.code().equals("LB-NESTED-006")
                         || diagnostic.code().equals("LB-NESTED-007"));
@@ -544,6 +545,22 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         return metadata.environment().equals("*")
                 || metadata.environment().equals(
                         environment.name().toLowerCase(java.util.Locale.ROOT));
+    }
+
+    private static void diagnoseLanguageAdapterCollisions(
+            List<FabricModMetadata> metadata, List<Diagnostic> diagnostics) {
+        Map<String, String> owners = new LinkedHashMap<>();
+        owners.put("default", "fabricloader");
+        for (FabricModMetadata mod : metadata) {
+            for (String key : mod.languageAdapters().keySet()) {
+                String prior = owners.putIfAbsent(key, mod.id());
+                if (prior != null) {
+                    diagnostics.add(unsupported("LB-LANG-002", mod.id(), null,
+                            "Fabric language adapter key '" + key
+                                    + "' is already defined by " + prior));
+                }
+            }
+        }
     }
 
     private static Diagnostic environmentSkipped(
