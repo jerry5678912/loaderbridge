@@ -86,6 +86,11 @@ with one ID remain a structured error. Hash deduplication also promotes an
 artifact first seen nested when the identical JAR is subsequently installed as
 a root. The preprocessing comparator now ignores semantic `+build` metadata
 instead of falling back to lexical ordering.
+Capability planning now runs against that same selected candidate set rather
+than only the user-installed root archives. Each selected nested archive is
+extracted under the bounded preprocessing cache and statically analyzed without
+class loading, so its API, namespace, native-library, MixinExtras, and language
+adapter requirements cannot appear for the first time during preparation.
 Fabric Loader completes this setup for every active mod before invoking the
 `preLaunch` stage. LoaderBridge therefore queues prelaunch callbacks until
 Forge's first `FMLConstructModEvent`; all container constructors and entrypoint

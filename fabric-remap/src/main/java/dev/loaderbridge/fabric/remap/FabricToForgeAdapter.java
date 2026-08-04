@@ -105,6 +105,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         List<Diagnostic> diagnostics = new ArrayList<>();
         List<ModInspection> inspections = new ArrayList<>();
         List<MetadataCandidate> allCandidates = new ArrayList<>();
+        List<PreparationInput> analysisInputs = new ArrayList<>();
+        Map<String, Integer> seenAnalysisArtifacts = new LinkedHashMap<>();
         Map<String, RuntimeBridgeModuleProvider> plannedBridgeModules = new LinkedHashMap<>();
         EnumSet<BridgeCapability> required = EnumSet.of(BridgeCapability.METADATA,
                 BridgeCapability.DEPENDENCY_RESOLUTION);
@@ -121,10 +123,9 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                 }
                 collectCompatibleMetadata(tree, request.environment(), allCandidates,
                         diagnostics, artifact, true);
-                ReferenceInventory inventory = analyzer.analyze(artifact,
-                        nonRuntimeEntrypointClasses(metadata));
-                analyzeRequirements(artifact, metadata, inventory, required, diagnostics, request,
-                        plannedBridgeModules);
+                collectPreparationInputs(artifact, artifact, artifact.toString(), null, null,
+                        request.environment(), request.cacheDirectory(), analysisInputs,
+                        seenAnalysisArtifacts);
             } catch (IOException exception) {
                 diagnostics.add(error("LB-INSPECT-001", BridgePhase.INSPECT, null, artifact,
                         "Could not inspect Fabric mod", exception));
@@ -132,6 +133,25 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         }
         List<FabricModMetadata> allMetadata = selectMetadataCandidates(allCandidates, diagnostics)
                 .stream().map(MetadataCandidate::metadata).toList();
+        boolean candidateSelectionFailed = diagnostics.stream().anyMatch(diagnostic ->
+                diagnostic.code().equals("LB-NESTED-006")
+                        || diagnostic.code().equals("LB-NESTED-007"));
+        if (!candidateSelectionFailed) {
+            for (PreparationInput input : selectPreparationInputs(analysisInputs)) {
+                if (isReplacedFabricApiNestedInput(input)) continue;
+                try {
+                    ReferenceInventory inventory = analyzer.analyze(input.path(),
+                            nonRuntimeEntrypointClasses(input.metadata()));
+                    analyzeRequirements(input.rootArtifact(), input.metadata(), inventory, required,
+                            diagnostics, request, plannedBridgeModules);
+                } catch (IOException exception) {
+                    diagnostics.add(error("LB-INSPECT-001", BridgePhase.INSPECT,
+                            input.metadata().id(), input.rootArtifact(),
+                            "Could not analyze Fabric mod bytecode from " + input.source(),
+                            exception));
+                }
+            }
+        }
         Map<String, String> builtinVersions = new LinkedHashMap<>(Map.of(
                 "minecraft", request.minecraftVersion(),
                 "java", System.getProperty("java.specification.version").replaceFirst("^1\\.", ""),
@@ -161,7 +181,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         boolean needsMixinExtras = false;
         Map<String, RuntimeBridgeModuleProvider> selectedBridgeModules = new LinkedHashMap<>();
         for (Path source : request.inputArtifacts()) {
-            collectPreparationInputs(source, source.toString(), null, null,
+            collectPreparationInputs(source, source, source.toString(), null, null,
                     request.environment(), request.cacheDirectory(), inputs,
                     seenArtifacts);
         }
@@ -696,7 +716,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         return true;
     }
 
-    private void collectPreparationInputs(Path artifact, String source, String parentModId,
+    private void collectPreparationInputs(Path artifact, Path rootArtifact, String source,
+            String parentModId,
             String parentSubLocation, BridgeEnvironment environment, Path cacheDirectory,
             List<PreparationInput> destination, Map<String, Integer> seenArtifacts) throws IOException {
         String hash = sha256(artifact);
@@ -705,7 +726,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             PreparationInput previous = destination.get(previousIndex);
             if (parentModId == null && previous.parentModId() != null) {
                 destination.set(previousIndex, new PreparationInput(
-                        artifact, source, previous.metadata(), null, null));
+                        artifact, artifact, source, previous.metadata(), null, null));
             }
             return;
         }
@@ -715,7 +736,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         }
         seenArtifacts.put(hash, destination.size());
         destination.add(new PreparationInput(
-                artifact, source, metadata, parentModId, parentSubLocation));
+                artifact, rootArtifact, source, metadata, parentModId, parentSubLocation));
         if (metadata.nestedJars().isEmpty()) {
             return;
         }
@@ -744,7 +765,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                 if (!Files.exists(nestedArtifact)) {
                     Files.write(nestedArtifact, bytes);
                 }
-                collectPreparationInputs(nestedArtifact, source + "!/" + nestedLocation,
+                collectPreparationInputs(nestedArtifact, rootArtifact,
+                        source + "!/" + nestedLocation,
                         metadata.id(), nestedLocation, environment,
                         cacheDirectory, destination, seenArtifacts);
             }
@@ -882,6 +904,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
 
     private record PreparationInput(
             Path path,
+            Path rootArtifact,
             String source,
             FabricModMetadata metadata,
             String parentModId,

@@ -16,6 +16,10 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Planned capabilities from every selected root and nested Fabric candidate,
+  including bytecode references and language-adapter metadata. Compatibility
+  reports now expose nested Fabric API, Loader API, MixinExtras, native-library,
+  namespace, and unknown-adapter requirements before transformation.
 - Added Fabric-style nested candidate selection: mandatory roots outrank nested
   copies, compatible higher versions win, selected dependencies are iterated,
   identical hashes are deduplicated, and a later root occurrence promotes a

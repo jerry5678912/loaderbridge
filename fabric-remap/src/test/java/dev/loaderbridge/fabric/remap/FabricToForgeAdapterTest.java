@@ -208,6 +208,66 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void analyzesFabricApiRequirementsInSelectedNestedMods() throws Exception {
+        Path nested = referencedMod("nested_optional_api", null, writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
+            method.visitMethodInsn(Opcodes.INVOKESTATIC,
+                    "net/fabricmc/fabric/api/transfer/v1/storage/base/SingleVariantItemStorage",
+                    "find", "()V", false);
+            method.visitEnd();
+        });
+        Path parent = temporaryDirectory.resolve("nested-api-parent.jar");
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(parent))) {
+            jar.putNextEntry(new JarEntry("fabric.mod.json"));
+            jar.write("""
+                    {"schemaVersion":1,"id":"nested_api_parent","version":"1",
+                     "jars":[{"file":"META-INF/jars/child.jar"}]}
+                    """.getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+            jar.putNextEntry(new JarEntry("META-INF/jars/child.jar"));
+            jar.write(Files.readAllBytes(nested));
+            jar.closeEntry();
+        }
+
+        var plan = new FabricToForgeAdapter().plan(requestFor(parent, "nested-api"));
+
+        assertThat(plan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-FAPI-002");
+            assertThat(diagnostic.modId()).isEqualTo("nested_optional_api");
+        });
+    }
+
+    @Test
+    void analyzesLanguageAdaptersInSelectedNestedMods() throws Exception {
+        byte[] nested = jarBytes("""
+                {"schemaVersion":1,"id":"nested_custom_adapter","version":"1",
+                 "languageAdapters":{"custom":"fixture.CustomAdapter"},
+                 "entrypoints":{"main":[{"adapter":"custom","value":"fixture.Main"}]}}
+                """);
+        Path parent = temporaryDirectory.resolve("nested-adapter-parent.jar");
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(parent))) {
+            jar.putNextEntry(new JarEntry("fabric.mod.json"));
+            jar.write("""
+                    {"schemaVersion":1,"id":"nested_adapter_parent","version":"1",
+                     "jars":[{"file":"META-INF/jars/child.jar"}]}
+                    """.getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+            jar.putNextEntry(new JarEntry("META-INF/jars/child.jar"));
+            jar.write(nested);
+            jar.closeEntry();
+        }
+
+        var plan = new FabricToForgeAdapter().plan(requestFor(parent, "nested-adapter"));
+
+        assertThat(plan.canPrepare()).isFalse();
+        assertThat(plan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-LANG-001");
+            assertThat(diagnostic.modId()).isEqualTo("nested_custom_adapter");
+            assertThat(diagnostic.message()).contains("custom");
+        });
+    }
+
+    @Test
     void automaticallySelectsAndInstallsFabricApiBaseBridge() throws Exception {
         Path source = referencedMod("event_api", "fabric-api-base", writer -> {
             var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
