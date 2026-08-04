@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import dev.loaderbridge.api.AdapterDescriptor;
 import dev.loaderbridge.api.BridgeAdapter;
 import dev.loaderbridge.api.BridgeCapability;
+import dev.loaderbridge.api.BridgeEnvironment;
 import dev.loaderbridge.api.BridgePhase;
 import dev.loaderbridge.api.BridgePlan;
 import dev.loaderbridge.api.BridgeRequest;
@@ -109,13 +110,18 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         for (Path artifact : request.inputArtifacts()) {
             try {
                 FabricModTree tree = inspector.inspect(artifact);
-                collectMetadata(tree, allMetadata);
                 FabricModMetadata metadata = tree.root();
+                inspections.add(inspection(artifact, metadata, List.of()));
+                if (!loadsInEnvironment(metadata, request.environment())) {
+                    diagnostics.add(environmentSkipped(metadata, artifact, request.environment()));
+                    continue;
+                }
+                collectCompatibleMetadata(tree, request.environment(), allMetadata,
+                        diagnostics, artifact);
                 ReferenceInventory inventory = analyzer.analyze(artifact,
                         nonRuntimeEntrypointClasses(metadata));
                 analyzeRequirements(artifact, metadata, inventory, required, diagnostics, request,
                         plannedBridgeModules);
-                inspections.add(inspection(artifact, metadata, List.of()));
             } catch (IOException exception) {
                 diagnostics.add(error("LB-INSPECT-001", BridgePhase.INSPECT, null, artifact,
                         "Could not inspect Fabric mod", exception));
@@ -153,7 +159,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         Map<String, RuntimeBridgeModuleProvider> selectedBridgeModules = new LinkedHashMap<>();
         for (Path source : request.inputArtifacts()) {
             collectPreparationInputs(source, source.toString(), null, null,
-                    request.cacheDirectory(), inputs, seenArtifacts, seenModVersions);
+                    request.environment(), request.cacheDirectory(), inputs,
+                    seenArtifacts, seenModVersions);
         }
         Map<String, String> dependencyOwners = dependencyOwners(inputs);
         for (PreparationInput input : inputs) {
@@ -256,6 +263,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             prepared.add(new PreparedArtifact(descriptor.id(), module.toString(), moduleHash,
                     output.toString(), sha256(output), moduleHash, "runtime-bridge-module"));
         }
+        removeStaleManagedArtifacts(request.outputDirectory(), outputs);
         Path report = writeReport(request, plan, prepared);
         writeLock(request, prepared, resolvedMinecraft, resolvedIntermediaryMappings,
                 adapterFingerprint);
@@ -490,9 +498,34 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                 entrypoints, diagnostics);
     }
 
-    private static void collectMetadata(FabricModTree tree, List<FabricModMetadata> destination) {
-        destination.add(tree.root());
-        tree.nested().forEach(child -> collectMetadata(child, destination));
+    private static void collectCompatibleMetadata(
+            FabricModTree tree,
+            BridgeEnvironment environment,
+            List<FabricModMetadata> destination,
+            List<Diagnostic> diagnostics,
+            Path artifact) {
+        FabricModMetadata metadata = tree.root();
+        if (!loadsInEnvironment(metadata, environment)) {
+            diagnostics.add(environmentSkipped(metadata, artifact, environment));
+            return;
+        }
+        destination.add(metadata);
+        tree.nested().forEach(child -> collectCompatibleMetadata(
+                child, environment, destination, diagnostics, artifact));
+    }
+
+    private static boolean loadsInEnvironment(
+            FabricModMetadata metadata, BridgeEnvironment environment) {
+        return metadata.environment().equals("*")
+                || metadata.environment().equals(
+                        environment.name().toLowerCase(java.util.Locale.ROOT));
+    }
+
+    private static Diagnostic environmentSkipped(
+            FabricModMetadata metadata, Path artifact, BridgeEnvironment environment) {
+        return info("LB-ENV-100", metadata.id(), artifact,
+                "Skipped " + metadata.environment() + "-only Fabric mod for "
+                        + environment.name().toLowerCase(java.util.Locale.ROOT) + " preparation");
     }
 
     private static void diagnoseDuplicateIds(List<FabricModMetadata> metadata,
@@ -509,7 +542,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
     }
 
     private void collectPreparationInputs(Path artifact, String source, String parentModId,
-            String parentSubLocation, Path cacheDirectory,
+            String parentSubLocation, BridgeEnvironment environment, Path cacheDirectory,
             List<PreparationInput> destination, Set<String> seenArtifacts,
             Map<String, String> seenModVersions) throws IOException {
         String hash = sha256(artifact);
@@ -517,6 +550,9 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             return;
         }
         FabricModMetadata metadata = inspector.inspect(artifact).root();
+        if (!loadsInEnvironment(metadata, environment)) {
+            return;
+        }
         String priorVersion = seenModVersions.putIfAbsent(metadata.id(), metadata.version());
         if (priorVersion != null) {
             if (priorVersion.equals(metadata.version())) {
@@ -556,7 +592,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                     Files.write(nestedArtifact, bytes);
                 }
                 collectPreparationInputs(nestedArtifact, source + "!/" + nestedLocation,
-                        metadata.id(), nestedLocation,
+                        metadata.id(), nestedLocation, environment,
                         cacheDirectory, destination, seenArtifacts, seenModVersions);
             }
         }
@@ -642,9 +678,48 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             String adapterFingerprint) throws IOException {
         Path lock = request.outputDirectory().resolve("bridge.lock.json");
         LockData data = new LockData("1", request.minecraftVersion(), "forge", request.hostVersion(),
+                request.environment(),
                 "fabric-to-forge", FabricAdapterVersion.CURRENT, adapterFingerprint, minecraft,
                 intermediaryMappings == null ? null : sha256(intermediaryMappings), prepared);
         Files.writeString(lock, JSON.toJson(data), StandardCharsets.UTF_8);
+    }
+
+    private static void removeStaleManagedArtifacts(Path outputDirectory, List<Path> currentOutputs)
+            throws IOException {
+        Path lock = outputDirectory.resolve("bridge.lock.json");
+        if (!Files.isRegularFile(lock)) return;
+
+        Path managedDirectory = outputDirectory.toAbsolutePath().normalize();
+        List<Path> previouslyManaged = new ArrayList<>();
+        try {
+            com.google.gson.JsonObject root = com.google.gson.JsonParser
+                    .parseString(Files.readString(lock)).getAsJsonObject();
+            if (!root.has("adapter") || !root.get("adapter").isJsonPrimitive()
+                    || !"fabric-to-forge".equals(root.get("adapter").getAsString())
+                    || !root.has("artifacts") || !root.get("artifacts").isJsonArray()) {
+                return;
+            }
+            for (com.google.gson.JsonElement element : root.getAsJsonArray("artifacts")) {
+                if (!element.isJsonObject() || !element.getAsJsonObject().has("output")
+                        || !element.getAsJsonObject().get("output").isJsonPrimitive()) {
+                    continue;
+                }
+                Path candidate = Path.of(element.getAsJsonObject().get("output").getAsString())
+                        .toAbsolutePath().normalize();
+                if (managedDirectory.equals(candidate.getParent())
+                        && candidate.getFileName().toString().endsWith(".jar")) {
+                    previouslyManaged.add(candidate);
+                }
+            }
+        } catch (RuntimeException exception) {
+            throw new IOException("LB-LOCK-003: existing bridge.lock.json is malformed", exception);
+        }
+        Set<Path> retained = currentOutputs.stream()
+                .map(path -> path.toAbsolutePath().normalize())
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+        for (Path managed : previouslyManaged) {
+            if (!retained.contains(managed)) Files.deleteIfExists(managed);
+        }
     }
 
     private record PreparedArtifact(String modId, String source, String sourceSha256, String output,
@@ -662,7 +737,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             List<Diagnostic> diagnostics, List<PreparedArtifact> preparedArtifacts) {}
 
     private record LockData(String formatVersion, String minecraftVersion, String hostLoader,
-            String hostVersion, String adapter, String adapterVersion, String adapterArtifactSha256,
+            String hostVersion, BridgeEnvironment environment, String adapter, String adapterVersion,
+            String adapterArtifactSha256,
             ResolvedMinecraftArtifacts minecraftArtifacts, String intermediaryMappingsSha256,
             List<PreparedArtifact> artifacts) {}
 

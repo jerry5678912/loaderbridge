@@ -699,6 +699,95 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void filtersIncompatibleRootModsBeforeDependencyResolutionAndPreparation() throws Exception {
+        Path clientOnly = temporaryDirectory.resolve("client-only.jar");
+        Files.write(clientOnly, jarBytes("""
+                {"schemaVersion":1,"id":"client_only","version":"1.0.0",
+                 "environment":"client","depends":{"missing_client_library":"*"}}
+                """));
+        BridgeRequest serverRequest = new BridgeRequest(
+                "1.21.1", new LoaderId("forge"), "52.1.0", BridgeEnvironment.SERVER,
+                List.of(clientOnly), temporaryDirectory.resolve("server-filter-output"),
+                temporaryDirectory.resolve("server-filter-cache"));
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(serverRequest);
+        var result = adapter.prepare(serverRequest, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .contains("LB-ENV-100")
+                .doesNotContain("LB-DEPS-001");
+        assertThat(result.artifacts()).isEmpty();
+    }
+
+    @Test
+    void filtersIncompatibleNestedModsForTheRequestedSide() throws Exception {
+        byte[] clientChild = jarBytes("""
+                {"schemaVersion":1,"id":"client_nested_child","version":"1.0.0",
+                 "environment":"client"}
+                """ );
+        Path parent = temporaryDirectory.resolve("sided-nested-parent.jar");
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(parent))) {
+            jar.putNextEntry(new JarEntry("fabric.mod.json"));
+            jar.write("""
+                    {"schemaVersion":1,"id":"sided_parent","version":"1.0.0",
+                     "jars":[{"file":"META-INF/jars/client-child.jar"}]}
+                    """.getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+            jar.putNextEntry(new JarEntry("META-INF/jars/client-child.jar"));
+            jar.write(clientChild);
+            jar.closeEntry();
+        }
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+        Path sharedOutput = temporaryDirectory.resolve("nested-sided-output");
+        Path sharedCache = temporaryDirectory.resolve("nested-sided-cache");
+        BridgeRequest serverRequest = new BridgeRequest(
+                "1.21.1", new LoaderId("forge"), "52.1.0", BridgeEnvironment.SERVER,
+                List.of(parent), sharedOutput, sharedCache);
+        BridgeRequest clientRequest = new BridgeRequest(
+                "1.21.1", new LoaderId("forge"), "52.1.0", BridgeEnvironment.CLIENT,
+                List.of(parent), sharedOutput, sharedCache);
+
+        var clientResult = adapter.prepare(clientRequest, adapter.plan(clientRequest));
+        var serverResult = adapter.prepare(serverRequest, adapter.plan(serverRequest));
+
+        assertThat(serverResult.artifacts()).extracting(path -> path.getFileName().toString())
+                .containsExactly("sided_parent-1.0.0-loaderbridge.jar");
+        assertThat(clientResult.artifacts()).extracting(path -> path.getFileName().toString())
+                .containsExactlyInAnyOrder(
+                        "sided_parent-1.0.0-loaderbridge.jar",
+                        "client_nested_child-1.0.0-loaderbridge.jar");
+        assertThat(sharedOutput.resolve("client_nested_child-1.0.0-loaderbridge.jar"))
+                .doesNotExist();
+        assertThat(Files.readString(sharedOutput.resolve("bridge.lock.json")))
+                .contains("\"environment\": \"SERVER\"");
+    }
+
+    @Test
+    void neverDeletesLockEntriesOutsideTheManagedOutputDirectory() throws Exception {
+        Path source = temporaryDirectory.resolve("safe-mod.jar");
+        Files.write(source, jarBytes("""
+                {"schemaVersion":1,"id":"safe_mod","version":"1.0.0"}
+                """));
+        Path output = temporaryDirectory.resolve("managed-output");
+        Files.createDirectories(output);
+        Path outside = temporaryDirectory.resolve("outside-user-file.jar");
+        Files.writeString(outside, "user-owned", StandardCharsets.UTF_8);
+        Files.writeString(output.resolve("bridge.lock.json"), """
+                {"adapter":"fabric-to-forge","artifacts":[{"output":"%s"}]}
+                """.formatted(outside), StandardCharsets.UTF_8);
+        BridgeRequest request = new BridgeRequest(
+                "1.21.1", new LoaderId("forge"), "52.1.0", BridgeEnvironment.CLIENT,
+                List.of(source), output, temporaryDirectory.resolve("safe-cache"));
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        adapter.prepare(request, adapter.plan(request));
+
+        assertThat(outside).exists().content(StandardCharsets.UTF_8).isEqualTo("user-owned");
+    }
+
+    @Test
     void ordersForgeContainersAfterTheCanonicalProviderOfAFabricAlias() throws Exception {
         Path provider = temporaryDirectory.resolve("alias-provider.jar");
         try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(provider))) {

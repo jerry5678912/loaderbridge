@@ -302,6 +302,7 @@ cli/build/install/cli/bin/cli prepare \
   --minecraft 1.21.1 \
   --host forge \
   --forge-version recommended \
+  --side client \
   --mods path/to/mods \
   --output path/to/prepared
 
@@ -334,6 +335,11 @@ endpoints, and is never written to snapshots or sent to artifact CDNs.
 `resolve` installs the selected release and its recursively required
 dependencies under `mods/`, retaining verified downloads in `.cache/` and
 writing `bridge.repository.lock.json`.
+`prepare --side client|server` applies Fabric environment filtering before
+dependency resolution and recursively omits incompatible nested mods. The side
+is locked in `bridge.lock.json`. Reusing an output directory removes stale JARs
+listed by its prior LoaderBridge lock, while never deleting unlisted files or
+paths outside that directory.
 `test` runs bounded lifecycle/save/reload behavior and writes a structured
 `scenario-report.json` plus per-launch Forge transcripts and discovered logs.
 
