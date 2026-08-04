@@ -64,6 +64,12 @@ Fabric's `getConfigDir()` creates the configured `config` directory before
 returning it and wraps filesystem creation failures as a runtime error.
 LoaderBridge now performs the same lazy creation so mods can immediately open
 config files without a loader-specific directory bootstrap.
+Fabric's `VersionIntervalImpl` compares any public interval implementation,
+normalizes inclusivity at unbounded ends, renders mathematical interval bounds,
+and treats plain-version point intervals differently from ordered semantic
+intervals. LoaderBridge now preserves those value contracts, plain-version
+intersection and union rules, complement edge cases, and deduplicates repeated
+overlaps when intersecting interval collections.
 Fabric Loader completes this setup for every active mod before invoking the
 `preLaunch` stage. LoaderBridge therefore queues prelaunch callbacks until
 Forge's first `FMLConstructModEvent`; all container constructors and entrypoint

@@ -16,6 +16,9 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Matched Fabric `VersionInterval` cross-implementation equality, hashing,
+  rendering, unbounded-end normalization, plain-version intersection/union
+  rules, and overlap deduplication.
 - Made Fabric Loader's config-directory accessor create the directory on first
   access and preserve its upstream failure wrapping for immediate mod writes.
 - Matched Fabric mod-container identity semantics and the public diagnostic

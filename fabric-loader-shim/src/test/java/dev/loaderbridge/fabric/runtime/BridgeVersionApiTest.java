@@ -76,5 +76,50 @@ class BridgeVersionApiTest {
         assertThat(VersionInterval.or(List.of(selected), selected)).containsExactly(selected);
         assertThat(VersionInterval.or(List.of(VersionInterval.INFINITE), selected))
                 .containsExactly(VersionInterval.INFINITE);
+        assertThat(VersionInterval.and(List.of(selected, selected), List.of(selected)))
+                .containsExactly(selected);
+        Version one = Version.parse("1");
+        Version two = Version.parse("2");
+        VersionInterval open = new BridgeVersionInterval(one, false, two, false);
+        VersionInterval leftPoint = new BridgeVersionInterval(one, true, one, true);
+        assertThat(VersionInterval.or(List.of(open), leftPoint)).singleElement()
+                .satisfies(union -> {
+                    assertThat(union.getMin()).isEqualTo(one);
+                    assertThat(union.isMinInclusive()).isTrue();
+                    assertThat(union.getMax()).isEqualTo(two);
+                    assertThat(union.isMaxInclusive()).isFalse();
+                });
+    }
+
+    @Test
+    void givesIntervalsFabricCompatibleCrossImplementationValueSemantics() throws Exception {
+        Version min = Version.parse("1.20");
+        Version max = Version.parse("1.22");
+        VersionInterval interval = new BridgeVersionInterval(min, true, max, false);
+        VersionInterval equivalent = new VersionInterval() {
+            @Override public boolean isSemantic() { return true; }
+            @Override public Version getMin() { return min; }
+            @Override public boolean isMinInclusive() { return true; }
+            @Override public Version getMax() { return max; }
+            @Override public boolean isMaxInclusive() { return false; }
+        };
+
+        assertThat(interval).isEqualTo(equivalent);
+        assertThat(interval.toString()).isEqualTo("[1.20,1.22)");
+        assertThat(new BridgeVersionInterval(null, true, max, false).isMinInclusive()).isFalse();
+        assertThat(new BridgeVersionInterval(min, true, null, true).isMaxInclusive()).isFalse();
+    }
+
+    @Test
+    void preservesFabricPlainVersionIntervalRules() throws Exception {
+        VersionInterval point = VersionPredicate.parse("release-candidate").getInterval();
+        List<VersionInterval> complement = point.not();
+
+        assertThat(point.isSemantic()).isFalse();
+        assertThat(point.toString()).isEqualTo("[release-candidate,release-candidate]");
+        assertThat(complement).extracting(Object::toString)
+                .containsExactly("(-∞,release-candidate)", "(release-candidate,∞)");
+        assertThat(VersionInterval.or(List.of(complement.getFirst()), complement.getLast()))
+                .containsExactly(VersionInterval.INFINITE);
     }
 }
