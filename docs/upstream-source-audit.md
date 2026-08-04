@@ -45,6 +45,9 @@ numbers as `Double`, returns the stored nested value on repeated lookup, and
 throws a type-specific `ClassCastException` instead of coercing values.
 LoaderBridge now mirrors those identity, iteration, immutability, numeric, and
 failure contracts rather than exposing Gson's conversions and exception types.
+The metadata object also retains that one parsed declaration-ordered map;
+repeated `getCustomValues()` and `getCustomValue()` calls now return the same
+map and node identities instead of reparsing JSON at each access.
 Fabric's semantic version implementation compares components through the longer
 version, treating omitted components as zero. LoaderBridge now makes `1`,
 `1.0`, and `1.0.0` equal as well as equally ordered, and normalizes their hashes

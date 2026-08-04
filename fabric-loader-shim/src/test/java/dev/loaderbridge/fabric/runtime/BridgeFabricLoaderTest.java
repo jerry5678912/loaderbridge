@@ -325,6 +325,10 @@ class BridgeFabricLoaderTest {
                 .get("mode").getAsString()).isEqualTo("test");
         assertThat(container.getMetadata().getCustomValue("values").getAsArray().get(1)
                 .getAsString()).isEqualTo("two");
+        assertThat(container.getMetadata().getCustomValues())
+                .isSameAs(container.getMetadata().getCustomValues());
+        assertThat(container.getMetadata().getCustomValue("settings"))
+                .isSameAs(container.getMetadata().getCustomValue("settings"));
         assertThat(container.getMetadata().getProvides()).containsExactly("rich_alias");
         assertThat(container.getMetadata().getDependencies())
                 .extracting(ModDependency::getKind, ModDependency::getModId)

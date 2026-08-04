@@ -7,6 +7,8 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -105,8 +107,14 @@ public record BridgeModContainer(
                 parseEnvironment(source.environment()),
                 dependencies(source.dependencies()),
                 source.description(), source.authors(), source.contributors(), source.contact(),
-                source.licenses(), source.icons(), source.customJson());
+                source.licenses(), source.icons(), customValues(source.customJson()));
         return new BridgeModContainer(metadata, List.of(root), parentModId, parentSubLocation);
+    }
+
+    private static Map<String, CustomValue> customValues(Map<String, String> customJson) {
+        Map<String, CustomValue> values = new LinkedHashMap<>();
+        customJson.forEach((key, json) -> values.put(key, BridgeCustomValue.parse(json)));
+        return Collections.unmodifiableMap(values);
     }
 
     private static ModEnvironment parseEnvironment(String environment) {
@@ -213,7 +221,7 @@ public record BridgeModContainer(
             Map<String, String> contact,
             List<String> licenses,
             Map<Integer, String> icons,
-            Map<String, String> customJson)
+            Map<String, CustomValue> customValues)
             implements ModMetadata {
         SimpleMetadata {
             provides = List.copyOf(provides);
@@ -223,7 +231,7 @@ public record BridgeModContainer(
             contact = Map.copyOf(contact);
             licenses = List.copyOf(licenses);
             icons = Map.copyOf(icons);
-            customJson = Map.copyOf(customJson);
+            customValues = Collections.unmodifiableMap(new LinkedHashMap<>(customValues));
         }
         @Override public String getType() { return type; }
         @Override public String getId() { return id; }
@@ -250,11 +258,7 @@ public record BridgeModContainer(
                             .thenComparing((left, right) -> Integer.compare(right.getKey(), left.getKey())))
                     .map(Map.Entry::getValue);
         }
-        @Override public Map<String, CustomValue> getCustomValues() {
-            Map<String, CustomValue> values = new java.util.LinkedHashMap<>();
-            customJson.forEach((key, json) -> values.put(key, BridgeCustomValue.parse(json)));
-            return Map.copyOf(values);
-        }
+        @Override public Map<String, CustomValue> getCustomValues() { return customValues; }
     }
 
     private record SimpleContact(Map<String, String> values) implements ContactInformation {
