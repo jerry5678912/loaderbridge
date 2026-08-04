@@ -128,7 +128,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                 "fabricloader", FabricLoaderCompatibility.VERSION));
         plannedBridgeModules.values().forEach(provider ->
                 builtinVersions.putAll(provider.descriptor().providedModVersions()));
-        diagnostics.addAll(new FabricDependencyResolver().resolve(null, allMetadata, builtinVersions));
+        diagnostics.addAll(new FabricDependencyResolver().resolve(null, allMetadata, builtinVersions,
+                Set.of("minecraft", "java", "fabricloader")));
         return new BridgePlan(descriptor(), inspections, List.copyOf(required), diagnostics);
     }
 

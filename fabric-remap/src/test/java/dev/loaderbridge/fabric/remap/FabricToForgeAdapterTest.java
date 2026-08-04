@@ -749,6 +749,36 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void refusesToPrepareAmbiguousFabricAliasProviders() throws Exception {
+        Path first = temporaryDirectory.resolve("first-alias-provider.jar");
+        Files.write(first, jarBytes("""
+                {"schemaVersion":1,"id":"first_provider","version":"1.0.0",
+                 "provides":["shared_api"]}
+                """));
+        Path second = temporaryDirectory.resolve("second-alias-provider.jar");
+        Files.write(second, jarBytes("""
+                {"schemaVersion":1,"id":"second_provider","version":"1.0.0",
+                 "provides":["shared_api"]}
+                """));
+        BridgeRequest request = new BridgeRequest("1.21.1", new LoaderId("forge"), "52.1.0",
+                BridgeEnvironment.SERVER, List.of(first, second),
+                temporaryDirectory.resolve("ambiguous-alias-output"),
+                temporaryDirectory.resolve("ambiguous-alias-cache"));
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isFalse();
+        assertThat(plan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-DEPS-006");
+            assertThat(diagnostic.message()).contains(
+                    "shared_api", "first_provider", "second_provider");
+        });
+        assertThat(result.artifacts()).isEmpty();
+    }
+
+    @Test
     void replacesBundledFabricApiModulesInsteadOfTransformingThem() throws Exception {
         byte[] renderingModule = jarBytes("""
                 {"schemaVersion":1,"id":"fabric-rendering-v1","version":"5.1.0"}

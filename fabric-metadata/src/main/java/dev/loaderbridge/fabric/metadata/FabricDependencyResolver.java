@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** Resolves already-present Fabric mods. It deliberately does not download dependencies. */
 public final class FabricDependencyResolver {
@@ -15,8 +16,17 @@ public final class FabricDependencyResolver {
             Path artifact,
             List<FabricModMetadata> mods,
             Map<String, String> builtinVersions) {
+        return resolve(artifact, mods, builtinVersions, builtinVersions.keySet());
+    }
+
+    public List<Diagnostic> resolve(
+            Path artifact,
+            List<FabricModMetadata> mods,
+            Map<String, String> builtinVersions,
+            Set<String> exclusiveBuiltinIds) {
         Map<String, InstalledVersion> installed = installedVersions(mods, builtinVersions);
         List<Diagnostic> diagnostics = new ArrayList<>();
+        addIdentityCollisions(artifact, mods, builtinVersions, exclusiveBuiltinIds, diagnostics);
 
         for (FabricModMetadata mod : mods) {
             addMissingDependencies(artifact, installed, diagnostics, mod);
@@ -28,6 +38,62 @@ public final class FabricDependencyResolver {
             addMissingRecommendations(artifact, installed, diagnostics, mod);
         }
         return List.copyOf(diagnostics);
+    }
+
+    private static void addIdentityCollisions(
+            Path artifact,
+            List<FabricModMetadata> mods,
+            Map<String, String> builtinVersions,
+            Set<String> exclusiveBuiltinIds,
+            List<Diagnostic> diagnostics) {
+        Map<String, IdentityClaim> claims = new LinkedHashMap<>();
+        exclusiveBuiltinIds.forEach(id -> {
+            String version = builtinVersions.get(id);
+            if (version == null) {
+                throw new IllegalArgumentException(
+                        "Exclusive built-in identity has no installed version: " + id);
+            }
+            claims.put(id, new IdentityClaim(id, version, ClaimKind.BUILTIN));
+        });
+        for (FabricModMetadata mod : mods) {
+            claimIdentity(artifact, diagnostics, claims, mod, mod.id(), ClaimKind.PRIMARY);
+            java.util.Set<String> localAliases = new java.util.HashSet<>();
+            for (String alias : mod.provides()) {
+                if (!localAliases.add(alias)) {
+                    diagnostics.add(identityCollision(artifact, mod, alias,
+                            "is declared more than once by " + mod.id()));
+                    continue;
+                }
+                claimIdentity(artifact, diagnostics, claims, mod, alias, ClaimKind.ALIAS);
+            }
+        }
+    }
+
+    private static void claimIdentity(
+            Path artifact,
+            List<Diagnostic> diagnostics,
+            Map<String, IdentityClaim> claims,
+            FabricModMetadata mod,
+            String identity,
+            ClaimKind kind) {
+        IdentityClaim claim = new IdentityClaim(mod.id(), mod.version(), kind);
+        IdentityClaim prior = claims.putIfAbsent(identity, claim);
+        if (prior == null) return;
+
+        boolean duplicateCandidate = prior.kind() != ClaimKind.BUILTIN
+                && prior.kind() == kind
+                && prior.modId().equals(mod.id())
+                && prior.version().equals(mod.version());
+        if (!duplicateCandidate) {
+            diagnostics.add(identityCollision(artifact, mod, identity,
+                    "is claimed by both " + prior.modId() + " and " + mod.id()));
+        }
+    }
+
+    private static Diagnostic identityCollision(
+            Path artifact, FabricModMetadata mod, String identity, String detail) {
+        return diagnostic(DiagnosticSeverity.ERROR, "LB-DEPS-006", mod, artifact,
+                "Fabric mod identity " + identity + " " + detail);
     }
 
     private static Map<String, InstalledVersion> installedVersions(
@@ -111,4 +177,12 @@ public final class FabricDependencyResolver {
     }
 
     private record InstalledVersion(String modId, String version) {}
+
+    private record IdentityClaim(String modId, String version, ClaimKind kind) {}
+
+    private enum ClaimKind {
+        BUILTIN,
+        PRIMARY,
+        ALIAS
+    }
 }
