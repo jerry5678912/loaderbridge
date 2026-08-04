@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     compileOnly(project(":fabric-loader-shim"))
+    compileOnly(project(":fixture-fabric-nested-child"))
     compileOnly("org.spongepowered:mixin:0.8.7")
     compileOnly("org.ow2.asm:asm-tree:9.7.1")
     compileOnly("io.github.llamalad7:mixinextras-common:0.5.4")

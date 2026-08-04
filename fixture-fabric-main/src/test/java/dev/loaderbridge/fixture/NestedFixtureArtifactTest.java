@@ -31,7 +31,12 @@ class NestedFixtureArtifactTest {
             }
             assertThat(entries).contains(
                     "fabric.mod.json",
-                    "dev/loaderbridge/fixture/nested/NestedChildFixture.class");
+                    "dev/loaderbridge/fixture/nested/NestedChildFixture.class",
+                    "dev/loaderbridge/fixture/nested/NestedClasspathProbe.class",
+                    "loaderbridge/nested-classpath.txt");
+            assertThat(parent.getJarEntry(
+                    "dev/loaderbridge/fixture/nested/NestedClasspathProbe.class")).isNull();
+            assertThat(parent.getJarEntry("loaderbridge/nested-classpath.txt")).isNull();
         }
     }
 }

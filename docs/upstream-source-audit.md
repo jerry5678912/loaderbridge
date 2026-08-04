@@ -34,6 +34,12 @@ strict JSON types. LoaderBridge now validates those shapes during untrusted-JAR
 inspection and reports controlled `UnsafeJarException` messages rather than
 leaking Gson shape casts. Like Fabric 0.16.14, unsupported scalar Mixin entries
 are ignored while valid declarations in the same array remain active.
+Fabric's `finishModLoading` adds every resolved non-builtin mod code-source path
+to the target classpath before language adapters and entrypoints are set up.
+LoaderBridge's transformed root and recursively extracted nested JARs share
+Forge's game layer. A controlled parent now directly loads a non-entrypoint
+class and resource present only in its nested child; the dedicated-server
+scenario observed that marker in both launches around a world save and reload.
 Fabric Loader completes this setup for every active mod before invoking the
 `preLaunch` stage. LoaderBridge therefore queues prelaunch callbacks until
 Forge's first `FMLConstructModEvent`; all container constructors and entrypoint

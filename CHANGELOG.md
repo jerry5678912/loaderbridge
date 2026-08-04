@@ -16,6 +16,9 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added a controlled nested-mod classpath probe proving that a parent Fabric mod
+  can directly load a non-entrypoint class and resource that exist only in its
+  transformed nested child JAR across both Forge server launches and world reload.
 - Hardened untrusted `fabric.mod.json` parsing with Fabric-compatible container
   and scalar type checks for entrypoints, nested JARs, mixins, dependencies,
   language adapters, people, contacts, icons, and custom data. Malformed input

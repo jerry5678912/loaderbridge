@@ -41,6 +41,8 @@ public final class MainFixture implements ModInitializer {
             throw new IllegalStateException("nested Fabric child was not registered");
         }
         System.out.println("LOADERBRIDGE_FIXTURE_NESTED_CONTAINMENT_READY");
+        assertNestedClasspath();
+        System.out.println("LOADERBRIDGE_FIXTURE_NESTED_CLASSPATH_READY");
         var mappings = loader.getMappingResolver();
         if (!mappings.getCurrentRuntimeNamespace().equals("official")
                 || !mappings.getNamespaces().containsAll(
@@ -114,6 +116,24 @@ public final class MainFixture implements ModInitializer {
         System.out.println("LOADERBRIDGE_FIXTURE_BUILTIN_MODS_READY");
         System.out.println("LOADERBRIDGE_FIXTURE_LAUNCH_ARGUMENTS_READY");
         System.out.println("LOADERBRIDGE_FIXTURE_MAIN_READY");
+    }
+
+    private static void assertNestedClasspath() {
+        if (!dev.loaderbridge.fixture.nested.NestedClasspathProbe.value()
+                .equals("nested-class-visible")) {
+            throw new IllegalStateException("nested Fabric class is not visible to its parent");
+        }
+        try (var resource = MainFixture.class.getClassLoader()
+                .getResourceAsStream("loaderbridge/nested-classpath.txt")) {
+            if (resource == null
+                    || !new String(resource.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)
+                            .trim().equals("nested-resource-visible")) {
+                throw new IllegalStateException(
+                        "nested Fabric resource is not visible to its parent");
+            }
+        } catch (java.io.IOException exception) {
+            throw new IllegalStateException("could not read nested Fabric classpath resource", exception);
+        }
     }
 
     private static void assertRuntimeContainer(FabricLoader loader, String id, String type,

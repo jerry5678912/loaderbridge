@@ -38,6 +38,11 @@ steps:
     timeout: PT30S
     parameters:
       contains: LOADERBRIDGE_FIXTURE_NESTED_CONTAINMENT_READY
+  - id: fixture_nested_classpath
+    action: wait_for_log
+    timeout: PT30S
+    parameters:
+      contains: LOADERBRIDGE_FIXTURE_NESTED_CLASSPATH_READY
   - id: fixture_nested_child
     action: wait_for_log
     timeout: PT30S
