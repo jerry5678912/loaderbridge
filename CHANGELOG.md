@@ -16,6 +16,9 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Matched Fabric Loader's immutable `CustomValue` tree behavior: stable nested
+  value identity, ordered iteration, `Double` numbers, and precise
+  `ClassCastException` failures for every invalid type conversion.
 - Added a controlled nested-mod classpath probe proving that a parent Fabric mod
   can directly load a non-entrypoint class and resource that exist only in its
   transformed nested child JAR across both Forge server launches and world reload.

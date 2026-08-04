@@ -13,9 +13,13 @@ import net.fabricmc.loader.api.metadata.CustomValue;
 
 final class BridgeCustomValue implements CustomValue {
     private final JsonElement value;
+    private final CvObject objectView;
+    private final CvArray arrayView;
 
     private BridgeCustomValue(JsonElement value) {
         this.value = value;
+        this.objectView = value.isJsonObject() ? objectView(value.getAsJsonObject()) : null;
+        this.arrayView = value.isJsonArray() ? arrayView(value.getAsJsonArray()) : null;
     }
 
     static CustomValue parse(String json) {
@@ -32,18 +36,20 @@ final class BridgeCustomValue implements CustomValue {
     }
 
     @Override public CvObject getAsObject() {
-        JsonObject object = value.getAsJsonObject();
+        if (objectView == null) throw wrongType("Object");
+        return objectView;
+    }
+
+    private CvObject objectView(JsonObject object) {
+        Map<String, CustomValue> parsedValues = new LinkedHashMap<>();
+        object.entrySet().forEach(entry -> parsedValues.put(
+                entry.getKey(), new BridgeCustomValue(entry.getValue())));
+        Map<String, CustomValue> values = java.util.Collections.unmodifiableMap(parsedValues);
         return new CvObject() {
-            @Override public int size() { return object.size(); }
-            @Override public boolean containsKey(String key) { return object.has(key); }
-            @Override public CustomValue get(String key) {
-                JsonElement selected = object.get(key);
-                return selected == null ? null : new BridgeCustomValue(selected);
-            }
+            @Override public int size() { return values.size(); }
+            @Override public boolean containsKey(String key) { return values.containsKey(key); }
+            @Override public CustomValue get(String key) { return values.get(key); }
             @Override public Iterator<Map.Entry<String, CustomValue>> iterator() {
-                Map<String, CustomValue> values = new LinkedHashMap<>();
-                object.entrySet().forEach(entry -> values.put(
-                        entry.getKey(), new BridgeCustomValue(entry.getValue())));
                 return values.entrySet().iterator();
             }
             @Override public CvType getType() { return BridgeCustomValue.this.getType(); }
@@ -56,15 +62,18 @@ final class BridgeCustomValue implements CustomValue {
     }
 
     @Override public CvArray getAsArray() {
-        JsonArray array = value.getAsJsonArray();
+        if (arrayView == null) throw wrongType("Array");
+        return arrayView;
+    }
+
+    private CvArray arrayView(JsonArray array) {
+        List<CustomValue> parsedValues = new ArrayList<>(array.size());
+        array.forEach(element -> parsedValues.add(new BridgeCustomValue(element)));
+        List<CustomValue> values = List.copyOf(parsedValues);
         return new CvArray() {
-            @Override public int size() { return array.size(); }
-            @Override public CustomValue get(int index) { return new BridgeCustomValue(array.get(index)); }
-            @Override public Iterator<CustomValue> iterator() {
-                List<CustomValue> values = new ArrayList<>(array.size());
-                array.forEach(element -> values.add(new BridgeCustomValue(element)));
-                return values.iterator();
-            }
+            @Override public int size() { return values.size(); }
+            @Override public CustomValue get(int index) { return values.get(index); }
+            @Override public Iterator<CustomValue> iterator() { return values.iterator(); }
             @Override public CvType getType() { return BridgeCustomValue.this.getType(); }
             @Override public CvObject getAsObject() { return BridgeCustomValue.this.getAsObject(); }
             @Override public CvArray getAsArray() { return this; }
@@ -74,7 +83,22 @@ final class BridgeCustomValue implements CustomValue {
         };
     }
 
-    @Override public String getAsString() { return value.getAsString(); }
-    @Override public Number getAsNumber() { return value.getAsNumber(); }
-    @Override public boolean getAsBoolean() { return value.getAsBoolean(); }
+    @Override public String getAsString() {
+        if (getType() != CvType.STRING) throw wrongType("String");
+        return value.getAsString();
+    }
+
+    @Override public Number getAsNumber() {
+        if (getType() != CvType.NUMBER) throw wrongType("Number");
+        return value.getAsDouble();
+    }
+
+    @Override public boolean getAsBoolean() {
+        if (getType() != CvType.BOOLEAN) throw wrongType("Boolean");
+        return value.getAsBoolean();
+    }
+
+    private ClassCastException wrongType(String target) {
+        return new ClassCastException("can't convert " + getType().name() + " to " + target);
+    }
 }

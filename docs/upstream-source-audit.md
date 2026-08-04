@@ -40,6 +40,11 @@ LoaderBridge's transformed root and recursively extracted nested JARs share
 Forge's game layer. A controlled parent now directly loads a non-entrypoint
 class and resource present only in its nested child; the dedicated-server
 scenario observed that marker in both launches around a world save and reload.
+Fabric's `CustomValueImpl` parses one immutable object/array tree, represents
+numbers as `Double`, returns the stored nested value on repeated lookup, and
+throws a type-specific `ClassCastException` instead of coercing values.
+LoaderBridge now mirrors those identity, iteration, immutability, numeric, and
+failure contracts rather than exposing Gson's conversions and exception types.
 Fabric Loader completes this setup for every active mod before invoking the
 `preLaunch` stage. LoaderBridge therefore queues prelaunch callbacks until
 Forge's first `FMLConstructModEvent`; all container constructors and entrypoint
