@@ -152,6 +152,24 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void diagnosesOnlyLegacyFabricLocalVariableMixinSemantics() throws Exception {
+        Path legacy = localVariableMixinMod("legacy_locals", "*");
+        Path modern = localVariableMixinMod("modern_locals", ">=0.16.0");
+
+        var legacyPlan = new FabricToForgeAdapter().plan(requestFor(legacy, "legacy-locals"));
+        var modernPlan = new FabricToForgeAdapter().plan(requestFor(modern, "modern-locals"));
+
+        assertThat(legacyPlan.canPrepare()).isFalse();
+        assertThat(legacyPlan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-MIXIN-017");
+            assertThat(diagnostic.message()).contains("pre-0.12", "modify-variable");
+        });
+        assertThat(modernPlan.canPrepare()).isTrue();
+        assertThat(modernPlan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-MIXIN-017");
+    }
+
+    @Test
     void automaticallyAddsPinnedMixinExtrasRuntimeWhenAnnotationsRequireIt() throws Exception {
         Path source = temporaryDirectory.resolve("mixinextras-mod.jar");
         ClassWriter writer = new ClassWriter(0);
@@ -1265,6 +1283,31 @@ class FabricToForgeAdapterTest {
                     + "\",\"version\":\"1\",\"depends\":{\"fabricloader\":\""
                     + predicate + "\"}}")
                     .getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+        }
+        return source;
+    }
+
+    private Path localVariableMixinMod(String id, String fabricLoaderPredicate) throws Exception {
+        Path source = temporaryDirectory.resolve(id + ".jar");
+        ClassWriter writer = new ClassWriter(0);
+        writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, "fixture/" + id, null,
+                "java/lang/Object", null);
+        var method = writer.visitMethod(Opcodes.ACC_PRIVATE, "modify", "(I)I", null, null);
+        method.visitAnnotation("Lorg/spongepowered/asm/mixin/injection/ModifyVariable;", false)
+                .visitEnd();
+        method.visitEnd();
+        writer.visitEnd();
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(source))) {
+            jar.putNextEntry(new JarEntry("fabric.mod.json"));
+            jar.write(("{\"schemaVersion\":1,\"id\":\"" + id
+                    + "\",\"version\":\"1\",\"mixins\":[\"" + id
+                    + ".mixins.json\"],\"depends\":{\"fabricloader\":\""
+                    + fabricLoaderPredicate + "\"}}")
+                    .getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+            jar.putNextEntry(new JarEntry("fixture/" + id + ".class"));
+            jar.write(writer.toByteArray());
             jar.closeEntry();
         }
         return source;

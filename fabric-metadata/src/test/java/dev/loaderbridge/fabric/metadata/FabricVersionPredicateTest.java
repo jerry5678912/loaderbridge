@@ -18,4 +18,20 @@ final class FabricVersionPredicateTest {
         assertThat(FabricVersionPredicate.matches("=1.0.0", "1.0.0+mc1.21.1")).isTrue();
         assertThat(FabricVersionPredicate.compare("1.0.0+build.2", "1.0.0+build.1")).isZero();
     }
+
+    @Test
+    void provesWhenEveryAlternativeHasAModernLowerBound() {
+        assertThat(FabricVersionPredicate.allAlternativesAtLeast(
+                List.of(">=0.16.0"), "0.12.0")).isTrue();
+        assertThat(FabricVersionPredicate.allAlternativesAtLeast(
+                List.of("^0.16.0", "0.15.x"), "0.12.0")).isTrue();
+        assertThat(FabricVersionPredicate.allAlternativesAtLeast(
+                List.of(">0.12.0 <0.17.0"), "0.12.0")).isTrue();
+        assertThat(FabricVersionPredicate.allAlternativesAtLeast(
+                List.of("*"), "0.12.0")).isFalse();
+        assertThat(FabricVersionPredicate.allAlternativesAtLeast(
+                List.of(">=0.10.0"), "0.12.0")).isFalse();
+        assertThat(FabricVersionPredicate.allAlternativesAtLeast(
+                List.of(">=0.16.0", "<0.10.0"), "0.12.0")).isFalse();
+    }
 }

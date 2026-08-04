@@ -28,6 +28,7 @@ public final class BytecodeReferenceAnalyzer {
         Set<String> minecraft = new LinkedHashSet<>();
         Set<String> strings = new LinkedHashSet<>();
         Set<String> natives = new LinkedHashSet<>();
+        Set<String> mixinSemanticFeatures = new LinkedHashSet<>();
         try (JarFile jar = new JarFile(artifact.toFile(), false)) {
             var entries = jar.entries();
             while (entries.hasMoreElements()) {
@@ -50,13 +51,15 @@ public final class BytecodeReferenceAnalyzer {
                     }
                     try (InputStream input = jar.getInputStream(entry)) {
                         new ClassReader(input).accept(new InventoryVisitor(
-                                fabricApi, loaderApi, mixinExtras, minecraft, strings),
+                                fabricApi, loaderApi, mixinExtras, minecraft, strings,
+                                mixinSemanticFeatures),
                                 ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
                     }
                 }
             }
         }
-        return new ReferenceInventory(fabricApi, loaderApi, mixinExtras, minecraft, strings, natives);
+        return new ReferenceInventory(fabricApi, loaderApi, mixinExtras, minecraft, strings,
+                natives, mixinSemanticFeatures);
     }
 
     private static boolean isNative(String name) {
@@ -71,21 +74,24 @@ public final class BytecodeReferenceAnalyzer {
         private final Set<String> mixinExtras;
         private final Set<String> minecraft;
         private final Set<String> strings;
+        private final Set<String> mixinSemanticFeatures;
 
         InventoryVisitor(Set<String> fabricApi, Set<String> loaderApi, Set<String> mixinExtras,
-                Set<String> minecraft, Set<String> strings) {
+                Set<String> minecraft, Set<String> strings,
+                Set<String> mixinSemanticFeatures) {
             super(Opcodes.ASM9);
             this.fabricApi = fabricApi;
             this.loaderApi = loaderApi;
             this.mixinExtras = mixinExtras;
             this.minecraft = minecraft;
             this.strings = strings;
+            this.mixinSemanticFeatures = mixinSemanticFeatures;
         }
 
         @Override
         public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
             collectDescriptor(descriptor);
-            return annotationVisitor();
+            return annotationVisitor(descriptor);
         }
 
         @Override
@@ -97,7 +103,7 @@ public final class BytecodeReferenceAnalyzer {
                 public AnnotationVisitor visitAnnotation(String annotationDescriptor,
                         boolean visible) {
                     collectDescriptor(annotationDescriptor);
-                    return annotationVisitor();
+                    return annotationVisitor(annotationDescriptor);
                 }
             };
         }
@@ -111,14 +117,18 @@ public final class BytecodeReferenceAnalyzer {
                 public AnnotationVisitor visitAnnotation(String annotationDescriptor,
                         boolean visible) {
                     collectDescriptor(annotationDescriptor);
-                    return annotationVisitor();
+                    if (annotationDescriptor.equals(
+                            "Lorg/spongepowered/asm/mixin/injection/ModifyVariable;")) {
+                        mixinSemanticFeatures.add("modify-variable");
+                    }
+                    return annotationVisitor(annotationDescriptor);
                 }
 
                 @Override
                 public AnnotationVisitor visitParameterAnnotation(int parameter,
                         String annotationDescriptor, boolean visible) {
                     collectDescriptor(annotationDescriptor);
-                    return annotationVisitor();
+                    return annotationVisitor(annotationDescriptor);
                 }
 
                 @Override
@@ -166,7 +176,7 @@ public final class BytecodeReferenceAnalyzer {
             };
         }
 
-        private AnnotationVisitor annotationVisitor() {
+        private AnnotationVisitor annotationVisitor(String rootDescriptor) {
             return new AnnotationVisitor(Opcodes.ASM9) {
                 @Override
                 public void visit(String name, Object value) {
@@ -178,17 +188,23 @@ public final class BytecodeReferenceAnalyzer {
                 @Override
                 public void visitEnum(String name, String descriptor, String value) {
                     collectDescriptor(descriptor);
+                    if (rootDescriptor.equals("Lorg/spongepowered/asm/mixin/injection/Inject;")
+                            && name.equals("locals")
+                            && descriptor.equals("Lorg/spongepowered/asm/mixin/injection/callback/LocalCapture;")
+                            && !value.equals("NO_CAPTURE")) {
+                        mixinSemanticFeatures.add("inject-local-capture");
+                    }
                 }
 
                 @Override
                 public AnnotationVisitor visitAnnotation(String name, String descriptor) {
                     collectDescriptor(descriptor);
-                    return annotationVisitor();
+                    return annotationVisitor(rootDescriptor);
                 }
 
                 @Override
                 public AnnotationVisitor visitArray(String name) {
-                    return annotationVisitor();
+                    return annotationVisitor(rootDescriptor);
                 }
             };
         }

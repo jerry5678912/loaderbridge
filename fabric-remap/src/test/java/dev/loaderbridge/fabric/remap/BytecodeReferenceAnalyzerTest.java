@@ -86,6 +86,40 @@ class BytecodeReferenceAnalyzerTest {
         assertThat(inventory.fabricApiClasses()).isEmpty();
     }
 
+    @Test
+    void inventoriesMixinFeaturesWhoseLegacyFabricSemanticsDifferFromForgeMixin() throws Exception {
+        ClassWriter writer = new ClassWriter(0);
+        writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, "fixture/LegacyLocalsMixin", null,
+                "java/lang/Object", null);
+        MethodVisitor modifyVariable = writer.visitMethod(Opcodes.ACC_PRIVATE, "modify",
+                "(I)I", null, null);
+        modifyVariable.visitAnnotation(
+                "Lorg/spongepowered/asm/mixin/injection/ModifyVariable;", false).visitEnd();
+        modifyVariable.visitEnd();
+        MethodVisitor inject = writer.visitMethod(Opcodes.ACC_PRIVATE, "capture",
+                "()V", null, null);
+        AnnotationVisitor annotation = inject.visitAnnotation(
+                "Lorg/spongepowered/asm/mixin/injection/Inject;", false);
+        annotation.visitEnum("locals",
+                "Lorg/spongepowered/asm/mixin/injection/callback/LocalCapture;",
+                "CAPTURE_FAILHARD");
+        annotation.visitEnd();
+        inject.visitEnd();
+        writer.visitEnd();
+
+        Path jarPath = temporaryDirectory.resolve("legacy-locals-mixin.jar");
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(jarPath))) {
+            jar.putNextEntry(new JarEntry("fixture/LegacyLocalsMixin.class"));
+            jar.write(writer.toByteArray());
+            jar.closeEntry();
+        }
+
+        ReferenceInventory inventory = new BytecodeReferenceAnalyzer().analyze(jarPath);
+
+        assertThat(inventory.mixinSemanticFeatures())
+                .containsExactlyInAnyOrder("modify-variable", "inject-local-capture");
+    }
+
     private static void writeReferenceClass(JarOutputStream jar, String className, String owner)
             throws Exception {
         ClassWriter writer = new ClassWriter(0);

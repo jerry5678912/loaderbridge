@@ -17,6 +17,44 @@ public final class FabricVersionPredicate {
         return ComparableVersion.parse(left).compareTo(ComparableVersion.parse(right));
     }
 
+    /**
+     * Returns true only when every OR alternative proves a lower bound at or above the
+     * supplied version. This is intentionally conservative: upper-only, wildcard-all,
+     * blank, and unparseable predicates do not prove a lower bound.
+     */
+    public static boolean allAlternativesAtLeast(List<String> predicates, String threshold) {
+        ComparableVersion floor = ComparableVersion.parse(threshold);
+        if (predicates.isEmpty() || !floor.isNumeric()) return false;
+        return predicates.stream().allMatch(expression -> expressionAtLeast(expression, floor));
+    }
+
+    private static boolean expressionAtLeast(String expression, ComparableVersion threshold) {
+        ComparableVersion strongestLowerBound = null;
+        for (String token : expression.trim().split("\\s+")) {
+            if (token.isBlank() || token.equals("*")) continue;
+            String candidate;
+            if (token.startsWith(">=")) {
+                candidate = token.substring(2);
+            } else if (token.startsWith(">") || token.startsWith("=")
+                    || token.startsWith("~") || token.startsWith("^")) {
+                candidate = token.substring(1);
+            } else if (token.startsWith("<=") || token.startsWith("<")) {
+                continue;
+            } else {
+                candidate = token;
+            }
+            if (candidate.toLowerCase(Locale.ROOT).contains("x") || candidate.contains("*")) {
+                candidate = candidate.replaceAll("(?i)[x*]", "0");
+            }
+            ComparableVersion bound = ComparableVersion.parse(candidate);
+            if (!bound.isNumeric()) continue;
+            if (strongestLowerBound == null || bound.compareTo(strongestLowerBound) > 0) {
+                strongestLowerBound = bound;
+            }
+        }
+        return strongestLowerBound != null && strongestLowerBound.compareTo(threshold) >= 0;
+    }
+
     public static boolean matches(String expression, String version) {
         String trimmed = expression.trim();
         if (trimmed.isEmpty() || trimmed.equals("*")) {
@@ -122,6 +160,10 @@ public final class FabricVersionPredicate {
 
         private int number(int index) {
             return index < numbers.size() ? numbers.get(index) : 0;
+        }
+
+        boolean isNumeric() {
+            return !numbers.isEmpty();
         }
 
         private static ComparableVersion numeric(int major, int minor, int patch) {

@@ -49,6 +49,14 @@ Fabric's `FabricMixinBootstrap` rejects a Mixin configuration resource name
 when another active selected mod already declared it. LoaderBridge now checks
 the side-filtered selected metadata graph and reports `LB-MIXIN-002` before its
 generated namespaced wrappers could conceal that upstream collision.
+The exact Fabric Mixin `0.15.5+mixin.0.8.7` fork decorates configurations with
+a compatibility value inferred from their Fabric Loader dependency. Source
+comparison shows Forge's stock Mixin 0.8.7 uses the same modern local-variable
+algorithm selected by Fabric Loader 0.12 and newer, but cannot reproduce the
+fork's pre-0.12 fallback. LoaderBridge therefore inventories `ModifyVariable`
+and explicit `Inject` local capture directly from class annotations. Mods that
+prove a modern lower bound continue normally; an artifact that may request the
+legacy behavior receives `LB-MIXIN-017` before launch.
 Fabric's `CustomValueImpl` parses one immutable object/array tree, represents
 numbers as `Double`, returns the stored nested value on repeated lookup, and
 throws a type-specific `ClassCastException` instead of coercing values.

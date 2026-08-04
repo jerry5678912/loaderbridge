@@ -22,6 +22,7 @@ import dev.loaderbridge.fabric.metadata.FabricModInspector;
 import dev.loaderbridge.fabric.metadata.FabricModMetadata;
 import dev.loaderbridge.fabric.metadata.FabricLoaderCompatibility;
 import dev.loaderbridge.fabric.metadata.FabricModTree;
+import dev.loaderbridge.fabric.metadata.FabricVersionPredicate;
 import dev.loaderbridge.fabric.metadata.JarReadLimits;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -301,6 +302,15 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         if (!metadata.mixins().isEmpty()) {
             required.add(BridgeCapability.MIXINS);
         }
+        if (!inventory.mixinSemanticFeatures().isEmpty()
+                && !requiresModernFabricMixinLocals(metadata)) {
+            diagnostics.add(unsupported("LB-MIXIN-017", metadata.id(), artifact,
+                    "Mixin features " + inventory.mixinSemanticFeatures()
+                            + " may require pre-0.12 Fabric local-variable semantics; Forge's"
+                            + " stock Mixin 0.8.7 implements the modern algorithm. Declare a"
+                            + " fabricloader lower bound of at least 0.12.0 or remove the legacy"
+                            + " local-capture dependency."));
+        }
         if (!inventory.mixinExtrasClasses().isEmpty()) {
             required.add(BridgeCapability.MIXIN_EXTRAS);
         }
@@ -374,6 +384,15 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                     }
                 });
         return Set.copyOf(excluded);
+    }
+
+    private static boolean requiresModernFabricMixinLocals(FabricModMetadata metadata) {
+        List<String> predicates = metadata.dependencies().depends().get("fabricloader");
+        if (predicates == null) {
+            predicates = metadata.dependencies().depends().get("fabric-loader");
+        }
+        return predicates != null
+                && FabricVersionPredicate.allAlternativesAtLeast(predicates, "0.12.0");
     }
 
     private static Map<String, String> dependencyOwners(List<PreparationInput> inputs) {

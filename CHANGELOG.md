@@ -16,6 +16,10 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added bytecode-level detection for Fabric Mixin local-capture semantics that
+  differ from Forge's stock Mixin runtime. Modern Fabric Loader constraints
+  remain supported; possible pre-0.12 behavior now stops at `LB-MIXIN-017`
+  instead of failing unpredictably during transformation.
 - Added side-aware `LB-MIXIN-002` preflight diagnostics for duplicate active
   Fabric Mixin configuration names, matching Fabric bootstrap behavior before
   LoaderBridge generates namespaced Forge wrappers.
