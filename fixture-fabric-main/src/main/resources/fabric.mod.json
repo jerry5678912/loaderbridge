@@ -9,6 +9,7 @@
     {"file": "META-INF/jars/loaderbridge-nested-child.jar"}
   ],
   "mixins": [
+    "loaderbridge.fixture.standard.mixins.json",
     {
       "config": "loaderbridge.fixture.mixins.json",
       "environment": "server"

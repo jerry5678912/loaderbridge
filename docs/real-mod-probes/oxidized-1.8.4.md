@@ -1,7 +1,11 @@
 # Oxidized 1.8.4 real-mod probe
 
-Status: block and inventory visuals, cooking recipe-book classification, and
-core technology behavior pass.
+Status: graphical gate failed; core technology behavior passes.
+
+Manual player inspection found that the placed kiln model and its inventory
+icon do not render correctly. That observation invalidates the earlier visual
+pass recorded below. The probe cannot count as a compatible content mod until
+the rendered result is repaired and screenshot-based assertions pass.
 
 ## Pinned source
 
@@ -36,7 +40,7 @@ The rule does not match a filename or mod ID.
 - Prepared artifacts: 11
 - Probe block/item: `oxidized:copper_kiln`
 
-The repaired graphical run emitted:
+The automated run emitted:
 
 ```text
 LOADERBRIDGE_CLIENT_TITLE_READY
@@ -60,16 +64,19 @@ The fresh preparation lock SHA-256 is
 Transformed third-party JARs and machine-specific lock paths are not committed
 or redistributed.
 
-## Graphical and recipe-book proof
+## Invalidated graphical check and retained behavioral proof
 
 The deep scenario placed the kiln, inserted `minecraft:clay_ball` and
 `minecraft:coal`, waited for the real block entity to produce
 `minecraft:brick`, saved, and verified that output in the reloaded machine.
 This proves the mod's core kiln behavior rather than startup alone.
 
-The client probe also compares the kiln's baked block and inventory models
-against Minecraft's missing model and compares their particle sprites against
-the missing texture. Both assertions pass. The repair snapshots the item
+The old client probe compared the kiln's baked objects against Minecraft's
+canonical missing-model singleton and compared particle sprites against the
+missing texture. Those assertions produced false confidence: they did not
+verify the actual pixels shown for the placed block or inventory icon, and
+manual inspection contradicts them. Those markers are retained above as
+historical output, not passing evidence. The repair snapshots the item
 registry around Fabric entrypoint execution, loads only newly registered item
 models through Forge's model events, aliases the normal `models/item/` resource
 to its logical inventory model ID, and updates the item renderer's early cache.
@@ -82,4 +89,6 @@ classification by selecting the corresponding vanilla furnace category. The
 repaired run registered the `oxidized:kiln_smelting` finder before Forge built
 its client lookup and emitted no unknown-category warning. Non-cooking custom
 recipe types deliberately remain unsupported rather than being assigned a
-misleading category.
+misleading category. The kiln processing, output persistence, save, reload, and
+recipe-category assertions remain useful behavioral evidence, but they do not
+override the failed graphical gate.

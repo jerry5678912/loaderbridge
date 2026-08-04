@@ -1,5 +1,6 @@
 package dev.loaderbridge.fixture;
 
+import dev.loaderbridge.fixture.mixin.StandardMixinTargetAccess;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 
@@ -115,7 +116,25 @@ public final class MainFixture implements ModInitializer {
         System.out.println("LOADERBRIDGE_FIXTURE_RAW_GAME_VERSION=1.21.1");
         System.out.println("LOADERBRIDGE_FIXTURE_BUILTIN_MODS_READY");
         System.out.println("LOADERBRIDGE_FIXTURE_LAUNCH_ARGUMENTS_READY");
+        assertStandardMixinFamilies();
+        System.out.println("LOADERBRIDGE_FIXTURE_STANDARD_MIXINS_READY");
         System.out.println("LOADERBRIDGE_FIXTURE_MAIN_READY");
+    }
+
+    private static void assertStandardMixinFamilies() {
+        StandardMixinTarget target = new StandardMixinTarget();
+        StandardMixinTargetAccess access = (StandardMixinTargetAccess) (Object) target;
+        if (!target.injected().equals("injected")
+                || target.modifyArg() != 8
+                || target.modifyArgs() != 45
+                || target.modifyVariable(2) != 12
+                || target.modifyConstant() != 9
+                || target.redirect() != 7
+                || !target.overwrite().equals("overwritten")
+                || access.loaderbridge$getSecret() != 4
+                || access.loaderbridge$invokeHidden(3) != 7) {
+            throw new IllegalStateException("standard Mixin injection-family contract failed");
+        }
     }
 
     private static void assertNestedClasspath() {

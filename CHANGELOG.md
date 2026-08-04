@@ -16,6 +16,9 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added a controlled Fabric-only runtime fixture for all classic Mixin injector
+  families plus shadow, overwrite, accessor, and invoker behavior. It passes
+  Forge client and two-launch dedicated-server world save/reload scenarios.
 - Added bytecode-level detection for Fabric Mixin local-capture semantics that
   differ from Forge's stock Mixin runtime. Modern Fabric Loader constraints
   remain supported; possible pre-0.12 behavior now stops at `LB-MIXIN-017`

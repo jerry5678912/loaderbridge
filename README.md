@@ -49,6 +49,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   methods, and nested descriptors across default and contextual mappings.
 - Golden remapping coverage for all standard injection annotation families,
   nested `@At` member targets, accessors, invokers, shadows, and overwrites.
+  A controlled Fabric-only fixture also executes `Inject`, `Redirect`,
+  `ModifyArg`, `ModifyArgs`, `ModifyVariable`, and `ModifyConstant`, plus a
+  shadow, overwrite, accessor, and invoker through Forge on client and server.
 - Standard Mixin config plugins proven through real `IMixinConfigPlugin`
   callbacks on both launches of the controlled Forge server save/reload run.
 - Annotation-aware MixinExtras detection with automatic, checksum-pinned
@@ -192,13 +195,15 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   deep graphical run registered `blockus:amethyst_bricks`, placed it, added its
   item to the player inventory, saved, reloaded, verified both persisted, and
   stopped cleanly. See [the pinned evidence](docs/real-mod-probes/blockus-2.9.18-1.21.1.md).
-- Oxidized `1.8.4` is the next pinned Fabric-only technology/content probe.
+- Oxidized `1.8.4` is a pinned Fabric-only technology/content probe whose
+  gameplay path currently passes but whose graphical gate is failed pending
+  repair. Manual inspection found the kiln's placed model and inventory icon
+  incorrect, invalidating the earlier object-identity model check.
   A generic Fabric-patched Minecraft ABI repair lets its SafLib dependency
   register the real `oxidized:copper_kiln` block entity on Forge. Registration,
-  block and inventory model/texture resolution, placement, clay-and-coal kiln
-  processing into a brick, machine-output persistence, save, and reload pass.
-  A generic late-item model bridge loads and caches models for items registered
-  by Fabric entrypoints after Forge constructs its item renderer. A generic
+  placement, clay-and-coal kiln processing into a brick, machine-output
+  persistence, save, and reload pass; correct rendered assets do not yet pass.
+  The current late-item model bridge is therefore not accepted as complete. A generic
   cooking-recipe bridge also maps newly registered Fabric cooking types to
   Forge's vanilla food, block, or miscellaneous recipe-book categories. See
   [the current evidence](docs/real-mod-probes/oxidized-1.8.4.md).
@@ -286,6 +291,13 @@ step across two launches. The client lab reached the title screen, opened and
 saved an integrated world, returned to the title screen, reloaded the world,
 and stopped itself cleanly. This marks M2 complete for the controlled scaffold;
 it is not a claim that arbitrary real mods or Fabric API modules work yet.
+
+M3's controlled runtime-injector fixture passed on 2026-08-04. Both Forge
+dedicated-server launches emitted `LOADERBRIDGE_FIXTURE_STANDARD_MIXINS_READY`
+around a clean save/reload cycle, and the Forge client emitted the same marker
+before title-screen, integrated-world save, reload, and clean stop. This proves
+the listed standard injector families against a controlled official-namespace
+target; the Lithium real-mod gate and broader collision work remain separate.
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,
