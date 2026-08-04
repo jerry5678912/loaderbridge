@@ -154,6 +154,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             collectPreparationInputs(source, source.toString(), null, null,
                     request.cacheDirectory(), inputs, seenArtifacts, seenModVersions);
         }
+        Map<String, String> dependencyOwners = dependencyOwners(inputs);
         for (PreparationInput input : inputs) {
             if (isReplacedFabricApiNestedInput(input)) {
                 continue;
@@ -170,6 +171,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                 selectedBridgeModules.put(provider.descriptor().id(), provider);
                 fulfilledFabricDependencies.putAll(provider.descriptor().providedModVersions());
             }
+            Map<String, String> resolvedDependencyModIds = resolvedDependencyModIds(
+                    metadata, dependencyOwners);
             SourceNamespace namespace = sourceNamespace(request, inventory, null, metadata.id(), source);
             String sourceHash = sha256(source);
             Path preparationInput = source;
@@ -206,14 +209,15 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             String cacheKey = sha256((sourceHash + "|" + FabricAdapterVersion.CURRENT + "|"
                     + adapterFingerprint + "|" + request.minecraftVersion() + "|"
                     + request.hostVersion() + "|" + mappingKey + "|" + containmentKey + "|"
-                    + fulfilledFabricDependencies)
+                    + fulfilledFabricDependencies + "|" + resolvedDependencyModIds)
                     .getBytes(StandardCharsets.UTF_8));
             Path cached = request.cacheDirectory().resolve(cacheKey + ".jar");
             if (!Files.exists(cached)) {
                 PreparationManifest manifest = PreparationManifest.pinned(
                         request.minecraftVersion(), request.hostVersion())
                         .namespaces(namespace.name().toLowerCase(java.util.Locale.ROOT), "official")
-                        .fulfilledFabricDependencies(fulfilledFabricDependencies);
+                        .fulfilledFabricDependencies(fulfilledFabricDependencies)
+                        .resolvedDependencyModIds(resolvedDependencyModIds);
                 if (input.parentModId() != null) {
                     manifest = manifest.nested(input.parentModId(), input.parentSubLocation());
                 }
@@ -336,6 +340,34 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                     }
                 });
         return Set.copyOf(excluded);
+    }
+
+    private static Map<String, String> dependencyOwners(List<PreparationInput> inputs) {
+        Map<String, String> owners = new java.util.TreeMap<>();
+        for (PreparationInput input : inputs) {
+            owners.put(input.metadata().id(), input.metadata().id());
+        }
+        for (PreparationInput input : inputs) {
+            String canonicalId = input.metadata().id();
+            input.metadata().provides().forEach(alias -> owners.putIfAbsent(alias, canonicalId));
+        }
+        return Map.copyOf(owners);
+    }
+
+    private static Map<String, String> resolvedDependencyModIds(
+            FabricModMetadata metadata, Map<String, String> dependencyOwners) {
+        Set<String> dependencyIds = new java.util.TreeSet<>();
+        dependencyIds.addAll(metadata.dependencies().depends().keySet());
+        dependencyIds.addAll(metadata.dependencies().recommends().keySet());
+        dependencyIds.addAll(metadata.dependencies().suggests().keySet());
+        Map<String, String> resolved = new java.util.TreeMap<>();
+        for (String dependencyId : dependencyIds) {
+            String owner = dependencyOwners.get(dependencyId);
+            if (owner != null && !owner.equals(dependencyId)) {
+                resolved.put(dependencyId, owner);
+            }
+        }
+        return Map.copyOf(resolved);
     }
 
     private List<RuntimeBridgeModuleProvider> modulesFor(Set<String> references,

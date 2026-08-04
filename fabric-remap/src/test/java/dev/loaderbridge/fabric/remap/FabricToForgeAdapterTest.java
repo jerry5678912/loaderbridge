@@ -699,6 +699,56 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void ordersForgeContainersAfterTheCanonicalProviderOfAFabricAlias() throws Exception {
+        Path provider = temporaryDirectory.resolve("alias-provider.jar");
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(provider))) {
+            jar.putNextEntry(new JarEntry("fabric.mod.json"));
+            jar.write("""
+                    {"schemaVersion":1,"id":"canonical_provider","version":"1.0.0",
+                     "provides":["provided_api"]}
+                    """.getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+        }
+        Path consumer = temporaryDirectory.resolve("alias-consumer.jar");
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(consumer))) {
+            jar.putNextEntry(new JarEntry("fabric.mod.json"));
+            jar.write("""
+                    {"schemaVersion":1,"id":"alias_consumer","version":"1.0.0",
+                     "depends":{"provided_api":">=1.0.0"}}
+                    """.getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+        }
+        BridgeRequest request = new BridgeRequest("1.21.1", new LoaderId("forge"), "52.1.0",
+                BridgeEnvironment.SERVER, List.of(provider, consumer),
+                temporaryDirectory.resolve("alias-output"),
+                temporaryDirectory.resolve("alias-cache"));
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        Path consumerOutput = result.artifacts().stream()
+                .filter(path -> path.getFileName().toString().startsWith("alias_consumer-"))
+                .findFirst().orElseThrow();
+        try (JarFile jar = new JarFile(consumerOutput.toFile())) {
+            String modsToml = new String(jar.getInputStream(jar.getJarEntry("META-INF/mods.toml"))
+                    .readAllBytes(), StandardCharsets.UTF_8);
+            String originalMetadata = new String(jar.getInputStream(jar.getJarEntry("fabric.mod.json"))
+                    .readAllBytes(), StandardCharsets.UTF_8);
+            String bridgeMetadata = new String(jar.getInputStream(
+                    jar.getJarEntry("META-INF/loaderbridge.json")).readAllBytes(),
+                    StandardCharsets.UTF_8);
+            assertThat(modsToml)
+                    .contains("modId=\"canonical_provider\"")
+                    .doesNotContain("modId=\"provided_api\"");
+            assertThat(originalMetadata).contains("\"provided_api\":\">=1.0.0\"");
+            assertThat(bridgeMetadata).contains(
+                    "\"provided_api\": \"canonical_provider\"");
+        }
+    }
+
+    @Test
     void replacesBundledFabricApiModulesInsteadOfTransformingThem() throws Exception {
         byte[] renderingModule = jarBytes("""
                 {"schemaVersion":1,"id":"fabric-rendering-v1","version":"5.1.0"}

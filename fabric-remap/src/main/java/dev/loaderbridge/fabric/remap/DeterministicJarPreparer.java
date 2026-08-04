@@ -134,7 +134,8 @@ public final class DeterministicJarPreparer {
             }
             put(output, "META-INF/loaderbridge.json", bridgeMetadata(metadata, manifest));
             put(output, "META-INF/mods.toml", forgeMetadata(
-                    metadata, manifest.fulfilledFabricDependencies().keySet()));
+                    metadata, manifest.fulfilledFabricDependencies().keySet(),
+                    manifest.resolvedDependencyModIds()));
         }
     }
 
@@ -167,6 +168,10 @@ public final class DeterministicJarPreparer {
             root.add("fulfilledFabricDependencies", new GsonBuilder().create().toJsonTree(
                     manifest.fulfilledFabricDependencies()));
         }
+        if (!manifest.resolvedDependencyModIds().isEmpty()) {
+            root.add("resolvedDependencyModIds", new GsonBuilder().create().toJsonTree(
+                    manifest.resolvedDependencyModIds()));
+        }
         if (manifest.parentModId() != null) {
             root.addProperty("parentModId", manifest.parentModId());
             root.addProperty("parentSubLocation", manifest.parentSubLocation());
@@ -176,7 +181,8 @@ public final class DeterministicJarPreparer {
     }
 
     private static byte[] forgeMetadata(FabricModMetadata metadata,
-            Set<String> fulfilledFabricDependencies) {
+            Set<String> fulfilledFabricDependencies,
+            Map<String, String> resolvedDependencyModIds) {
         String escapedId = toml(hostModId(metadata.id()));
         String escapedVersion = toml(metadata.version());
         String escapedName = toml(metadata.name());
@@ -189,11 +195,11 @@ public final class DeterministicJarPreparer {
                 + "displayName=\"" + escapedName + "\"\n";
         StringBuilder result = new StringBuilder(text);
         appendDependencies(result, escapedId, metadata.dependencies().depends(), true,
-                fulfilledFabricDependencies);
+                fulfilledFabricDependencies, resolvedDependencyModIds);
         appendDependencies(result, escapedId, metadata.dependencies().recommends(), false,
-                fulfilledFabricDependencies);
+                fulfilledFabricDependencies, resolvedDependencyModIds);
         appendDependencies(result, escapedId, metadata.dependencies().suggests(), false,
-                fulfilledFabricDependencies);
+                fulfilledFabricDependencies, resolvedDependencyModIds);
         return result.toString().getBytes(StandardCharsets.UTF_8);
     }
 
@@ -431,13 +437,15 @@ public final class DeterministicJarPreparer {
 
     private static void appendDependencies(StringBuilder target, String owner,
             Map<String, List<String>> dependencies, boolean mandatory,
-            Set<String> fulfilledFabricDependencies) {
+            Set<String> fulfilledFabricDependencies,
+            Map<String, String> resolvedDependencyModIds) {
         dependencies.keySet().stream()
                 .filter(id -> !Set.of("minecraft", "java", "fabricloader").contains(id))
                 .filter(id -> !fulfilledFabricDependencies.contains(id))
                 .sorted()
                 .forEach(id -> target.append("\n[[dependencies.").append(owner).append("]]\n")
-                        .append("modId=\"").append(toml(hostModId(id))).append("\"\n")
+                        .append("modId=\"").append(toml(hostModId(
+                                resolvedDependencyModIds.getOrDefault(id, id)))).append("\"\n")
                         .append("mandatory=").append(mandatory).append("\n")
                         .append("versionRange=\"[0,)\"\n")
                         .append("ordering=\"AFTER\"\n")

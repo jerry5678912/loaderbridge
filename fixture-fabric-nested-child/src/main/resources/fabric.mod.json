@@ -8,7 +8,7 @@
     "main": ["dev.loaderbridge.fixture.nested.NestedChildFixture"]
   },
   "depends": {
-    "loaderbridge_fixture": "*",
+    "loaderbridge_fixture_api_alias": "*",
     "minecraft": "=1.21.1",
     "java": ">=21",
     "fabricloader": ">=0.16.0"

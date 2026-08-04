@@ -261,7 +261,11 @@ class/function/property, and top-level function. The fixture observed each side'
 final Minecraft launch arguments. Its embedded Fabric child is recursively
 extracted and transformed, loaded as an independent mod, linked back to the
 parent through `getContainingMod()` / `getContainedMods()`, and invoked on both
-sides. On the client, Fabric initialization
+sides. That child depends on a `provides` alias rather than the parent's primary
+ID: LoaderBridge preserves the alias for Fabric lookup and dependency semantics,
+while rewriting the generated Forge ordering edge to the canonical provider ID.
+The alias path also passed both launches of the dedicated-server save/reload
+scenario. On the client, Fabric initialization
 received the real `Minecraft` instance; on the dedicated server, the instance
 was correctly null during initialization and became the constructed server at
 Forge's about-to-start boundary. Both sides completed world save, shutdown, and
