@@ -135,6 +135,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         List<FabricModMetadata> allMetadata = candidateSelection.selected().stream()
                 .map(PreparationInput::metadata).toList();
         diagnoseLanguageAdapterCollisions(allMetadata, diagnostics);
+        diagnoseMixinConfigCollisions(allMetadata, request.environment(), diagnostics);
         if (candidateSelection.solved()) {
             for (PreparationInput input : candidateSelection.selected()) {
                 if (isReplacedFabricApiNestedInput(input)) continue;
@@ -554,6 +555,25 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                                     + "' is already defined by " + prior));
                 }
             }
+        }
+    }
+
+    private static void diagnoseMixinConfigCollisions(List<FabricModMetadata> metadata,
+            BridgeEnvironment environment, List<Diagnostic> diagnostics) {
+        String side = environment.name().toLowerCase(java.util.Locale.ROOT);
+        Map<String, String> owners = new LinkedHashMap<>();
+        for (FabricModMetadata mod : metadata) {
+            mod.mixins().stream()
+                    .filter(mixin -> mixin.environment().equals("*")
+                            || mixin.environment().equals(side))
+                    .forEach(mixin -> {
+                        String prior = owners.putIfAbsent(mixin.config(), mod.id());
+                        if (prior != null) {
+                            diagnostics.add(unsupported("LB-MIXIN-002", mod.id(), null,
+                                    "Fabric Mixin config '" + mixin.config()
+                                            + "' is already declared by " + prior));
+                        }
+                    });
         }
     }
 

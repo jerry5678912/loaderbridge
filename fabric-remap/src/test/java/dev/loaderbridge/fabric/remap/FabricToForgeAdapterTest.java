@@ -117,6 +117,41 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void rejectsDuplicateActiveMixinConfigurationNamesAcrossMods() throws Exception {
+        Path first = temporaryDirectory.resolve("first-mixin-config.jar");
+        Files.write(first, jarBytes("""
+                {"schemaVersion":1,"id":"first_mixin_owner","version":"1",
+                 "mixins":["shared.mixins.json"]}
+                """));
+        Path second = temporaryDirectory.resolve("second-mixin-config.jar");
+        Files.write(second, jarBytes("""
+                {"schemaVersion":1,"id":"second_mixin_owner","version":"1",
+                 "mixins":[{"config":"shared.mixins.json","environment":"server"}]}
+                """));
+        BridgeRequest request = new BridgeRequest("1.21.1", new LoaderId("forge"), "52.1.0",
+                BridgeEnvironment.SERVER, List.of(first, second),
+                temporaryDirectory.resolve("duplicate-mixin-output"),
+                temporaryDirectory.resolve("duplicate-mixin-cache"));
+
+        var plan = new FabricToForgeAdapter().plan(request);
+        BridgeRequest clientRequest = new BridgeRequest("1.21.1", new LoaderId("forge"),
+                "52.1.0", BridgeEnvironment.CLIENT, List.of(first, second),
+                temporaryDirectory.resolve("sided-mixin-output"),
+                temporaryDirectory.resolve("sided-mixin-cache"));
+        var clientPlan = new FabricToForgeAdapter().plan(clientRequest);
+
+        assertThat(plan.canPrepare()).isFalse();
+        assertThat(plan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-MIXIN-002");
+            assertThat(diagnostic.modId()).isEqualTo("second_mixin_owner");
+            assertThat(diagnostic.message()).contains(
+                    "shared.mixins.json", "first_mixin_owner");
+        });
+        assertThat(clientPlan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-MIXIN-002");
+    }
+
+    @Test
     void automaticallyAddsPinnedMixinExtrasRuntimeWhenAnnotationsRequireIt() throws Exception {
         Path source = temporaryDirectory.resolve("mixinextras-mod.jar");
         ClassWriter writer = new ClassWriter(0);

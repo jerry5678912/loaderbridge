@@ -45,6 +45,10 @@ ID and sorts the complete `preLaunch`, `main`, `client`, and dedicated-server
 batches before invocation. This extends the pinned resolver's canonical order
 from public API views to actual lifecycle execution, independent of Forge's
 discovery order.
+Fabric's `FabricMixinBootstrap` rejects a Mixin configuration resource name
+when another active selected mod already declared it. LoaderBridge now checks
+the side-filtered selected metadata graph and reports `LB-MIXIN-002` before its
+generated namespaced wrappers could conceal that upstream collision.
 Fabric's `CustomValueImpl` parses one immutable object/array tree, represents
 numbers as `Double`, returns the stored nested value on repeated lookup, and
 throws a type-specific `ClassCastException` instead of coercing values.

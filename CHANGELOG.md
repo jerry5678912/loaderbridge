@@ -16,6 +16,9 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added side-aware `LB-MIXIN-002` preflight diagnostics for duplicate active
+  Fabric Mixin configuration names, matching Fabric bootstrap behavior before
+  LoaderBridge generates namespaced Forge wrappers.
 - Batched Fabric `preLaunch`, `main`, `client`, and `server` entrypoints in
   canonical mod-ID order, independent of Forge container discovery order.
   Dedicated-server entrypoints now use the same once-only global coordination
