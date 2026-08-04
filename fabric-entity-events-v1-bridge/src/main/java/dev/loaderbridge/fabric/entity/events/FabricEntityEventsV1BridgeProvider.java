@@ -14,7 +14,7 @@ public final class FabricEntityEventsV1BridgeProvider implements RuntimeBridgeMo
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-entity-events-v1-bridge",
             "fabric-entity-events-v1:1.8.0",
-            "1.8.0+2b27e0a419-loaderbridge.1",
+            "1.8.0+2b27e0a419-loaderbridge.2",
             BridgeCapability.FABRIC_API,
             Set.of(
                     "net.fabricmc.fabric.api.entity.event.v1.EntityElytraEvents",

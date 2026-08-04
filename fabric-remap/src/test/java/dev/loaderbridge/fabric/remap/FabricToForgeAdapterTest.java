@@ -518,7 +518,7 @@ class FabricToForgeAdapterTest {
         });
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
                 .contains(
-                        "fabric-entity-events-v1-bridge-1.8.0_2b27e0a419-loaderbridge.1.jar",
+                        "fabric-entity-events-v1-bridge-1.8.0_2b27e0a419-loaderbridge.2.jar",
                         "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar");
     }
 

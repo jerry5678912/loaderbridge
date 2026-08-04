@@ -4,5 +4,6 @@
   "package": "dev.loaderbridge.fabric.entity.events.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": ["EntityMixin", "EntitySharedFlagInvoker", "LivingEntityMixin", "MobMixin", "PlayerMixin", "ServerPlayerMixin"],
+  "client": ["LocalPlayerMixin"],
   "injectors": {"defaultRequire": 1, "maxShiftBy": 3}
 }

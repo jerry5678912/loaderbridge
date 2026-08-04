@@ -3,6 +3,7 @@ package dev.loaderbridge.fabric.entity.events;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import net.fabricmc.fabric.api.entity.event.v1.EntityElytraEvents;
@@ -29,11 +30,21 @@ import org.junit.jupiter.api.Test;
 
 class EntityEventsV1ContractTest {
     @Test
+    void registersTheClientElytraStartMixinSeparately() throws Exception {
+        try (var stream = EntityEventsV1ContractTest.class.getResourceAsStream(
+                "/loaderbridge.fabric-entity-events-v1.mixins.json")) {
+            assertThat(stream).isNotNull();
+            String config = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+            assertThat(config).contains("\"client\": [\"LocalPlayerMixin\"]");
+        }
+    }
+
+    @Test
     void providerPinsCompletePublicSurface() {
         var descriptor = new FabricEntityEventsV1BridgeProvider().descriptor();
         assertThat(descriptor.contractVersion()).isEqualTo("fabric-entity-events-v1:1.8.0");
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("1.8.0+2b27e0a419-loaderbridge.1");
+                .isEqualTo("1.8.0+2b27e0a419-loaderbridge.2");
         assertThat(descriptor.providedModVersions())
                 .containsEntry("fabric-entity-events-v1", "1.8.0+2b27e0a419");
         assertThat(descriptor.providedClasses()).hasSize(33);
