@@ -1,0 +1,15 @@
+modLoader="javafml"
+loaderVersion="[52,)"
+license="Apache-2.0"
+
+[[mods]]
+modId="loaderbridge_fabric_loot_api_v3"
+version="1.0.3.1"
+displayName="LoaderBridge Fabric Loot API v3 Bridge"
+
+[[dependencies.loaderbridge_fabric_loot_api_v3]]
+modId="forge"
+mandatory=true
+versionRange="[52.1.0,53)"
+ordering="NONE"
+side="BOTH"

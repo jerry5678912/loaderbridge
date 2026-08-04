@@ -104,6 +104,13 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   `fabric:load_conditions` key rather than filenames or mod IDs. Conditional
   `fabric:overlays` metadata is detected separately and currently stops with
   `LB-FAPI-004` instead of being silently misinterpreted.
+- A separately versioned Loot API v3 bridge matching
+  `fabric-loot-api-v3:1.0.3+3f89f5a519`. It injects Fabric's built-object
+  builder extensions into vanilla loot builders and invokes `REPLACE`,
+  `MODIFY`, and `ALL_LOADED` during Forge's native reloadable-registry load.
+  Resource sources distinguish vanilla, mod, external datapack, and replaced
+  tables. Bytecode inspection installs the bridge and its API-base/resource
+  dependencies automatically.
 - A separately versioned Game Rule API v1 bridge matching
   `fabric-game-rule-api-v1:1.0.53+6ced4dd919`. Boolean, bounded integer,
   double, enum, visitor, callback, custom-category, command, serialization,
@@ -337,6 +344,15 @@ on both initial load and reload, validated the real Blockus block and inventory
 models, placed the block, saved the disposable world, reopened it, verified the
 block and item persisted, and stopped cleanly. This closes one M5 module; it
 does not complete M5 or establish the 60% catalog gate.
+
+The Loot API v3 M5 increment passed on 2026-08-04. A translated controlled
+Fabric fixture replaced vanilla cobblestone loot with a diamond pool, then
+added an emerald through the modify event. Forge 52.1.16 produced both items in
+an integrated-world loot execution, saved them in the player's inventory,
+reopened the world, verified both persisted, and stopped cleanly. The dedicated
+server independently invoked all three events during initial load and
+`/reload`, reached ready, saved every dimension, and stopped cleanly. See
+[the controlled evidence](docs/controlled-fixtures/fabric-loot-api-v3.md).
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,

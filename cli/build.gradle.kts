@@ -24,6 +24,9 @@ dependencies {
     runtimeOnly(project(":fabric-resource-conditions-api-v1-bridge")) {
         isTransitive = false
     }
+    runtimeOnly(project(":fabric-loot-api-v3-bridge")) {
+        isTransitive = false
+    }
     runtimeOnly(project(":fabric-game-rule-api-v1-bridge")) {
         isTransitive = false
     }

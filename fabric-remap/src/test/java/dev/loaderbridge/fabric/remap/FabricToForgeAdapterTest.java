@@ -427,6 +427,38 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsLootApiBridgeAndItsRuntimeDependencies() throws Exception {
+        Path source = referencedMod("loot_api", "fabric-loot-api-v3", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
+            method.visitFieldInsn(Opcodes.GETSTATIC,
+                    "net/fabricmc/fabric/api/loot/v3/LootTableEvents",
+                    "MODIFY", "Lnet/fabricmc/fabric/api/event/Event;");
+            method.visitInsn(Opcodes.POP);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(1, 1);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "loot-api");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
+        assertThat(plan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-FAPI-100");
+            assertThat(diagnostic.message()).contains("fabric-loot-api-v3-bridge");
+        });
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains(
+                        "fabric-loot-api-v3-bridge-1.0.3_3f89f5a519-loaderbridge.1.jar",
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
+                        "fabric-resource-loader-v0-bridge-1.3.1_5b5275af19-loaderbridge.1.jar");
+    }
+
+    @Test
     void rejectsConditionalPackOverlaysUntilTheirPackSelectionHookExists() throws Exception {
         Path source = temporaryDirectory.resolve("conditional_overlay.jar");
         Files.write(source, jarBytesWithResource(

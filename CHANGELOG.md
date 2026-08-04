@@ -16,6 +16,15 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added the Fabric Loot API v3 bridge matching `1.0.3+3f89f5a519`. It exposes
+  the complete public event/source/builder surface, injects built-object
+  builder operations, identifies vanilla/mod/datapack sources, and runs
+  replace, modify, and all-loaded callbacks inside Forge's reloadable loot
+  registry pipeline. A controlled Fabric fixture automatically selects its
+  API-base and resource-loader dependencies, replaces cobblestone loot with a
+  diamond, adds an emerald, executes both drops, persists them across an
+  integrated-world save/reload, and repeats all event hooks across dedicated
+  server startup and `/reload`.
 - Added the Fabric Resource Conditions API v1 bridge matching
   `4.3.0+8dc279b119`. It implements the public condition registry and codecs,
   all nine standard condition types, current feature and tag capture, registry

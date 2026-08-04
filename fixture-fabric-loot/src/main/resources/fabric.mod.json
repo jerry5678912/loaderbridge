@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "loaderbridge_fabric_loot_fixture",
+  "version": "1.0.0",
+  "name": "LoaderBridge Fabric Loot Fixture",
+  "environment": "*",
+  "entrypoints": {"main": ["dev.loaderbridge.fixture.loot.FabricLootFixture"]},
+  "depends": {
+    "fabricloader": ">=0.16.14",
+    "minecraft": "1.21.1",
+    "fabric-loot-api-v3": "*"
+  }
+}
