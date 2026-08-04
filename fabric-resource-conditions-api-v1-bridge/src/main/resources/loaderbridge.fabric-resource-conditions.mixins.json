@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8.7",
+  "package": "dev.loaderbridge.fabric.api.resource.conditions.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "RecipeManagerAccessor",
+    "ReloadableServerResourcesMixin",
+    "ServerAdvancementManagerAccessor",
+    "SimplePreparableReloadListenerMixin",
+    "TagManagerMixin"
+  ],
+  "injectors": {"defaultRequire": 1}
+}

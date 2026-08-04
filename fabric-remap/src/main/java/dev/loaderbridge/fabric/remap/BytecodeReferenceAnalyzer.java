@@ -17,6 +17,10 @@ import org.objectweb.asm.Type;
 
 /** Static class-file inventory. This analyzer never defines or initializes inspected classes. */
 public final class BytecodeReferenceAnalyzer {
+    private static final String RESOURCE_CONDITIONS_API =
+            "net.fabricmc.fabric.api.resource.conditions.v1.ResourceConditions";
+    private static final int MAX_SCANNED_RESOURCE_BYTES = 32 * 1024 * 1024;
+
     public ReferenceInventory analyze(Path artifact) throws IOException {
         return analyze(artifact, Set.of());
     }
@@ -29,6 +33,7 @@ public final class BytecodeReferenceAnalyzer {
         Set<String> strings = new LinkedHashSet<>();
         Set<String> natives = new LinkedHashSet<>();
         Set<String> mixinSemanticFeatures = new LinkedHashSet<>();
+        Set<String> structuredResourceFeatures = new LinkedHashSet<>();
         try (JarFile jar = new JarFile(artifact.toFile(), false)) {
             var entries = jar.entries();
             while (entries.hasMoreElements()) {
@@ -38,6 +43,22 @@ public final class BytecodeReferenceAnalyzer {
                 }
                 if (isNative(entry.getName())) {
                     natives.add(entry.getName());
+                } else if (entry.getName().endsWith(".json")) {
+                    try (InputStream input = jar.getInputStream(entry)) {
+                        if (containsAnyUtf8(input, "\"fabric:load_conditions\"")) {
+                            // Resource conditions are a data contract and need no Java call site.
+                            // Feed a public API marker through the normal ServiceLoader-based
+                            // module selection path instead of hardcoding a provider.
+                            fabricApi.add(RESOURCE_CONDITIONS_API);
+                            structuredResourceFeatures.add("fabric-load-conditions");
+                        }
+                    }
+                } else if (entry.getName().endsWith(".mcmeta")) {
+                    try (InputStream input = jar.getInputStream(entry)) {
+                        if (containsAnyUtf8(input, "\"fabric:overlays\"")) {
+                            structuredResourceFeatures.add("fabric-conditional-overlays");
+                        }
+                    }
                 } else if (entry.getName().endsWith(".class")) {
                     String binaryName = entry.getName().substring(0,
                             entry.getName().length() - ".class".length()).replace('/', '.');
@@ -59,13 +80,38 @@ public final class BytecodeReferenceAnalyzer {
             }
         }
         return new ReferenceInventory(fabricApi, loaderApi, mixinExtras, minecraft, strings,
-                natives, mixinSemanticFeatures);
+                natives, mixinSemanticFeatures, structuredResourceFeatures);
     }
 
     private static boolean isNative(String name) {
         String lower = name.toLowerCase(java.util.Locale.ROOT);
         return lower.endsWith(".so") || lower.endsWith(".dll") || lower.endsWith(".dylib")
                 || lower.endsWith(".jnilib");
+    }
+
+    private static boolean containsAnyUtf8(InputStream input, String... needles) throws IOException {
+        byte[][] targets = java.util.Arrays.stream(needles)
+                .map(value -> value.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                .toArray(byte[][]::new);
+        int[] matched = new int[targets.length];
+        for (int count = 0; count < MAX_SCANNED_RESOURCE_BYTES; count++) {
+            int value = input.read();
+            if (value < 0) {
+                return false;
+            }
+            for (int index = 0; index < targets.length; index++) {
+                byte[] target = targets[index];
+                if (value == Byte.toUnsignedInt(target[matched[index]])) {
+                    matched[index]++;
+                    if (matched[index] == target.length) {
+                        return true;
+                    }
+                } else {
+                    matched[index] = value == Byte.toUnsignedInt(target[0]) ? 1 : 0;
+                }
+            }
+        }
+        return false;
     }
 
     private static final class InventoryVisitor extends ClassVisitor {

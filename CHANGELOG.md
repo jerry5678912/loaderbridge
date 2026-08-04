@@ -16,6 +16,16 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added the Fabric Resource Conditions API v1 bridge matching
+  `4.3.0+8dc279b119`. It implements the public condition registry and codecs,
+  all nine standard condition types, current feature and tag capture, registry
+  lookups, custom condition types, and apply-phase JSON filtering. Inspection
+  selects it from the structured `fabric:load_conditions` content rather than
+  filenames or mod IDs; conditional pack overlays stop at `LB-FAPI-004`
+  until their separate pack-selection hook exists. The pinned Blockus client now
+  filters its absent Modern Industrialization recipes before vanilla parsing
+  and passes models, placement, save, world reload, and persistence on Forge
+  52.1.16.
 - Added preprocessing validation for remapped access-widener class, field, and
   method targets. Official rules are checked against the intermediary
   Minecraft structure without defining classes, including reverse member and

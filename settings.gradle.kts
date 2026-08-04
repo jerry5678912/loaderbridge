@@ -37,6 +37,7 @@ include(
     "fabric-command-api-v2-bridge",
     "fabric-lifecycle-events-bridge",
     "fabric-resource-loader-v0-bridge",
+    "fabric-resource-conditions-api-v1-bridge",
     "fabric-game-rule-api-v1-bridge",
     "fabric-object-builder-api-v1-bridge",
     "fabric-api-lookup-api-v1-bridge",

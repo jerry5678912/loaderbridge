@@ -47,6 +47,30 @@ after the passing run. Its local lock SHA-256 was
 Transformed third-party JARs and machine-specific lock paths are not committed
 or redistributed.
 
+## Resource-conditions regression run
+
+On 2026-08-04, Blockus was freshly prepared for Forge 52.1.16 with 18
+artifacts. Inspection found `fabric:load_conditions` in its JSON resources and
+automatically selected
+`fabric-resource-conditions-api-v1-bridge:4.3.0+8dc279b119-loaderbridge.1`.
+The generated lock SHA-256 was
+`66cf68c3fe79e1d73a65e4515c2992bf82187170e48c85b5427b164d5347a049`.
+
+The graphical run loaded 4,622 recipes on both initial load and world reload,
+with zero parse errors for absent `modern_industrialization` serializers. It
+also emitted the stronger model and persistence markers:
+
+```text
+LOADERBRIDGE_CONTENT_BLOCK_MODEL_READY=blockus:amethyst_bricks
+LOADERBRIDGE_CONTENT_ITEM_MODEL_READY=blockus:amethyst_bricks
+LOADERBRIDGE_CONTENT_REGISTRY_READY=blockus:amethyst_bricks
+LOADERBRIDGE_CLIENT_WORLD_SAVED
+LOADERBRIDGE_CONTENT_BLOCK_RELOADED=blockus:amethyst_bricks
+LOADERBRIDGE_CONTENT_ITEM_RELOADED=blockus:amethyst_bricks
+LOADERBRIDGE_CLIENT_WORLD_RELOADED
+LOADERBRIDGE_CLIENT_STOPPED
+```
+
 ## Scope of this result
 
 This proves one Fabric-only content/building mod on one graphical platform and

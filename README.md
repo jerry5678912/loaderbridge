@@ -95,6 +95,15 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   `fabric-resource-loader-v0:1.3.1+5b5275af19`. Server-data listeners and
   registry-aware factories preserve Fabric IDs and dependency order through
   initial load, datapack reload, save, and process restart.
+- A separately versioned Resource Conditions API v1 bridge matching
+  `fabric-resource-conditions-api-v1:4.3.0+8dc279b119`. It implements Fabric's
+  public condition registry and custom codecs plus `true`, logical, loaded-mod,
+  tag, feature, and registry predicates. JSON resources are filtered at the
+  beginning of the apply phase, after current tags and enabled feature flags
+  are captured. Automatic selection inspects the structured
+  `fabric:load_conditions` key rather than filenames or mod IDs. Conditional
+  `fabric:overlays` metadata is detected separately and currently stops with
+  `LB-FAPI-004` instead of being silently misinterpreted.
 - A separately versioned Game Rule API v1 bridge matching
   `fabric-game-rule-api-v1:1.0.53+6ced4dd919`. Boolean, bounded integer,
   double, enum, visitor, callback, custom-category, command, serialization,
@@ -318,6 +327,16 @@ world lifecycle and a two-process dedicated-server ready/save/reload/clean-stop
 scenario. Together with the class, member, finality, inheritance, transitive,
 and malformed-widener fixtures, this marks M4 complete for the current macOS
 scaffold; cross-platform matrix parity remains a later gate.
+
+M5 is in progress. Its Resource Conditions API v1 increment passed on
+2026-08-04. The pinned Fabric-only Blockus 2.9.18 artifact automatically
+selected the bridge from conditional recipe JSON, and Forge 52.1.16 filtered
+recipes for the absent Modern Industrialization mod before serializer parsing.
+The fresh graphical run reported zero such parse errors, loaded 4,622 recipes
+on both initial load and reload, validated the real Blockus block and inventory
+models, placed the block, saved the disposable world, reopened it, verified the
+block and item persisted, and stopped cleanly. This closes one M5 module; it
+does not complete M5 or establish the 60% catalog gate.
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,

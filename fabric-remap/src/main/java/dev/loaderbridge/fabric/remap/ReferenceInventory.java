@@ -6,7 +6,7 @@ public record ReferenceInventory(Set<String> fabricApiClasses, Set<String> loade
         Set<String> mixinExtrasClasses,
         Set<String> minecraftClasses,
         Set<String> reflectionSensitiveStrings, Set<String> nativeLibraries,
-        Set<String> mixinSemanticFeatures) {
+        Set<String> mixinSemanticFeatures, Set<String> structuredResourceFeatures) {
     public ReferenceInventory {
         fabricApiClasses = Set.copyOf(fabricApiClasses);
         loaderApiClasses = Set.copyOf(loaderApiClasses);
@@ -15,5 +15,6 @@ public record ReferenceInventory(Set<String> fabricApiClasses, Set<String> loade
         reflectionSensitiveStrings = Set.copyOf(reflectionSensitiveStrings);
         nativeLibraries = Set.copyOf(nativeLibraries);
         mixinSemanticFeatures = Set.copyOf(mixinSemanticFeatures);
+        structuredResourceFeatures = Set.copyOf(structuredResourceFeatures);
     }
 }

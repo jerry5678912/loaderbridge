@@ -1,0 +1,15 @@
+modLoader="javafml"
+loaderVersion="[52,)"
+license="Apache-2.0"
+
+[[mods]]
+modId="loaderbridge_fabric_resource_conditions_api_v1"
+version="4.3.0.1"
+displayName="LoaderBridge Fabric Resource Conditions API v1 Bridge"
+
+[[dependencies.loaderbridge_fabric_resource_conditions_api_v1]]
+modId="forge"
+mandatory=true
+versionRange="[52.1.0,53)"
+ordering="NONE"
+side="BOTH"

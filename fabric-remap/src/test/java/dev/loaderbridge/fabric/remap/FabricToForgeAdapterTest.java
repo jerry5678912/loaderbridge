@@ -401,6 +401,52 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsResourceConditionsBridgeFromConditionalJson() throws Exception {
+        Path source = temporaryDirectory.resolve("conditional_resources.jar");
+        Files.write(source, jarBytesWithResource(
+                "{\"schemaVersion\":1,\"id\":\"conditional_resources\",\"version\":\"1\"}",
+                "data/fixture/recipe/optional.json",
+                """
+                        {"type":"missing:serializer","fabric:load_conditions":[
+                          {"condition":"fabric:all_mods_loaded","values":["missing"]}
+                        ]}
+                        """));
+        BridgeRequest request = requestFor(source, "conditional-resources");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-FAPI-100");
+            assertThat(diagnostic.message()).contains("fabric-resource-conditions-api-v1-bridge");
+        });
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains("fabric-resource-conditions-api-v1-bridge-4.3.0_8dc279b119-loaderbridge.1.jar");
+    }
+
+    @Test
+    void rejectsConditionalPackOverlaysUntilTheirPackSelectionHookExists() throws Exception {
+        Path source = temporaryDirectory.resolve("conditional_overlay.jar");
+        Files.write(source, jarBytesWithResource(
+                "{\"schemaVersion\":1,\"id\":\"conditional_overlay\",\"version\":\"1\"}",
+                "pack.mcmeta",
+                "{\"pack\":{\"pack_format\":48,\"description\":\"fixture\"},"
+                        + "\"fabric:overlays\":[]}"));
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(requestFor(source, "conditional-overlay"));
+
+        assertThat(plan.canPrepare()).isFalse();
+        assertThat(plan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-FAPI-004");
+            assertThat(diagnostic.severity()).isEqualTo(DiagnosticSeverity.ERROR);
+            assertThat(diagnostic.message()).contains("conditional resource-pack overlays");
+        });
+    }
+
+    @Test
     void automaticallySelectsLifecycleBridgeAndItsBaseDependency() throws Exception {
         Path source = referencedMod("lifecycle_api", "fabric-lifecycle-events-v1", writer -> {
             var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);

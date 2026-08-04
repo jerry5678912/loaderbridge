@@ -369,6 +369,10 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             diagnostics.add(unsupported("LB-NATIVE-001", metadata.id(), artifact,
                     "Native libraries require manual compatibility review: " + inventory.nativeLibraries()));
         }
+        if (inventory.structuredResourceFeatures().contains("fabric-conditional-overlays")) {
+            diagnostics.add(unsupported("LB-FAPI-004", metadata.id(), artifact,
+                    "Fabric conditional resource-pack overlays are not implemented yet"));
+        }
         SourceNamespace namespace = sourceNamespace(request, inventory, diagnostics, metadata.id(), artifact);
         if (namespace == SourceNamespace.INTERMEDIARY) {
             required.add(BridgeCapability.REMAPPING);

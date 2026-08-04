@@ -87,6 +87,48 @@ class BytecodeReferenceAnalyzerTest {
     }
 
     @Test
+    void selectsResourceConditionsBridgeFromStructuredJarContentWithoutJavaReferences()
+            throws Exception {
+        Path jarPath = temporaryDirectory.resolve("conditional-resources.jar");
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(jarPath))) {
+            jar.putNextEntry(new JarEntry("data/fixture/recipe/optional.json"));
+            jar.write("""
+                    {
+                      "type": "missing:serializer",
+                      "fabric:load_conditions": [
+                        {"condition": "fabric:all_mods_loaded", "values": ["missing"]}
+                      ]
+                    }
+                    """.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            jar.closeEntry();
+        }
+
+        ReferenceInventory inventory = new BytecodeReferenceAnalyzer().analyze(jarPath);
+
+        assertThat(inventory.fabricApiClasses())
+                .containsExactly("net.fabricmc.fabric.api.resource.conditions.v1.ResourceConditions");
+        assertThat(inventory.structuredResourceFeatures())
+                .containsExactly("fabric-load-conditions");
+    }
+
+    @Test
+    void inventoriesConditionalPackOverlaysSeparatelyFromJsonConditions() throws Exception {
+        Path jarPath = temporaryDirectory.resolve("conditional-overlay.jar");
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(jarPath))) {
+            jar.putNextEntry(new JarEntry("pack.mcmeta"));
+            jar.write("{\"pack\":{},\"fabric:overlays\":[]}".getBytes(
+                    java.nio.charset.StandardCharsets.UTF_8));
+            jar.closeEntry();
+        }
+
+        ReferenceInventory inventory = new BytecodeReferenceAnalyzer().analyze(jarPath);
+
+        assertThat(inventory.structuredResourceFeatures())
+                .containsExactly("fabric-conditional-overlays");
+        assertThat(inventory.fabricApiClasses()).isEmpty();
+    }
+
+    @Test
     void inventoriesMixinFeaturesWhoseLegacyFabricSemanticsDifferFromForgeMixin() throws Exception {
         ClassWriter writer = new ClassWriter(0);
         writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, "fixture/LegacyLocalsMixin", null,
