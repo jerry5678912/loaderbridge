@@ -1134,6 +1134,34 @@ class FabricToForgeAdapterTest {
                         "constrained_library-1.4.0-loaderbridge.jar");
     }
 
+    @Test
+    void selectsANestedVariantWhoseOwnDependenciesMatchTheHost() throws Exception {
+        byte[] incompatible = jarBytes("""
+                {"schemaVersion":1,"id":"host_constrained_library","version":"2.0.0",
+                 "depends":{"minecraft":">=1.22"}}
+                """);
+        byte[] compatible = jarBytes("""
+                {"schemaVersion":1,"id":"host_constrained_library","version":"1.5.0",
+                 "depends":{"minecraft":"1.21.x"}}
+                """);
+        Path parent = nestedParent("host_constrained_parent", incompatible, compatible);
+        BridgeRequest request = new BridgeRequest("1.21.1", new LoaderId("forge"), "52.1.0",
+                BridgeEnvironment.CLIENT, List.of(parent),
+                temporaryDirectory.resolve("output-host-constrained-nested"),
+                temporaryDirectory.resolve("cache-host-constrained-nested"));
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-002", "LB-NESTED-007");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .containsExactlyInAnyOrder("host_constrained_parent-1-loaderbridge.jar",
+                        "host_constrained_library-1.5.0-loaderbridge.jar");
+    }
+
     private Path nestedParent(String id, byte[] first, byte[] second) throws Exception {
         return nestedParent(id, "", first, second);
     }

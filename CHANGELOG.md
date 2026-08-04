@@ -16,6 +16,10 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Replaced iterative nested-version choice with a deterministic bounded
+  backtracking selector. It now chooses versions whose own hard dependencies,
+  host-version predicates, aliases, identity claims, and `breaks` constraints
+  form a consistent combination; search exhaustion reports `LB-NESTED-008`.
 - Rejected Fabric metadata that redefines Loader's reserved `default` language
   adapter or duplicates a language-adapter key across selected mods, using the
   stable `LB-LANG-002` planning diagnostic.

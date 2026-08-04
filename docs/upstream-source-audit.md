@@ -86,6 +86,13 @@ with one ID remain a structured error. Hash deduplication also promotes an
 artifact first seen nested when the identical JAR is subsequently installed as
 a root. The preprocessing comparator now ignores semantic `+build` metadata
 instead of falling back to lexical ordering.
+Fabric's solver validates the complete selected combination, including a
+candidate's own dependencies rather than only constraints placed on that
+candidate by other mods. LoaderBridge now uses deterministic backtracking over
+version alternatives and checks hard dependencies against candidate, alias,
+Minecraft, Java, Loader, and implemented bridge-module versions. It also checks
+identity collisions and `breaks`; an explicit search budget produces
+`LB-NESTED-008` rather than an unbounded preprocessing run.
 Capability planning now runs against that same selected candidate set rather
 than only the user-installed root archives. Each selected nested archive is
 extracted under the bounded preprocessing cache and statically analyzed without
