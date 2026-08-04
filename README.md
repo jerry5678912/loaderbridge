@@ -118,6 +118,12 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   synchronization with a vanilla matching-stack fallback for unsupported
   serializers. Inspection installs Recipe API and its networking, lifecycle,
   and API-base dependencies automatically.
+- A separately versioned Entity Events v1 bridge matching
+  `fabric-entity-events-v1:1.8.0+2b27e0a419`. Its complete pinned public API
+  surface is selectable from metadata and bytecode, including nested callback
+  descriptors. Forge events cover matching host semantics while early Mixins
+  preserve Fabric timing for damage/death, combat kills, conversions, sleep,
+  bed validity and occupation, wake positions, and elytra hooks.
 - A separately versioned Game Rule API v1 bridge matching
   `fabric-game-rule-api-v1:1.0.53+6ced4dd919`. Boolean, bounded integer,
   double, enum, visitor, callback, custom-category, command, serialization,
@@ -371,6 +377,16 @@ cleanly. The tightened final fixture independently proved all five built-ins
 and the recipe result on the dedicated server before and after `/reload`, then
 flushed every dimension and stopped cleanly. See
 [the controlled evidence](docs/controlled-fixtures/fabric-recipe-api-v1.md).
+
+The Entity Events v1 M5 controlled damage/death/conversion/player/sleep wave
+passed on 2026-08-04. Dedicated Forge runs proved exact damage and fatal-death
+values, cancellation, actual death and combat callbacks, mob conversion,
+world flush, clean stop, and a second-process reload. The graphical run
+required eight standard bed callback families on both the initial and reloaded
+integrated world, observed player join and final-disconnect leave, saved, and
+stopped cleanly. Elytra, respawn/copy, and cross-dimension behavior remain open
+deep-scenario gates for this module. See
+[the controlled evidence](docs/controlled-fixtures/fabric-entity-events-v1.md).
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,

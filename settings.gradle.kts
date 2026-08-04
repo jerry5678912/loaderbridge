@@ -40,6 +40,7 @@ include(
     "fabric-resource-conditions-api-v1-bridge",
     "fabric-loot-api-v3-bridge",
     "fabric-recipe-api-v1-bridge",
+    "fabric-entity-events-v1-bridge",
     "fabric-game-rule-api-v1-bridge",
     "fabric-object-builder-api-v1-bridge",
     "fabric-api-lookup-api-v1-bridge",
@@ -62,5 +63,6 @@ include(
     "fixture-fabric-lifecycle",
     "fixture-fabric-loot",
     "fixture-fabric-recipe",
+    "fixture-fabric-entity-events",
     "fixture-fabric-nested-child",
 )

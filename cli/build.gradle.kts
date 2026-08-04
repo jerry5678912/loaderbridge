@@ -30,6 +30,9 @@ dependencies {
     runtimeOnly(project(":fabric-recipe-api-v1-bridge")) {
         isTransitive = false
     }
+    runtimeOnly(project(":fabric-entity-events-v1-bridge")) {
+        isTransitive = false
+    }
     runtimeOnly(project(":fabric-game-rule-api-v1-bridge")) {
         isTransitive = false
     }

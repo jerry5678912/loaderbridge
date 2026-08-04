@@ -33,6 +33,9 @@ dependencies {
     testRuntimeOnly(project(":fabric-recipe-api-v1-bridge")) {
         isTransitive = false
     }
+    testRuntimeOnly(project(":fabric-entity-events-v1-bridge")) {
+        isTransitive = false
+    }
     testRuntimeOnly(project(":fabric-game-rule-api-v1-bridge")) {
         isTransitive = false
     }
