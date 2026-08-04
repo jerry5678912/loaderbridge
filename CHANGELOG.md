@@ -16,6 +16,10 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Hardened untrusted `fabric.mod.json` parsing with Fabric-compatible container
+  and scalar type checks for entrypoints, nested JARs, mixins, dependencies,
+  language adapters, people, contacts, icons, and custom data. Malformed input
+  now produces controlled inspection diagnostics instead of Gson cast failures.
 - Exposed Fabric mod containers and entrypoints in the canonical mod-ID order
   produced by Fabric Loader 0.16.14, independent of Forge JAR discovery order,
   while retaining declaration order within each mod and alias lookup behavior.

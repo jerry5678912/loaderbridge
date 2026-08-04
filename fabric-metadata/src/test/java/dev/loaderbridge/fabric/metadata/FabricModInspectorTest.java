@@ -187,6 +187,68 @@ final class FabricModInspectorTest {
                 .hasMessageContaining("Invalid Fabric provides declaration");
     }
 
+    @Test
+    void rejectsMalformedStructuredLoadingFieldsWithControlledDiagnostics() throws IOException {
+        assertMalformedField("entrypoints-container", "\"entrypoints\":[]",
+                "Entrypoints must be an object");
+        assertMalformedField("entrypoints-list", "\"entrypoints\":{\"main\":\"example.Main\"}",
+                "Entrypoint list must be an array");
+        assertMalformedField("jars-container", "\"jars\":{}",
+                "Jar entries must be in an array");
+        assertMalformedField("jars-entry", "\"jars\":[42]",
+                "Invalid type for JAR entry");
+        assertMalformedField("mixins-container", "\"mixins\":{}",
+                "Mixin configs must be in an array");
+        assertMalformedField("language-adapters", "\"languageAdapters\":[]",
+                "Language adapters must be in an object");
+        assertMalformedField("language-adapter-value",
+                "\"languageAdapters\":{\"custom\":42}",
+                "Value of language adapter entry must be a string");
+    }
+
+    @Test
+    void enforcesFabricScalarMetadataTypesAndMixinRecovery() throws IOException {
+        assertMalformedMetadata("schema-type",
+                "{\"schemaVersion\":\"1\",\"id\":\"shape_mod\",\"version\":\"1\"}",
+                "schemaVersion must be a number");
+        assertMalformedMetadata("id-type",
+                "{\"schemaVersion\":1,\"id\":42,\"version\":\"1\"}",
+                "field id must be a string");
+        assertMalformedField("dependency-range", "\"depends\":{\"minecraft\":21}",
+                "Dependency range for minecraft must be a string");
+        assertMalformedField("author-type", "\"authors\":[42]",
+                "Fabric author/contributor must be a string or object");
+        assertMalformedField("icon-path", "\"icon\":{\"32\":42}",
+                "Fabric icon path must be a string");
+        assertMalformedField("empty-icon", "\"icon\":{}",
+                "Fabric icon object must not be empty");
+
+        Path recoverableMixin = tempDirectory.resolve("recoverable-mixin.jar");
+        writeJar(recoverableMixin, Map.of("fabric.mod.json", """
+                {"schemaVersion":1,"id":"mixin_mod","version":"1.0.0",
+                 "mixins":[42,true,"valid.mixins.json"]}
+                """));
+        assertThat(new FabricModInspector().inspect(recoverableMixin).root().mixins())
+                .extracting(FabricMixin::config)
+                .containsExactly("valid.mixins.json");
+    }
+
+    private void assertMalformedField(String name, String field, String message) throws IOException {
+        assertMalformedMetadata(name, """
+                {"schemaVersion":1,"id":"shape_mod","version":"1.0.0",%s}
+                """.formatted(field), message);
+    }
+
+    private void assertMalformedMetadata(String name, String metadata, String message)
+            throws IOException {
+        Path jar = tempDirectory.resolve(name + ".jar");
+        writeJar(jar, Map.of("fabric.mod.json", metadata));
+
+        assertThatThrownBy(() -> new FabricModInspector().inspect(jar))
+                .isInstanceOf(UnsafeJarException.class)
+                .hasMessageContaining(message);
+    }
+
     private static byte[] jarBytes(String metadata) throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(output)) {

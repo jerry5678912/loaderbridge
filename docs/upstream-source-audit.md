@@ -27,6 +27,13 @@ entrypoints. Forge 52.1.0 instead topologically sorts unrelated mod files using
 their discovery index. LoaderBridge therefore sorts the public container and
 entrypoint views by canonical Fabric ID, retaining metadata declaration order
 within one provider and keeping aliases mapped to their canonical container.
+The same pinned parser validates structured loading metadata before discovery:
+entrypoints are an object of arrays, nested JARs and Mixins are arrays, language
+adapters and dependency containers are objects, and their scalar values retain
+strict JSON types. LoaderBridge now validates those shapes during untrusted-JAR
+inspection and reports controlled `UnsafeJarException` messages rather than
+leaking Gson shape casts. Like Fabric 0.16.14, unsupported scalar Mixin entries
+are ignored while valid declarations in the same array remain active.
 Fabric Loader completes this setup for every active mod before invoking the
 `preLaunch` stage. LoaderBridge therefore queues prelaunch callbacks until
 Forge's first `FMLConstructModEvent`; all container constructors and entrypoint
