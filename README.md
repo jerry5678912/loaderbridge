@@ -306,6 +306,19 @@ M3 complete for the current macOS scaffold. Windows/Linux parity and broad
 transformer-collision measurement remain later matrix work; this is not a 95%
 catalog result.
 
+M4's access-widener gate passed on 2026-08-04. Preprocessing now validates
+official class, field, method, and descriptor targets against the intermediary
+Minecraft structure before accepting a transformed JAR, with stable
+`LB-AW-005` and `LB-AW-006` diagnostics for missing targets. The real nested
+`fabric-transitive-access-wideners-v1` module from Fabric API 0.116.15 prepared
+successfully and ran through the Forge 52.1.16 graphical Blockus world,
+including model/resource readiness, placement, save, and reload. A freshly
+translated FerriteCore 7.0.3 independently completed the Forge 52.1.16 client
+world lifecycle and a two-process dedicated-server ready/save/reload/clean-stop
+scenario. Together with the class, member, finality, inheritance, transitive,
+and malformed-widener fixtures, this marks M4 complete for the current macOS
+scaffold; cross-platform matrix parity remains a later gate.
+
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,
 tilde ranges, caret ranges, trailing-zero equality, and the special

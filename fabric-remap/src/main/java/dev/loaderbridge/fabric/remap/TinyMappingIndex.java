@@ -18,6 +18,8 @@ final class TinyMappingIndex {
     private final Map<String, String> reverseClasses;
     private final Map<Member, String> fields;
     private final Map<Member, String> methods;
+    private final Map<Member, String> reverseFields;
+    private final Map<Member, String> reverseMethods;
     private final Map<MemberSignature, String> uniqueFields;
     private final Map<MemberSignature, String> uniqueMethods;
 
@@ -29,6 +31,8 @@ final class TinyMappingIndex {
         this.reverseClasses = Map.copyOf(reverse);
         this.fields = Map.copyOf(fields);
         this.methods = Map.copyOf(methods);
+        this.reverseFields = reverseMembers(fields);
+        this.reverseMethods = reverseMembers(methods);
         this.uniqueFields = uniqueMembers(fields);
         this.uniqueMethods = uniqueMembers(methods);
     }
@@ -131,6 +135,14 @@ final class TinyMappingIndex {
         return output.toString();
     }
 
+    String sourceField(String runtimeOwner, String name, String descriptor) {
+        return reverseFields.getOrDefault(new Member(runtimeOwner, name, descriptor), name);
+    }
+
+    String sourceMethod(String runtimeOwner, String name, String descriptor) {
+        return reverseMethods.getOrDefault(new Member(runtimeOwner, name, descriptor), name);
+    }
+
     String mapField(String owner, String name, String descriptor) {
         return fields.getOrDefault(new Member(owner, name, descriptor),
                 uniqueFields.getOrDefault(new MemberSignature(name, descriptor), name));
@@ -168,6 +180,14 @@ final class TinyMappingIndex {
         });
         ambiguous.forEach(unique::remove);
         return Map.copyOf(unique);
+    }
+
+    private Map<Member, String> reverseMembers(Map<Member, String> members) {
+        Map<Member, String> reverse = new LinkedHashMap<>();
+        members.forEach((source, runtimeName) -> reverse.put(new Member(
+                classes.getOrDefault(source.owner(), source.owner()), runtimeName,
+                mapDescriptor(source.descriptor())), source.name()));
+        return Map.copyOf(reverse);
     }
 
     private record Member(String owner, String name, String descriptor) {}

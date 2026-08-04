@@ -211,6 +211,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             String sourceHash = sha256(source);
             Path preparationInput = source;
             Path runtimeMappings = null;
+            Path accessWidenerGameJar = null;
             String mappingKey = "namespace-neutral";
             boolean needsMappingResolver = inventory.loaderApiClasses().contains(
                     "net.fabricmc.loader.api.MappingResolver") || metadata.accessWidener().isPresent();
@@ -226,6 +227,10 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                         + sha256(resolvedIntermediaryMappings);
                 MinecraftRemappingPipeline pipeline = new MinecraftRemappingPipeline();
                 Path work = request.cacheDirectory().resolve("remap-work");
+                if (metadata.accessWidener().isPresent()) {
+                    accessWidenerGameJar = pipeline.intermediaryClient(
+                            resolvedMinecraft.clientJar().path(), resolvedIntermediaryMappings, work);
+                }
                 if (namespace == SourceNamespace.INTERMEDIARY) {
                     Path remapped = request.cacheDirectory().resolve("remapped-inputs")
                             .resolve(sourceHash + "-named.jar");
@@ -255,7 +260,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                 if (input.parentModId() != null) {
                     manifest = manifest.nested(input.parentModId(), input.parentSubLocation());
                 }
-                preparer.prepare(preparationInput, cached, metadata, manifest, runtimeMappings);
+                preparer.prepare(preparationInput, cached, metadata, manifest, runtimeMappings,
+                        accessWidenerGameJar);
             }
             Path output = request.outputDirectory().resolve(metadata.id() + "-" + safe(metadata.version())
                     + "-loaderbridge.jar");

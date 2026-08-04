@@ -17,12 +17,8 @@ public final class MinecraftRemappingPipeline {
     public Path remap(Path inputMod, Path outputMod, Path obfuscatedClientJar,
             Path intermediaryMappings, Path mojangMappings, Path workDirectory) throws IOException {
         Files.createDirectories(workDirectory);
-        String minecraftKey = digest(obfuscatedClientJar, intermediaryMappings);
-        Path intermediaryClient = workDirectory.resolve("client-intermediary-" + minecraftKey + ".jar");
-        if (!Files.isRegularFile(intermediaryClient)) {
-            remapper.remap(obfuscatedClientJar, intermediaryClient, intermediaryMappings,
-                    "official", "intermediary", List.of());
-        }
+        Path intermediaryClient = intermediaryClient(
+                obfuscatedClientJar, intermediaryMappings, workDirectory);
 
         Path composedMappings = composeMappings(intermediaryMappings, mojangMappings, workDirectory);
 
@@ -35,6 +31,18 @@ public final class MinecraftRemappingPipeline {
         Files.createDirectories(outputMod.toAbsolutePath().getParent());
         Files.copy(remappedMod, outputMod, StandardCopyOption.REPLACE_EXISTING);
         return composedMappings;
+    }
+
+    public Path intermediaryClient(Path obfuscatedClientJar, Path intermediaryMappings,
+            Path workDirectory) throws IOException {
+        Files.createDirectories(workDirectory);
+        String minecraftKey = digest(obfuscatedClientJar, intermediaryMappings);
+        Path intermediaryClient = workDirectory.resolve("client-intermediary-" + minecraftKey + ".jar");
+        if (!Files.isRegularFile(intermediaryClient)) {
+            remapper.remap(obfuscatedClientJar, intermediaryClient, intermediaryMappings,
+                    "official", "intermediary", List.of());
+        }
+        return intermediaryClient;
     }
 
     public Path composeMappings(Path intermediaryMappings, Path mojangMappings,

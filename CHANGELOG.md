@@ -16,6 +16,12 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added preprocessing validation for remapped access-widener class, field, and
+  method targets. Official rules are checked against the intermediary
+  Minecraft structure without defining classes, including reverse member and
+  descriptor mapping; missing targets fail as `LB-AW-005` or `LB-AW-006`. The
+  Fabric-to-Forge adapter is now version 0.5.0 so locks and caches record this
+  M4 behavior boundary.
 - Added a controlled Fabric-only runtime fixture for all classic Mixin injector
   families plus shadow, overwrite, accessor, and invoker behavior. It passes
   Forge client and two-launch dedicated-server world save/reload scenarios.

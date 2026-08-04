@@ -53,6 +53,16 @@ public final class DeterministicJarPreparer {
             FabricModMetadata metadata,
             PreparationManifest manifest,
             Path runtimeMappings) throws IOException {
+        prepare(source, destination, metadata, manifest, runtimeMappings, null);
+    }
+
+    public void prepare(
+            Path source,
+            Path destination,
+            FabricModMetadata metadata,
+            PreparationManifest manifest,
+            Path runtimeMappings,
+            Path targetGameJar) throws IOException {
         Path parent = destination.toAbsolutePath().getParent();
         if (parent == null) {
             throw new IOException("Output JAR must have a parent directory");
@@ -60,7 +70,7 @@ public final class DeterministicJarPreparer {
         Files.createDirectories(parent);
         Path temporary = Files.createTempFile(parent, destination.getFileName().toString(), ".tmp");
         try {
-            write(source, temporary, metadata, manifest, runtimeMappings);
+            write(source, temporary, metadata, manifest, runtimeMappings, targetGameJar);
             Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING,
                     StandardCopyOption.ATOMIC_MOVE);
         } catch (IOException | RuntimeException exception) {
@@ -74,7 +84,8 @@ public final class DeterministicJarPreparer {
             Path destination,
             FabricModMetadata metadata,
             PreparationManifest manifest,
-            Path runtimeMappings) throws IOException {
+            Path runtimeMappings,
+            Path targetGameJar) throws IOException {
         try (JarFile input = new JarFile(source.toFile(), false);
                 JarOutputStream output = new JarOutputStream(Files.newOutputStream(destination))) {
             Set<String> names = new HashSet<>();
@@ -82,7 +93,8 @@ public final class DeterministicJarPreparer {
             MixinPackaging mixins = prepareMixins(
                     input, metadata, manifest.sourceNamespace(), runtimeMappings);
             AccessWidenerPackaging accessWidener = prepareAccessWidener(
-                    input, metadata, manifest.sourceNamespace(), runtimeMappings);
+                    input, source, metadata, manifest.sourceNamespace(), runtimeMappings,
+                    targetGameJar);
             TinyMappingIndex bytecodeMappings = manifest.sourceNamespace().equals("intermediary")
                     && runtimeMappings != null ? TinyMappingIndex.read(runtimeMappings) : null;
             if (augmentManifest) {
@@ -380,8 +392,9 @@ public final class DeterministicJarPreparer {
         }
     }
 
-    private static AccessWidenerPackaging prepareAccessWidener(JarFile input,
-            FabricModMetadata metadata, String sourceNamespace, Path runtimeMappings) throws IOException {
+    private static AccessWidenerPackaging prepareAccessWidener(JarFile input, Path source,
+            FabricModMetadata metadata, String sourceNamespace, Path runtimeMappings,
+            Path targetGameJar) throws IOException {
         if (metadata.accessWidener().isEmpty()) {
             return new AccessWidenerPackaging(null, null);
         }
@@ -394,6 +407,9 @@ public final class DeterministicJarPreparer {
         TinyMappingIndex mappings = runtimeMappings == null
                 ? null : TinyMappingIndex.read(runtimeMappings);
         byte[] transformed = new AccessWidenerResourceTransformer().transform(bytes, mappings);
+        if (targetGameJar != null) {
+            AccessWidenerTargetValidator.validate(transformed, source, targetGameJar, mappings);
+        }
         String generated = "META-INF/loaderbridge/access-wideners/"
                 + sha256("access-widener\u0000" + original) + ".accesswidener";
         return new AccessWidenerPackaging(generated, transformed);
