@@ -48,6 +48,10 @@ failure contracts rather than exposing Gson's conversions and exception types.
 The metadata object also retains that one parsed declaration-ordered map;
 repeated `getCustomValues()` and `getCustomValue()` calls now return the same
 map and node identities instead of reparsing JSON at each access.
+The pinned V1 metadata implementation likewise retains its author, contributor,
+person-contact, and mod-contact objects. LoaderBridge now constructs those
+immutable views once, returns Fabric's shared empty contact where applicable,
+and preserves identity across repeated getters.
 Fabric's semantic version implementation compares components through the longer
 version, treating omitted components as zero. LoaderBridge now makes `1`,
 `1.0`, and `1.0.0` equal as well as equally ordered, and normalizes their hashes

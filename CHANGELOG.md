@@ -16,6 +16,8 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Retained Fabric metadata author, contributor, person-contact, and mod-contact
+  objects across repeated getters, matching Fabric's immutable parsed views.
 - Parsed Fabric metadata custom values once and now return the same immutable,
   declaration-ordered map and value nodes across repeated API access.
 - Matched Fabric `VersionInterval` cross-implementation equality, hashing,

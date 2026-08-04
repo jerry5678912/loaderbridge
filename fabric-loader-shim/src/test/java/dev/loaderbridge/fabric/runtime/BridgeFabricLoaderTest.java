@@ -315,6 +315,12 @@ class BridgeFabricLoaderTest {
                 });
         assertThat(container.getMetadata().getContributors())
                 .extracting(net.fabricmc.loader.api.metadata.Person::getName).containsExactly("Helper");
+        assertThat(container.getMetadata().getAuthors())
+                .isSameAs(container.getMetadata().getAuthors());
+        assertThat(container.getMetadata().getAuthors().iterator().next())
+                .isSameAs(container.getMetadata().getAuthors().iterator().next());
+        assertThat(container.getMetadata().getContact())
+                .isSameAs(container.getMetadata().getContact());
         assertThat(container.getMetadata().getContact().get("homepage"))
                 .contains("https://example.invalid");
         assertThat(container.getMetadata().getLicense()).containsExactly("Apache-2.0");

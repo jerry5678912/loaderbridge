@@ -46,12 +46,12 @@ public record BridgeModContainer(
         ModMetadata metadata = new SimpleMetadata(
                 "fabric", "fabricloader", List.of(), parseVersion(version), "Fabric Loader",
                 ModEnvironment.UNIVERSAL, List.of(), "The base mod loader.",
-                List.of(new FabricPerson("FabricMC", Map.of())), List.of(),
-                Map.of(
+                people(List.of(new FabricPerson("FabricMC", Map.of()))), List.of(),
+                contact(Map.of(
                         "homepage", "https://fabricmc.net",
                         "irc", "ircs://irc.esper.net:6697/fabric",
                         "issues", "https://github.com/FabricMC/fabric-loader/issues",
-                        "sources", "https://github.com/FabricMC/fabric-loader"),
+                        "sources", "https://github.com/FabricMC/fabric-loader")),
                 List.of("Apache-2.0"), Map.of(0, "assets/fabricloader/icon.png"), Map.of());
         return new BridgeModContainer(metadata, List.of(root), null, null);
     }
@@ -73,7 +73,8 @@ public record BridgeModContainer(
         Version parsedVersion = parseVersion(version);
         ModMetadata metadata = new SimpleMetadata(
                 "builtin", id, List.of(), parsedVersion, name, ModEnvironment.UNIVERSAL,
-                dependencies, "", List.of(), List.of(), Map.of(), List.of(), Map.of(), Map.of());
+                dependencies, "", List.of(), List.of(), ContactInformation.EMPTY,
+                List.of(), Map.of(), Map.of());
         return new BridgeModContainer(metadata, List.copyOf(roots), null, null);
     }
 
@@ -88,7 +89,7 @@ public record BridgeModContainer(
         Version parsedVersion = parseVersion(version);
         ModMetadata metadata = new SimpleMetadata(
                 type, id, aliases, parsedVersion, name, ModEnvironment.UNIVERSAL, dependencies, "",
-                List.of(), List.of(), Map.of(), List.of(), Map.of(), Map.of());
+                List.of(), List.of(), ContactInformation.EMPTY, List.of(), Map.of(), Map.of());
         return new BridgeModContainer(metadata, List.of(root), null, null);
     }
 
@@ -106,7 +107,8 @@ public record BridgeModContainer(
                 source.name(),
                 parseEnvironment(source.environment()),
                 dependencies(source.dependencies()),
-                source.description(), source.authors(), source.contributors(), source.contact(),
+                source.description(), people(source.authors()), people(source.contributors()),
+                contact(source.contact()),
                 source.licenses(), source.icons(), customValues(source.customJson()));
         return new BridgeModContainer(metadata, List.of(root), parentModId, parentSubLocation);
     }
@@ -115,6 +117,14 @@ public record BridgeModContainer(
         Map<String, CustomValue> values = new LinkedHashMap<>();
         customJson.forEach((key, json) -> values.put(key, BridgeCustomValue.parse(json)));
         return Collections.unmodifiableMap(values);
+    }
+
+    private static List<Person> people(List<FabricPerson> people) {
+        return people.stream().<Person>map(SimplePerson::new).toList();
+    }
+
+    private static ContactInformation contact(Map<String, String> values) {
+        return values.isEmpty() ? ContactInformation.EMPTY : new SimpleContact(values);
     }
 
     private static ModEnvironment parseEnvironment(String environment) {
@@ -216,9 +226,9 @@ public record BridgeModContainer(
             ModEnvironment environment,
             Collection<ModDependency> dependencies,
             String description,
-            List<FabricPerson> authors,
-            List<FabricPerson> contributors,
-            Map<String, String> contact,
+            List<Person> authors,
+            List<Person> contributors,
+            ContactInformation contact,
             List<String> licenses,
             Map<Integer, String> icons,
             Map<String, CustomValue> customValues)
@@ -228,7 +238,6 @@ public record BridgeModContainer(
             dependencies = List.copyOf(dependencies);
             authors = List.copyOf(authors);
             contributors = List.copyOf(contributors);
-            contact = Map.copyOf(contact);
             licenses = List.copyOf(licenses);
             icons = Map.copyOf(icons);
             customValues = Collections.unmodifiableMap(new LinkedHashMap<>(customValues));
@@ -241,13 +250,9 @@ public record BridgeModContainer(
         @Override public ModEnvironment getEnvironment() { return environment; }
         @Override public Collection<ModDependency> getDependencies() { return dependencies; }
         @Override public String getDescription() { return description; }
-        @Override public Collection<Person> getAuthors() {
-            return authors.stream().<Person>map(SimplePerson::new).toList();
-        }
-        @Override public Collection<Person> getContributors() {
-            return contributors.stream().<Person>map(SimplePerson::new).toList();
-        }
-        @Override public ContactInformation getContact() { return new SimpleContact(contact); }
+        @Override public Collection<Person> getAuthors() { return authors; }
+        @Override public Collection<Person> getContributors() { return contributors; }
+        @Override public ContactInformation getContact() { return contact; }
         @Override public Collection<String> getLicense() { return licenses; }
         @Override public Optional<String> getIconPath(int size) {
             if (icons.isEmpty()) return Optional.empty();
@@ -261,15 +266,22 @@ public record BridgeModContainer(
         @Override public Map<String, CustomValue> getCustomValues() { return customValues; }
     }
 
-    private record SimpleContact(Map<String, String> values) implements ContactInformation {
-        SimpleContact { values = Map.copyOf(values); }
+    private static final class SimpleContact implements ContactInformation {
+        private final Map<String, String> values;
+        private SimpleContact(Map<String, String> values) { this.values = Map.copyOf(values); }
         @Override public Optional<String> get(String key) { return Optional.ofNullable(values.get(key)); }
         @Override public Map<String, String> asMap() { return values; }
     }
 
-    private record SimplePerson(FabricPerson source) implements Person {
-        @Override public String getName() { return source.name(); }
-        @Override public ContactInformation getContact() { return new SimpleContact(source.contact()); }
+    private static final class SimplePerson implements Person {
+        private final String name;
+        private final ContactInformation contact;
+        private SimplePerson(FabricPerson source) {
+            name = source.name();
+            contact = contact(source.contact());
+        }
+        @Override public String getName() { return name; }
+        @Override public ContactInformation getContact() { return contact; }
     }
 
     private record BridgeDependency(Kind kind, String modId, List<String> ranges) implements ModDependency {
