@@ -279,6 +279,14 @@ compatible. Catalog-wide measurement remains pending the frozen 1,000-project
 catalog. The real-mod probes above establish the M3/M4 reference gates on
 macOS; they do not establish Windows/Linux parity or a 95% result.
 
+M2's acceptance gate was revalidated on 2026-08-04 after the source-level
+Loader API audit. The dedicated-server scenario passed every Loader, Kotlin,
+member-entrypoint, nested-classpath, alias, Mixin, save, reload, and clean-stop
+step across two launches. The client lab reached the title screen, opened and
+saved an integrated world, returned to the title screen, reloaded the world,
+and stopped itself cleanly. This marks M2 complete for the controlled scaffold;
+it is not a claim that arbitrary real mods or Fabric API modules work yet.
+
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,
 tilde ranges, caret ranges, trailing-zero equality, and the special
