@@ -155,11 +155,19 @@ public final class BridgeSemanticVersion implements SemanticVersion {
 
     @Override
     public boolean equals(Object object) {
-        return object instanceof BridgeSemanticVersion other
-                && Arrays.equals(components, other.components)
-                && Objects.equals(prerelease, other.prerelease)
+        if (!(object instanceof BridgeSemanticVersion other)) return false;
+        int count = Math.max(components.length, other.components.length);
+        for (int index = 0; index < count; index++) {
+            if (getVersionComponent(index) != other.getVersionComponent(index)) return false;
+        }
+        return Objects.equals(prerelease, other.prerelease)
                 && Objects.equals(build, other.build);
     }
 
-    @Override public int hashCode() { return Objects.hash(Arrays.hashCode(components), prerelease, build); }
+    @Override
+    public int hashCode() {
+        int count = components.length;
+        while (count > 1 && components[count - 1] == 0) count--;
+        return Objects.hash(Arrays.hashCode(Arrays.copyOf(components, count)), prerelease, build);
+    }
 }

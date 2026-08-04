@@ -16,6 +16,8 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Matched Fabric semantic-version equality across omitted trailing zero
+  components, with consistent hashing and equivalent predicate deduplication.
 - Matched Fabric Loader's immutable `CustomValue` tree behavior: stable nested
   value identity, ordered iteration, `Double` numbers, and precise
   `ClassCastException` failures for every invalid type conversion.

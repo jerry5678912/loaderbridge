@@ -45,6 +45,10 @@ numbers as `Double`, returns the stored nested value on repeated lookup, and
 throws a type-specific `ClassCastException` instead of coercing values.
 LoaderBridge now mirrors those identity, iteration, immutability, numeric, and
 failure contracts rather than exposing Gson's conversions and exception types.
+Fabric's semantic version implementation compares components through the longer
+version, treating omitted components as zero. LoaderBridge now makes `1`,
+`1.0`, and `1.0.0` equal as well as equally ordered, and normalizes their hashes
+so equivalent dependency predicates deduplicate safely in collection APIs.
 Fabric Loader completes this setup for every active mod before invoking the
 `preLaunch` stage. LoaderBridge therefore queues prelaunch callbacks until
 Forge's first `FMLConstructModEvent`; all container constructors and entrypoint

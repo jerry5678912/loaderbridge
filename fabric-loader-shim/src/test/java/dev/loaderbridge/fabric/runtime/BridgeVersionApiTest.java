@@ -27,6 +27,11 @@ class BridgeVersionApiTest {
         assertThat(Version.parse("release-candidate")).isNotInstanceOf(SemanticVersion.class);
         assertThatThrownBy(() -> SemanticVersion.parse("1.x"))
                 .isInstanceOf(VersionParsingException.class);
+
+        SemanticVersion shortVersion = SemanticVersion.parse("1");
+        SemanticVersion paddedVersion = SemanticVersion.parse("1.0.0");
+        assertThat(shortVersion.compareTo((Version) paddedVersion)).isZero();
+        assertThat(shortVersion).isEqualTo(paddedVersion).hasSameHashCodeAs(paddedVersion);
     }
 
     @Test
@@ -52,6 +57,10 @@ class BridgeVersionApiTest {
         assertThat(first).isEqualTo(second).hasSameHashCodeAs(second);
         assertThat(VersionPredicate.parse(List.of(">=1.20", ">=1.20")))
                 .containsExactlyElementsOf(Set.of(VersionPredicate.parse(">=1.20")));
+        assertThat(VersionPredicate.parse(">=1"))
+                .isEqualTo(VersionPredicate.parse(">=1.0.0"))
+                .hasSameHashCodeAs(VersionPredicate.parse(">=1.0.0"));
+        assertThat(VersionPredicate.parse(List.of(">=1", ">=1.0.0"))).hasSize(1);
     }
 
     @Test
