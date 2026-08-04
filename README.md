@@ -297,7 +297,14 @@ dedicated-server launches emitted `LOADERBRIDGE_FIXTURE_STANDARD_MIXINS_READY`
 around a clean save/reload cycle, and the Forge client emitted the same marker
 before title-screen, integrated-world save, reload, and clean stop. This proves
 the listed standard injector families against a controlled official-namespace
-target; the Lithium real-mod gate and broader collision work remain separate.
+target. The pinned Fabric Lithium 0.14.3 gate also passed client and dedicated
+server launches on Forge 52.1.0 and 52.1.16 in the macOS laboratory, including
+world creation, save, clean shutdown, and process/world reload. A separate
+nine-JAR Lithium bundle, containing no other transformed mods or controlled
+fixtures, repeated the Forge 52.1.16 client lifecycle successfully. This marks
+M3 complete for the current macOS scaffold. Windows/Linux parity and broad
+transformer-collision measurement remain later matrix work; this is not a 95%
+catalog result.
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,
