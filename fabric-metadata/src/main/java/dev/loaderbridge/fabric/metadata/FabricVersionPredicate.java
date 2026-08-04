@@ -12,6 +12,11 @@ public final class FabricVersionPredicate {
         return predicates.stream().anyMatch(predicate -> matches(predicate, version));
     }
 
+    /** Compares versions using the same extended-semver ordering as predicates. */
+    public static int compare(String left, String right) {
+        return ComparableVersion.parse(left).compareTo(ComparableVersion.parse(right));
+    }
+
     public static boolean matches(String expression, String version) {
         String trimmed = expression.trim();
         if (trimmed.isEmpty() || trimmed.equals("*")) {
@@ -67,7 +72,10 @@ public final class FabricVersionPredicate {
     private record ComparableVersion(List<Integer> numbers, String suffix, String original)
             implements Comparable<ComparableVersion> {
         static ComparableVersion parse(String value) {
-            String[] mainAndSuffix = value.trim().split("-", 2);
+            String comparisonValue = value.trim();
+            int buildSeparator = comparisonValue.indexOf('+');
+            if (buildSeparator >= 0) comparisonValue = comparisonValue.substring(0, buildSeparator);
+            String[] mainAndSuffix = comparisonValue.split("-", 2);
             String[] pieces = mainAndSuffix[0].split("\\.");
             List<Integer> numbers = new ArrayList<>();
             for (String piece : pieces) {

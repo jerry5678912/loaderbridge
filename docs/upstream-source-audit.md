@@ -77,6 +77,15 @@ and treats plain-version point intervals differently from ordered semantic
 intervals. LoaderBridge now preserves those value contracts, plain-version
 intersection and union rules, complement edge cases, and deduplicates repeated
 overlaps when intersecting interval collections.
+Fabric's `ModPrioSorter` ranks root candidates before nested candidates and
+newer versions before older versions, while its solver applies required version
+predicates. LoaderBridge now makes the same generic decisions for duplicate
+nested IDs in planning and preparation, iterates constraints contributed by the
+selected candidates, and reports the chosen version. Multiple mandatory roots
+with one ID remain a structured error. Hash deduplication also promotes an
+artifact first seen nested when the identical JAR is subsequently installed as
+a root. The preprocessing comparator now ignores semantic `+build` metadata
+instead of falling back to lexical ordering.
 Fabric Loader completes this setup for every active mod before invoking the
 `preLaunch` stage. LoaderBridge therefore queues prelaunch callbacks until
 Forge's first `FMLConstructModEvent`; all container constructors and entrypoint

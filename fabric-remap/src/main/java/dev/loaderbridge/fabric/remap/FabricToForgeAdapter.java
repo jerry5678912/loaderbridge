@@ -21,6 +21,7 @@ import dev.loaderbridge.fabric.metadata.FabricModInspector;
 import dev.loaderbridge.fabric.metadata.FabricModMetadata;
 import dev.loaderbridge.fabric.metadata.FabricLoaderCompatibility;
 import dev.loaderbridge.fabric.metadata.FabricModTree;
+import dev.loaderbridge.fabric.metadata.FabricVersionPredicate;
 import dev.loaderbridge.fabric.metadata.JarReadLimits;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -29,8 +30,10 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HexFormat;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -101,7 +104,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
     public BridgePlan plan(BridgeRequest request) throws IOException {
         List<Diagnostic> diagnostics = new ArrayList<>();
         List<ModInspection> inspections = new ArrayList<>();
-        List<FabricModMetadata> allMetadata = new ArrayList<>();
+        List<MetadataCandidate> allCandidates = new ArrayList<>();
         Map<String, RuntimeBridgeModuleProvider> plannedBridgeModules = new LinkedHashMap<>();
         EnumSet<BridgeCapability> required = EnumSet.of(BridgeCapability.METADATA,
                 BridgeCapability.DEPENDENCY_RESOLUTION);
@@ -116,8 +119,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                     diagnostics.add(environmentSkipped(metadata, artifact, request.environment()));
                     continue;
                 }
-                collectCompatibleMetadata(tree, request.environment(), allMetadata,
-                        diagnostics, artifact);
+                collectCompatibleMetadata(tree, request.environment(), allCandidates,
+                        diagnostics, artifact, true);
                 ReferenceInventory inventory = analyzer.analyze(artifact,
                         nonRuntimeEntrypointClasses(metadata));
                 analyzeRequirements(artifact, metadata, inventory, required, diagnostics, request,
@@ -127,7 +130,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                         "Could not inspect Fabric mod", exception));
             }
         }
-        diagnoseDuplicateIds(allMetadata, diagnostics);
+        List<FabricModMetadata> allMetadata = selectMetadataCandidates(allCandidates, diagnostics)
+                .stream().map(MetadataCandidate::metadata).toList();
         Map<String, String> builtinVersions = new LinkedHashMap<>(Map.of(
                 "minecraft", request.minecraftVersion(),
                 "java", System.getProperty("java.specification.version").replaceFirst("^1\\.", ""),
@@ -152,16 +156,16 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         ResolvedMinecraftArtifacts resolvedMinecraft = null;
         Path resolvedIntermediaryMappings = null;
         List<PreparationInput> inputs = new ArrayList<>();
-        Set<String> seenArtifacts = new LinkedHashSet<>();
-        Map<String, String> seenModVersions = new LinkedHashMap<>();
+        Map<String, Integer> seenArtifacts = new LinkedHashMap<>();
         String adapterFingerprint = implementationFingerprint();
         boolean needsMixinExtras = false;
         Map<String, RuntimeBridgeModuleProvider> selectedBridgeModules = new LinkedHashMap<>();
         for (Path source : request.inputArtifacts()) {
             collectPreparationInputs(source, source.toString(), null, null,
                     request.environment(), request.cacheDirectory(), inputs,
-                    seenArtifacts, seenModVersions);
+                    seenArtifacts);
         }
+        inputs = selectPreparationInputs(inputs);
         Map<String, String> dependencyOwners = dependencyOwners(inputs);
         for (PreparationInput input : inputs) {
             if (isReplacedFabricApiNestedInput(input)) {
@@ -501,17 +505,18 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
     private static void collectCompatibleMetadata(
             FabricModTree tree,
             BridgeEnvironment environment,
-            List<FabricModMetadata> destination,
+            List<MetadataCandidate> destination,
             List<Diagnostic> diagnostics,
-            Path artifact) {
+            Path artifact,
+            boolean root) {
         FabricModMetadata metadata = tree.root();
         if (!loadsInEnvironment(metadata, environment)) {
             diagnostics.add(environmentSkipped(metadata, artifact, environment));
             return;
         }
-        destination.add(metadata);
+        destination.add(new MetadataCandidate(metadata, root));
         tree.nested().forEach(child -> collectCompatibleMetadata(
-                child, environment, destination, diagnostics, artifact));
+                child, environment, destination, diagnostics, artifact, false));
     }
 
     private static boolean loadsInEnvironment(
@@ -528,39 +533,187 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                         + environment.name().toLowerCase(java.util.Locale.ROOT) + " preparation");
     }
 
-    private static void diagnoseDuplicateIds(List<FabricModMetadata> metadata,
-            List<Diagnostic> diagnostics) {
-        Map<String, String> versions = new LinkedHashMap<>();
-        for (FabricModMetadata mod : metadata) {
-            String prior = versions.putIfAbsent(mod.id(), mod.version());
-            if (prior != null && !prior.equals(mod.version())) {
+    private static List<MetadataCandidate> selectMetadataCandidates(
+            List<MetadataCandidate> candidates, List<Diagnostic> diagnostics) {
+        Map<String, List<MetadataCandidate>> groups = new LinkedHashMap<>();
+        candidates.forEach(candidate -> groups.computeIfAbsent(candidate.metadata().id(),
+                ignored -> new ArrayList<>()).add(candidate));
+        List<FabricModMetadata> fixed = candidates.stream()
+                .filter(candidate -> candidate.root()
+                        || groups.get(candidate.metadata().id()).size() == 1)
+                .map(MetadataCandidate::metadata).toList();
+        Map<String, MetadataCandidate> choices = new LinkedHashMap<>();
+        for (Map.Entry<String, List<MetadataCandidate>> entry : groups.entrySet()) {
+            List<MetadataCandidate> variants = entry.getValue();
+            List<MetadataCandidate> roots = variants.stream().filter(MetadataCandidate::root).toList();
+            if (roots.size() > 1) {
+                FabricModMetadata mod = roots.getFirst().metadata();
                 diagnostics.add(unsupported("LB-NESTED-006", mod.id(), null,
-                        "Duplicate Fabric mod ID has conflicting versions " + prior
-                                + " and " + mod.version()));
+                        "Duplicate root Fabric mods claim ID '" + mod.id() + "'"));
+                choices.put(entry.getKey(), roots.getFirst());
+            } else {
+                choices.put(entry.getKey(), roots.isEmpty()
+                        ? bestCandidate(variants, Map.of()) : roots.getFirst());
             }
         }
+        if (!stabilizeMetadataChoices(groups, fixed, choices)) {
+            diagnostics.add(unsupported("LB-NESTED-007", null, null,
+                    "Fabric nested candidate constraints did not converge"));
+        }
+        Set<MetadataCandidate> selected = Collections.newSetFromMap(new IdentityHashMap<>());
+        selected.addAll(choices.values());
+        for (List<MetadataCandidate> variants : groups.values()) {
+            MetadataCandidate choice = choices.get(variants.getFirst().metadata().id());
+            long rootCount = variants.stream().filter(MetadataCandidate::root).count();
+            if (variants.size() > 1 && rootCount <= 1) {
+                diagnostics.add(info("LB-NESTED-101", choice.metadata().id(), null,
+                        "Selected Fabric candidate " + choice.metadata().id() + " "
+                                + choice.metadata().version() + " from " + variants.size()
+                                + " available nested variants"));
+            }
+        }
+        return candidates.stream().filter(selected::contains).toList();
+    }
+
+    private static boolean stabilizeMetadataChoices(
+            Map<String, List<MetadataCandidate>> groups,
+            List<FabricModMetadata> fixed,
+            Map<String, MetadataCandidate> choices) {
+        for (int pass = 0; pass <= groups.size(); pass++) {
+            List<FabricModMetadata> active = new ArrayList<>(fixed);
+            choices.values().stream().map(MetadataCandidate::metadata).forEach(active::add);
+            Map<String, List<List<String>>> constraints = requiredPredicates(active);
+            boolean changed = false;
+            for (Map.Entry<String, List<MetadataCandidate>> entry : groups.entrySet()) {
+                if (entry.getValue().stream().anyMatch(MetadataCandidate::root)) continue;
+                MetadataCandidate choice = bestCandidate(entry.getValue(), constraints);
+                if (choices.put(entry.getKey(), choice) != choice) changed = true;
+            }
+            if (!changed) return true;
+        }
+        return false;
+    }
+
+    private static MetadataCandidate bestCandidate(List<MetadataCandidate> variants,
+            Map<String, List<List<String>>> constraints) {
+        List<MetadataCandidate> compatible = variants.stream()
+                .filter(candidate -> matchesRequiredPredicates(candidate.metadata(), constraints))
+                .toList();
+        List<MetadataCandidate> choices = compatible.isEmpty() ? variants : compatible;
+        MetadataCandidate best = choices.getFirst();
+        for (int index = 1; index < choices.size(); index++) {
+            MetadataCandidate candidate = choices.get(index);
+            if (FabricVersionPredicate.compare(candidate.metadata().version(),
+                    best.metadata().version()) > 0) best = candidate;
+        }
+        return best;
+    }
+
+    private static List<PreparationInput> selectPreparationInputs(List<PreparationInput> inputs)
+            throws IOException {
+        Map<String, List<PreparationInput>> groups = new LinkedHashMap<>();
+        inputs.forEach(input -> groups.computeIfAbsent(input.metadata().id(),
+                ignored -> new ArrayList<>()).add(input));
+        List<FabricModMetadata> fixed = inputs.stream()
+                .filter(input -> input.parentModId() == null
+                        || groups.get(input.metadata().id()).size() == 1)
+                .map(PreparationInput::metadata).toList();
+        Map<String, PreparationInput> choices = new LinkedHashMap<>();
+        for (Map.Entry<String, List<PreparationInput>> entry : groups.entrySet()) {
+            List<PreparationInput> variants = entry.getValue();
+            List<PreparationInput> roots = variants.stream()
+                    .filter(input -> input.parentModId() == null).toList();
+            if (roots.size() > 1) {
+                throw new IOException("LB-NESTED-006: duplicate root Fabric mods claim ID '"
+                        + roots.getFirst().metadata().id() + "'");
+            }
+            if (roots.size() == 1) {
+                choices.put(entry.getKey(), roots.getFirst());
+            } else {
+                choices.put(entry.getKey(), bestPreparationInput(variants, Map.of()));
+            }
+        }
+        if (!stabilizePreparationChoices(groups, fixed, choices)) {
+            throw new IOException("LB-NESTED-007: Fabric nested candidate constraints did not converge");
+        }
+        Set<PreparationInput> selected = Collections.newSetFromMap(new IdentityHashMap<>());
+        selected.addAll(choices.values());
+        return inputs.stream().filter(selected::contains).toList();
+    }
+
+    private static boolean stabilizePreparationChoices(
+            Map<String, List<PreparationInput>> groups,
+            List<FabricModMetadata> fixed,
+            Map<String, PreparationInput> choices) {
+        for (int pass = 0; pass <= groups.size(); pass++) {
+            List<FabricModMetadata> active = new ArrayList<>(fixed);
+            choices.values().stream().map(PreparationInput::metadata).forEach(active::add);
+            Map<String, List<List<String>>> constraints = requiredPredicates(active);
+            boolean changed = false;
+            for (Map.Entry<String, List<PreparationInput>> entry : groups.entrySet()) {
+                if (entry.getValue().stream().anyMatch(input -> input.parentModId() == null)) continue;
+                PreparationInput choice = bestPreparationInput(entry.getValue(), constraints);
+                if (choices.put(entry.getKey(), choice) != choice) changed = true;
+            }
+            if (!changed) return true;
+        }
+        return false;
+    }
+
+    private static PreparationInput bestPreparationInput(List<PreparationInput> variants,
+            Map<String, List<List<String>>> constraints) {
+        List<PreparationInput> compatible = variants.stream()
+                .filter(input -> matchesRequiredPredicates(input.metadata(), constraints)).toList();
+        List<PreparationInput> choices = compatible.isEmpty() ? variants : compatible;
+        PreparationInput best = choices.getFirst();
+        for (int index = 1; index < choices.size(); index++) {
+            PreparationInput candidate = choices.get(index);
+            if (FabricVersionPredicate.compare(candidate.metadata().version(),
+                    best.metadata().version()) > 0) best = candidate;
+        }
+        return best;
+    }
+
+    private static Map<String, List<List<String>>> requiredPredicates(
+            List<FabricModMetadata> metadata) {
+        Map<String, List<List<String>>> result = new LinkedHashMap<>();
+        for (FabricModMetadata mod : metadata) {
+            mod.dependencies().depends().forEach((id, predicates) ->
+                    result.computeIfAbsent(id, ignored -> new ArrayList<>()).add(predicates));
+        }
+        return result;
+    }
+
+    private static boolean matchesRequiredPredicates(FabricModMetadata candidate,
+            Map<String, List<List<String>>> constraints) {
+        List<String> claims = new ArrayList<>(candidate.provides());
+        claims.add(candidate.id());
+        for (String claim : claims) {
+            for (List<String> predicates : constraints.getOrDefault(claim, List.of())) {
+                if (!FabricVersionPredicate.anyMatches(predicates, candidate.version())) return false;
+            }
+        }
+        return true;
     }
 
     private void collectPreparationInputs(Path artifact, String source, String parentModId,
             String parentSubLocation, BridgeEnvironment environment, Path cacheDirectory,
-            List<PreparationInput> destination, Set<String> seenArtifacts,
-            Map<String, String> seenModVersions) throws IOException {
+            List<PreparationInput> destination, Map<String, Integer> seenArtifacts) throws IOException {
         String hash = sha256(artifact);
-        if (!seenArtifacts.add(hash)) {
+        Integer previousIndex = seenArtifacts.get(hash);
+        if (previousIndex != null) {
+            PreparationInput previous = destination.get(previousIndex);
+            if (parentModId == null && previous.parentModId() != null) {
+                destination.set(previousIndex, new PreparationInput(
+                        artifact, source, previous.metadata(), null, null));
+            }
             return;
         }
         FabricModMetadata metadata = inspector.inspect(artifact).root();
         if (!loadsInEnvironment(metadata, environment)) {
             return;
         }
-        String priorVersion = seenModVersions.putIfAbsent(metadata.id(), metadata.version());
-        if (priorVersion != null) {
-            if (priorVersion.equals(metadata.version())) {
-                return;
-            }
-            throw new IOException("LB-NESTED-006: duplicate Fabric mod ID '" + metadata.id()
-                    + "' has conflicting versions " + priorVersion + " and " + metadata.version());
-        }
+        seenArtifacts.put(hash, destination.size());
         destination.add(new PreparationInput(
                 artifact, source, metadata, parentModId, parentSubLocation));
         if (metadata.nestedJars().isEmpty()) {
@@ -593,7 +746,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                 }
                 collectPreparationInputs(nestedArtifact, source + "!/" + nestedLocation,
                         metadata.id(), nestedLocation, environment,
-                        cacheDirectory, destination, seenArtifacts, seenModVersions);
+                        cacheDirectory, destination, seenArtifacts);
             }
         }
     }
@@ -724,6 +877,8 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
 
     private record PreparedArtifact(String modId, String source, String sourceSha256, String output,
             String outputSha256, String cacheKey, String sourceNamespace) {}
+
+    private record MetadataCandidate(FabricModMetadata metadata, boolean root) {}
 
     private record PreparationInput(
             Path path,

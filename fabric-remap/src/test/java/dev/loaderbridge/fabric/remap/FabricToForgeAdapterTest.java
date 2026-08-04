@@ -699,6 +699,44 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void promotesAnIdenticalNestedArtifactWhenItIsAlsoInstalledAsARoot() throws Exception {
+        byte[] child = jarBytes("""
+                {"schemaVersion":1,"id":"promoted_child","version":"1.0.0"}
+                """);
+        Path childRoot = temporaryDirectory.resolve("promoted-child-root.jar");
+        Files.write(childRoot, child);
+        Path parent = temporaryDirectory.resolve("promotion-parent.jar");
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(parent))) {
+            jar.putNextEntry(new JarEntry("fabric.mod.json"));
+            jar.write("""
+                    {"schemaVersion":1,"id":"promotion_parent","version":"1.0.0",
+                     "jars":[{"file":"META-INF/jars/child.jar"}]}
+                    """.getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+            jar.putNextEntry(new JarEntry("META-INF/jars/child.jar"));
+            jar.write(child);
+            jar.closeEntry();
+        }
+        BridgeRequest request = new BridgeRequest("1.21.1", new LoaderId("forge"), "52.1.0",
+                BridgeEnvironment.CLIENT, List.of(parent, childRoot),
+                temporaryDirectory.resolve("output-root-promotion"),
+                temporaryDirectory.resolve("cache-root-promotion"));
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var result = adapter.prepare(request, adapter.plan(request));
+
+        Path preparedChild = result.artifacts().stream()
+                .filter(path -> path.getFileName().toString().startsWith("promoted_child-"))
+                .findFirst().orElseThrow();
+        try (JarFile jar = new JarFile(preparedChild.toFile())) {
+            String bridgeMetadata = new String(jar.getInputStream(
+                    jar.getJarEntry("META-INF/loaderbridge.json")).readAllBytes(),
+                    StandardCharsets.UTF_8);
+            assertThat(bridgeMetadata).doesNotContain("parentModId", "parentSubLocation");
+        }
+    }
+
+    @Test
     void filtersIncompatibleRootModsBeforeDependencyResolutionAndPreparation() throws Exception {
         Path clientOnly = temporaryDirectory.resolve("client-only.jar");
         Files.write(clientOnly, jarBytes("""
@@ -906,7 +944,7 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
-    void deduplicatesSameVersionModulesByFabricIdAndRejectsVersionCollisions() throws Exception {
+    void deduplicatesSameVersionModulesAndSelectsTheHighestNestedVersion() throws Exception {
         byte[] first = jarBytes("""
                 {"schemaVersion":1,"id":"fabric_api_module","version":"1.0.0"}
                 """);
@@ -934,20 +972,80 @@ class FabricToForgeAdapterTest {
                 temporaryDirectory.resolve("cache-id-collision"));
         FabricToForgeAdapter adapter = new FabricToForgeAdapter();
         var collisionPlan = adapter.plan(collisionRequest);
-        assertThat(collisionPlan.canPrepare()).isFalse();
+        assertThat(collisionPlan.canPrepare()).isTrue();
         assertThat(collisionPlan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-NESTED-101");
+            assertThat(diagnostic.message()).contains("2.0.0", "2 available nested variants");
+        });
+        var collisionResult = adapter.prepare(collisionRequest, collisionPlan);
+        assertThat(collisionResult.artifacts()).extracting(path -> path.getFileName().toString())
+                .containsExactlyInAnyOrder("collision_parent-1-loaderbridge.jar",
+                        "fabric_api_module-2.0.0-loaderbridge.jar");
+    }
+
+    @Test
+    void rejectsDuplicateMandatoryRootMods() throws Exception {
+        Path first = temporaryDirectory.resolve("duplicate-root-first.jar");
+        Path second = temporaryDirectory.resolve("duplicate-root-second.jar");
+        Files.write(first, jarBytes("""
+                {"schemaVersion":1,"id":"duplicate_root","version":"1.0.0"}
+                """));
+        Files.write(second, jarBytes("""
+                {"schemaVersion":1,"id":"duplicate_root","version":"2.0.0"}
+                """));
+        BridgeRequest request = new BridgeRequest("1.21.1", new LoaderId("forge"), "52.1.0",
+                BridgeEnvironment.CLIENT, List.of(first, second),
+                temporaryDirectory.resolve("output-duplicate-roots"),
+                temporaryDirectory.resolve("cache-duplicate-roots"));
+
+        var plan = new FabricToForgeAdapter().plan(request);
+
+        assertThat(plan.canPrepare()).isFalse();
+        assertThat(plan.diagnostics()).anySatisfy(diagnostic -> {
             assertThat(diagnostic.code()).isEqualTo("LB-NESTED-006");
-            assertThat(diagnostic.message()).contains("conflicting versions");
+            assertThat(diagnostic.message()).contains("Duplicate root", "duplicate_root");
         });
     }
 
+    @Test
+    void selectsTheHighestNestedVersionThatSatisfiesMandatoryDependencies() throws Exception {
+        byte[] first = jarBytes("""
+                {"schemaVersion":1,"id":"constrained_library","version":"1.4.0"}
+                """);
+        byte[] second = jarBytes("""
+                {"schemaVersion":1,"id":"constrained_library","version":"2.0.0"}
+                """);
+        Path parent = nestedParent("constrained_parent",
+                ",\"depends\":{\"constrained_library\":\"1.x\"}", first, second);
+        BridgeRequest request = new BridgeRequest("1.21.1", new LoaderId("forge"), "52.1.0",
+                BridgeEnvironment.CLIENT, List.of(parent),
+                temporaryDirectory.resolve("output-constrained-nested"),
+                temporaryDirectory.resolve("cache-constrained-nested"));
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-002");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .containsExactlyInAnyOrder("constrained_parent-1-loaderbridge.jar",
+                        "constrained_library-1.4.0-loaderbridge.jar");
+    }
+
     private Path nestedParent(String id, byte[] first, byte[] second) throws Exception {
+        return nestedParent(id, "", first, second);
+    }
+
+    private Path nestedParent(String id, String metadataSuffix, byte[] first, byte[] second)
+            throws Exception {
         Path source = temporaryDirectory.resolve(id + ".jar");
         try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(source))) {
             jar.putNextEntry(new JarEntry("fabric.mod.json"));
             jar.write(("{\"schemaVersion\":1,\"id\":\"" + id + "\",\"version\":\"1\","
                     + "\"jars\":[{\"file\":\"META-INF/jars/first.jar\"},"
-                    + "{\"file\":\"META-INF/jars/second.jar\"}]}")
+                    + "{\"file\":\"META-INF/jars/second.jar\"}]" + metadataSuffix + "}")
                     .getBytes(StandardCharsets.UTF_8));
             jar.closeEntry();
             jar.putNextEntry(new JarEntry("META-INF/jars/first.jar"));

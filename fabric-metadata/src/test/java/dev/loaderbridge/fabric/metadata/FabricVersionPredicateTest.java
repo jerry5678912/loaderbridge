@@ -15,5 +15,7 @@ final class FabricVersionPredicateTest {
         assertThat(FabricVersionPredicate.anyMatches(List.of("1.21.x"), "1.21.4")).isTrue();
         assertThat(FabricVersionPredicate.anyMatches(List.of("1.21.x"), "1.22.0")).isFalse();
         assertThat(FabricVersionPredicate.anyMatches(List.of("<2.0.0", ">=3.0.0"), "3.1.0")).isTrue();
+        assertThat(FabricVersionPredicate.matches("=1.0.0", "1.0.0+mc1.21.1")).isTrue();
+        assertThat(FabricVersionPredicate.compare("1.0.0+build.2", "1.0.0+build.1")).isZero();
     }
 }

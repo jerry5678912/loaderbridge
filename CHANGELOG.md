@@ -16,6 +16,12 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added Fabric-style nested candidate selection: mandatory roots outrank nested
+  copies, compatible higher versions win, selected dependencies are iterated,
+  identical hashes are deduplicated, and a later root occurrence promotes a
+  previously nested artifact. Duplicate mandatory roots remain an error.
+- Ignored semantic `+build` metadata in preprocessing version comparison, as
+  required by Fabric extended-semver dependency and priority behavior.
 - Retained Fabric metadata author, contributor, person-contact, and mod-contact
   objects across repeated getters, matching Fabric's immutable parsed views.
 - Parsed Fabric metadata custom values once and now return the same immutable,
