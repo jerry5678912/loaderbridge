@@ -31,20 +31,22 @@ public final class FabricCandidateSelector {
         }
 
         List<Candidate<T>> fixed = new ArrayList<>();
-        List<List<Candidate<T>>> variables = new ArrayList<>();
-        for (List<Candidate<T>> group : groups.values()) {
+        List<CandidateGroup<T>> variables = new ArrayList<>();
+        for (Map.Entry<String, List<Candidate<T>>> entry : groups.entrySet()) {
+            List<Candidate<T>> group = entry.getValue();
             Candidate<T> root = group.stream().filter(Candidate::root).findFirst().orElse(null);
             if (root != null) {
                 fixed.add(root);
-            } else if (group.size() == 1) {
-                fixed.add(group.getFirst());
             } else {
                 List<Candidate<T>> ordered = new ArrayList<>(group);
                 ordered.sort(Comparator.comparing((Candidate<T> candidate) ->
                         candidate.metadata().version(), FabricVersionPredicate::compare).reversed());
-                variables.add(List.copyOf(ordered));
+                int depth = ordered.stream().mapToInt(Candidate::depth).max().orElse(1);
+                variables.add(new CandidateGroup<>(entry.getKey(), List.copyOf(ordered), depth));
             }
         }
+        variables.sort(Comparator.comparingInt(CandidateGroup<T>::depth)
+                .thenComparing(CandidateGroup::id));
 
         Set<String> knownIdentities = new LinkedHashSet<>(availableVersions.keySet());
         candidates.forEach(candidate -> {
@@ -67,7 +69,7 @@ public final class FabricCandidateSelector {
         return fallback(candidates, groups, status, detail);
     }
 
-    private static <T> boolean search(List<List<Candidate<T>>> variables, int index,
+    private static <T> boolean search(List<CandidateGroup<T>> variables, int index,
             List<Candidate<T>> selected, SearchState<T> state) {
         if (state.explored >= MAX_COMBINATIONS) return false;
         if (index == variables.size()) {
@@ -76,12 +78,19 @@ public final class FabricCandidateSelector {
             state.solution = List.copyOf(selected);
             return true;
         }
-        for (Candidate<T> candidate : variables.get(index)) {
+        Set<String> selectedKeys = selected.stream().map(Candidate::key)
+                .collect(java.util.stream.Collectors.toSet());
+        CandidateGroup<T> group = variables.get(index);
+        List<Candidate<T>> reachable = group.candidates().stream()
+                .filter(candidate -> candidate.parentKeys().isEmpty()
+                        || candidate.parentKeys().stream().anyMatch(selectedKeys::contains))
+                .toList();
+        for (Candidate<T> candidate : reachable) {
             selected.add(candidate);
             if (search(variables, index + 1, selected, state)) return true;
             selected.removeLast();
         }
-        return false;
+        return search(variables, index + 1, selected, state);
     }
 
     private static <T> boolean valid(List<Candidate<T>> selected,
@@ -100,7 +109,10 @@ public final class FabricCandidateSelector {
         for (Candidate<T> candidate : selected) {
             FabricDependencies dependencies = candidate.metadata().dependencies();
             for (Map.Entry<String, List<String>> dependency : dependencies.depends().entrySet()) {
-                if (!knownIdentities.contains(dependency.getKey())) continue;
+                if (!knownIdentities.contains(dependency.getKey())) {
+                    if (candidate.root()) continue;
+                    return false;
+                }
                 String version = claims.get(dependency.getKey());
                 if (version == null || !FabricVersionPredicate.anyMatches(
                         dependency.getValue(), version)) return false;
@@ -142,10 +154,21 @@ public final class FabricCandidateSelector {
                 .map(Candidate::value).toList(), status, detail);
     }
 
-    public record Candidate<T>(T value, FabricModMetadata metadata, boolean root) {
+    public record Candidate<T>(T value, FabricModMetadata metadata, boolean root,
+            String key, Set<String> parentKeys, int depth) {
         public Candidate {
             java.util.Objects.requireNonNull(value, "value");
             java.util.Objects.requireNonNull(metadata, "metadata");
+            java.util.Objects.requireNonNull(key, "key");
+            parentKeys = Set.copyOf(parentKeys);
+            if (depth < 0) throw new IllegalArgumentException("negative candidate depth");
+        }
+
+        public Candidate(T value, FabricModMetadata metadata, boolean root) {
+            this(value, metadata, root,
+                    metadata.id() + "@" + metadata.version() + "#"
+                            + Integer.toHexString(System.identityHashCode(value)),
+                    Set.of(), root ? 0 : 1);
         }
     }
 
@@ -167,6 +190,8 @@ public final class FabricCandidateSelector {
         UNSATISFIABLE,
         BUDGET_EXCEEDED
     }
+
+    private record CandidateGroup<T>(String id, List<Candidate<T>> candidates, int depth) {}
 
     private static final class SearchState<T> {
         private final Map<String, String> availableVersions;

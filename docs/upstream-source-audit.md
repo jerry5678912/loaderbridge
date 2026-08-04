@@ -93,6 +93,13 @@ version alternatives and checks hard dependencies against candidate, alias,
 Minecraft, Java, Loader, and implemented bridge-module versions. It also checks
 identity collisions and `breaks`; an explicit search budget produces
 `LB-NESTED-008` rather than an unbounded preprocessing run.
+Fabric constrains every selected nested candidate to at least one selected
+parent, while nested `IF_POSSIBLE` candidates are preferred but may remain
+inactive when hard constraints contradict them. LoaderBridge now carries
+content-hash parent edges and nesting depth into the solver, preserves every
+parent when identical children are deduplicated, excludes children reachable
+only through unselected parent variants, and normalizes shared-child runtime
+origin metadata to a selected containing parent.
 Capability planning now runs against that same selected candidate set rather
 than only the user-installed root archives. Each selected nested archive is
 extracted under the bounded preprocessing cache and statically analyzed without

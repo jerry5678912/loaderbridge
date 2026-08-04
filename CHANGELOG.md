@@ -20,6 +20,10 @@ All notable user-facing changes will be recorded here.
   backtracking selector. It now chooses versions whose own hard dependencies,
   host-version predicates, aliases, identity claims, and `breaks` constraints
   form a consistent combination; search exhaustion reports `LB-NESTED-008`.
+- Preserved nested parent-candidate links through hash deduplication. Children
+  of unselected parent variants are no longer transformed, shared children use
+  a selected containing parent, and incompatible optional nested mods may be
+  omitted like Fabric's `IF_POSSIBLE` candidates.
 - Rejected Fabric metadata that redefines Loader's reserved `default` language
   adapter or duplicates a language-adapter key across selected mods, using the
   stable `LB-LANG-002` planning diagnostic.

@@ -1162,6 +1162,42 @@ class FabricToForgeAdapterTest {
                         "host_constrained_library-1.5.0-loaderbridge.jar");
     }
 
+    @Test
+    void excludesChildrenOfAnUnselectedNestedParentVariant() throws Exception {
+        byte[] childTwo = jarBytes("""
+                {"schemaVersion":1,"id":"child_from_parent_two","version":"1"}
+                """);
+        byte[] childOne = jarBytes("""
+                {"schemaVersion":1,"id":"child_from_parent_one","version":"1"}
+                """);
+        byte[] parentTwo = jarBytesWithNested("""
+                {"schemaVersion":1,"id":"variant_parent","version":"2",
+                 "jars":[{"file":"META-INF/jars/child.jar"}]}
+                """, childTwo);
+        byte[] parentOne = jarBytesWithNested("""
+                {"schemaVersion":1,"id":"variant_parent","version":"1",
+                 "jars":[{"file":"META-INF/jars/child.jar"}]}
+                """, childOne);
+        Path root = nestedParent("parent_reachability_root",
+                ",\"depends\":{\"variant_parent\":\"1\"}", parentTwo, parentOne);
+        BridgeRequest request = new BridgeRequest("1.21.1", new LoaderId("forge"), "52.1.0",
+                BridgeEnvironment.CLIENT, List.of(root),
+                temporaryDirectory.resolve("output-parent-reachability"),
+                temporaryDirectory.resolve("cache-parent-reachability"));
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .containsExactlyInAnyOrder(
+                        "parent_reachability_root-1-loaderbridge.jar",
+                        "variant_parent-1-loaderbridge.jar",
+                        "child_from_parent_one-1-loaderbridge.jar")
+                .doesNotContain("child_from_parent_two-1-loaderbridge.jar");
+    }
+
     private Path nestedParent(String id, byte[] first, byte[] second) throws Exception {
         return nestedParent(id, "", first, second);
     }
@@ -1246,6 +1282,19 @@ class FabricToForgeAdapterTest {
 
     private static byte[] jarBytes(String metadata) throws Exception {
         return jarBytesWithResource(metadata, null, null);
+    }
+
+    private static byte[] jarBytesWithNested(String metadata, byte[] nested) throws Exception {
+        var output = new java.io.ByteArrayOutputStream();
+        try (JarOutputStream jar = new JarOutputStream(output)) {
+            jar.putNextEntry(new JarEntry("fabric.mod.json"));
+            jar.write(metadata.getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+            jar.putNextEntry(new JarEntry("META-INF/jars/child.jar"));
+            jar.write(nested);
+            jar.closeEntry();
+        }
+        return output.toByteArray();
     }
 
     private static byte[] jarBytesWithResource(String metadata, String resource, String contents)

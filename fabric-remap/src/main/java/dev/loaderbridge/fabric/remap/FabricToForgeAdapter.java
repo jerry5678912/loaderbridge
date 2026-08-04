@@ -102,7 +102,6 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
     public BridgePlan plan(BridgeRequest request) throws IOException {
         List<Diagnostic> diagnostics = new ArrayList<>();
         List<ModInspection> inspections = new ArrayList<>();
-        List<MetadataCandidate> allCandidates = new ArrayList<>();
         List<PreparationInput> analysisInputs = new ArrayList<>();
         Map<String, Integer> seenAnalysisArtifacts = new LinkedHashMap<>();
         Map<String, RuntimeBridgeModuleProvider> plannedBridgeModules = new LinkedHashMap<>();
@@ -119,9 +118,9 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                     diagnostics.add(environmentSkipped(metadata, artifact, request.environment()));
                     continue;
                 }
-                collectCompatibleMetadata(tree, request.environment(), allCandidates,
-                        diagnostics, artifact, true);
+                diagnoseCompatibleMetadata(tree, request.environment(), diagnostics, artifact);
                 collectPreparationInputs(artifact, artifact, artifact.toString(), null, null,
+                        null, 0,
                         request.environment(), request.cacheDirectory(), analysisInputs,
                         seenAnalysisArtifacts);
             } catch (IOException exception) {
@@ -130,17 +129,14 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             }
         }
         Map<String, String> candidateVersions = candidateVersions(request);
-        List<FabricModMetadata> allMetadata = selectMetadataCandidates(
-                allCandidates, candidateVersions, diagnostics)
-                .stream().map(MetadataCandidate::metadata).toList();
+        var candidateSelection = selectPreparationInputCandidates(
+                analysisInputs, candidateVersions);
+        diagnoseCandidateSelection(candidateSelection, analysisInputs, diagnostics);
+        List<FabricModMetadata> allMetadata = candidateSelection.selected().stream()
+                .map(PreparationInput::metadata).toList();
         diagnoseLanguageAdapterCollisions(allMetadata, diagnostics);
-        boolean candidateSelectionFailed = diagnostics.stream().anyMatch(diagnostic ->
-                diagnostic.code().equals("LB-NESTED-006")
-                        || diagnostic.code().equals("LB-NESTED-007")
-                        || diagnostic.code().equals("LB-NESTED-008"));
-        if (!candidateSelectionFailed) {
-            for (PreparationInput input : selectPreparationInputs(
-                    analysisInputs, candidateVersions)) {
+        if (candidateSelection.solved()) {
+            for (PreparationInput input : candidateSelection.selected()) {
                 if (isReplacedFabricApiNestedInput(input)) continue;
                 try {
                     ReferenceInventory inventory = analyzer.analyze(input.path(),
@@ -185,6 +181,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         Map<String, RuntimeBridgeModuleProvider> selectedBridgeModules = new LinkedHashMap<>();
         for (Path source : request.inputArtifacts()) {
             collectPreparationInputs(source, source, source.toString(), null, null,
+                    null, 0,
                     request.environment(), request.cacheDirectory(), inputs,
                     seenArtifacts);
         }
@@ -525,21 +522,16 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                 entrypoints, diagnostics);
     }
 
-    private static void collectCompatibleMetadata(
-            FabricModTree tree,
-            BridgeEnvironment environment,
-            List<MetadataCandidate> destination,
-            List<Diagnostic> diagnostics,
-            Path artifact,
-            boolean root) {
+    private static void diagnoseCompatibleMetadata(
+            FabricModTree tree, BridgeEnvironment environment,
+            List<Diagnostic> diagnostics, Path artifact) {
         FabricModMetadata metadata = tree.root();
         if (!loadsInEnvironment(metadata, environment)) {
             diagnostics.add(environmentSkipped(metadata, artifact, environment));
             return;
         }
-        destination.add(new MetadataCandidate(metadata, root));
-        tree.nested().forEach(child -> collectCompatibleMetadata(
-                child, environment, destination, diagnostics, artifact, false));
+        tree.nested().forEach(child -> diagnoseCompatibleMetadata(
+                child, environment, diagnostics, artifact));
     }
 
     private static boolean loadsInEnvironment(
@@ -583,13 +575,27 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                         + environment.name().toLowerCase(java.util.Locale.ROOT) + " preparation");
     }
 
-    private static List<MetadataCandidate> selectMetadataCandidates(
-            List<MetadataCandidate> candidates, Map<String, String> availableVersions,
-            List<Diagnostic> diagnostics) {
-        var selection = FabricCandidateSelector.select(candidates.stream()
-                .map(candidate -> new FabricCandidateSelector.Candidate<>(
-                        candidate, candidate.metadata(), candidate.root()))
+    private static FabricCandidateSelector.Result<PreparationInput>
+            selectPreparationInputCandidates(List<PreparationInput> inputs,
+                    Map<String, String> availableVersions) {
+        var selection = FabricCandidateSelector.select(inputs.stream()
+                .map(input -> new FabricCandidateSelector.Candidate<>(input, input.metadata(),
+                        input.parentModId() == null, input.candidateKey(),
+                        input.parentLinks().keySet(), input.depth()))
                 .toList(), availableVersions);
+        if (!selection.solved()) return selection;
+        Set<String> selectedKeys = selection.selected().stream()
+                .map(PreparationInput::candidateKey).collect(
+                        java.util.stream.Collectors.toUnmodifiableSet());
+        List<PreparationInput> normalized = selection.selected().stream()
+                .map(input -> input.withSelectedParent(selectedKeys)).toList();
+        return new FabricCandidateSelector.Result<>(
+                normalized, selection.status(), selection.detail());
+    }
+
+    private static void diagnoseCandidateSelection(
+            FabricCandidateSelector.Result<PreparationInput> selection,
+            List<PreparationInput> candidates, List<Diagnostic> diagnostics) {
         switch (selection.status()) {
             case DUPLICATE_ROOTS -> diagnostics.add(unsupported(
                     "LB-NESTED-006", null, null, selection.detail()));
@@ -602,24 +608,20 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         Map<String, Long> candidateCounts = candidates.stream().collect(
                 java.util.stream.Collectors.groupingBy(candidate -> candidate.metadata().id(),
                         LinkedHashMap::new, java.util.stream.Collectors.counting()));
-        for (MetadataCandidate candidate : selection.selected()) {
+        for (PreparationInput candidate : selection.selected()) {
             long count = candidateCounts.getOrDefault(candidate.metadata().id(), 0L);
-            if (count > 1 && !candidate.root()) {
+            if (count > 1 && candidate.parentModId() != null) {
                 diagnostics.add(info("LB-NESTED-101", candidate.metadata().id(), null,
                         "Selected Fabric candidate " + candidate.metadata().id() + " "
                                 + candidate.metadata().version() + " from " + count
                                 + " available nested variants"));
             }
         }
-        return selection.selected();
     }
 
     private static List<PreparationInput> selectPreparationInputs(List<PreparationInput> inputs,
             Map<String, String> availableVersions) throws IOException {
-        var selection = FabricCandidateSelector.select(inputs.stream()
-                .map(input -> new FabricCandidateSelector.Candidate<>(input, input.metadata(),
-                        input.parentModId() == null))
-                .toList(), availableVersions);
+        var selection = selectPreparationInputCandidates(inputs, availableVersions);
         if (!selection.solved()) {
             String code = switch (selection.status()) {
                 case DUPLICATE_ROOTS -> "LB-NESTED-006";
@@ -633,16 +635,28 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
     }
 
     private void collectPreparationInputs(Path artifact, Path rootArtifact, String source,
-            String parentModId,
-            String parentSubLocation, BridgeEnvironment environment, Path cacheDirectory,
+            String parentModId, String parentSubLocation, String parentCandidateKey, int depth,
+            BridgeEnvironment environment, Path cacheDirectory,
             List<PreparationInput> destination, Map<String, Integer> seenArtifacts) throws IOException {
         String hash = sha256(artifact);
         Integer previousIndex = seenArtifacts.get(hash);
         if (previousIndex != null) {
             PreparationInput previous = destination.get(previousIndex);
+            Map<String, ParentLink> parentLinks = new LinkedHashMap<>(previous.parentLinks());
+            if (parentCandidateKey != null) {
+                parentLinks.putIfAbsent(parentCandidateKey,
+                        new ParentLink(parentModId, parentSubLocation));
+            }
             if (parentModId == null && previous.parentModId() != null) {
                 destination.set(previousIndex, new PreparationInput(
-                        artifact, artifact, source, previous.metadata(), null, null));
+                        artifact, artifact, source, previous.metadata(), null, null,
+                        hash, parentLinks, 0));
+            } else if (!parentLinks.equals(previous.parentLinks())
+                    || depth > previous.depth()) {
+                destination.set(previousIndex, new PreparationInput(
+                        previous.path(), previous.rootArtifact(), previous.source(),
+                        previous.metadata(), previous.parentModId(), previous.parentSubLocation(),
+                        hash, parentLinks, Math.max(depth, previous.depth())));
             }
             return;
         }
@@ -651,8 +665,12 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             return;
         }
         seenArtifacts.put(hash, destination.size());
+        Map<String, ParentLink> parentLinks = parentCandidateKey == null
+                ? Map.of() : Map.of(parentCandidateKey,
+                        new ParentLink(parentModId, parentSubLocation));
         destination.add(new PreparationInput(
-                artifact, rootArtifact, source, metadata, parentModId, parentSubLocation));
+                artifact, rootArtifact, source, metadata, parentModId, parentSubLocation,
+                hash, parentLinks, depth));
         if (metadata.nestedJars().isEmpty()) {
             return;
         }
@@ -683,7 +701,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                 }
                 collectPreparationInputs(nestedArtifact, rootArtifact,
                         source + "!/" + nestedLocation,
-                        metadata.id(), nestedLocation, environment,
+                        metadata.id(), nestedLocation, hash, depth + 1, environment,
                         cacheDirectory, destination, seenArtifacts);
             }
         }
@@ -816,15 +834,36 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
     private record PreparedArtifact(String modId, String source, String sourceSha256, String output,
             String outputSha256, String cacheKey, String sourceNamespace) {}
 
-    private record MetadataCandidate(FabricModMetadata metadata, boolean root) {}
-
     private record PreparationInput(
             Path path,
             Path rootArtifact,
             String source,
             FabricModMetadata metadata,
             String parentModId,
-            String parentSubLocation) {}
+            String parentSubLocation,
+            String candidateKey,
+            Map<String, ParentLink> parentLinks,
+            int depth) {
+        private PreparationInput {
+            parentLinks = Map.copyOf(parentLinks);
+        }
+
+        private PreparationInput withSelectedParent(Set<String> selectedKeys) {
+            if (parentModId == null) return this;
+            ParentLink selected = parentLinks.entrySet().stream()
+                    .filter(entry -> selectedKeys.contains(entry.getKey()))
+                    .sorted(Map.Entry.comparingByKey())
+                    .map(Map.Entry::getValue).findFirst()
+                    .orElseThrow(() -> new IllegalStateException(
+                            "selected nested candidate has no selected parent"));
+            if (selected.modId().equals(parentModId)
+                    && selected.subLocation().equals(parentSubLocation)) return this;
+            return new PreparationInput(path, rootArtifact, source, metadata,
+                    selected.modId(), selected.subLocation(), candidateKey, parentLinks, depth);
+        }
+    }
+
+    private record ParentLink(String modId, String subLocation) {}
 
     private record CompatibilityReport(String formatVersion, AdapterDescriptor adapter,
             List<ModInspection> mods, List<BridgeCapability> requiredCapabilities,
