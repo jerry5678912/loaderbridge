@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.Set;
 import net.fabricmc.loader.api.SemanticVersion;
 import net.fabricmc.loader.api.Version;
 import net.fabricmc.loader.api.VersionParsingException;
@@ -41,6 +42,16 @@ class BridgeVersionApiTest {
         assertThat(predicate.getInterval().getMin().getFriendlyString()).isEqualTo("1.20");
         assertThat(predicate.getInterval().getMax().getFriendlyString()).isEqualTo("1.22");
         assertThat(predicate.getInterval().isMaxInclusive()).isFalse();
+    }
+
+    @Test
+    void givesParsedPredicatesFabricCompatibleValueEquality() throws Exception {
+        VersionPredicate first = VersionPredicate.parse(">=1.20 <1.22");
+        VersionPredicate second = VersionPredicate.parse(">=1.20 <1.22");
+
+        assertThat(first).isEqualTo(second).hasSameHashCodeAs(second);
+        assertThat(VersionPredicate.parse(List.of(">=1.20", ">=1.20")))
+                .containsExactlyElementsOf(Set.of(VersionPredicate.parse(">=1.20")));
     }
 
     @Test

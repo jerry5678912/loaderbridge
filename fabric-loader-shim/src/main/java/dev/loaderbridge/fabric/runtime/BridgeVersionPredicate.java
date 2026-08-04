@@ -79,6 +79,16 @@ public final class BridgeVersionPredicate implements VersionPredicate {
     @Override public Collection<? extends PredicateTerm> getTerms() { return terms; }
 
     @Override
+    public boolean equals(Object object) {
+        return object instanceof BridgeVersionPredicate other && terms.equals(other.terms);
+    }
+
+    @Override
+    public int hashCode() {
+        return terms.hashCode();
+    }
+
+    @Override
     public VersionInterval getInterval() {
         VersionInterval result = VersionInterval.INFINITE;
         for (Term term : terms) result = VersionInterval.and(result, term.interval());
