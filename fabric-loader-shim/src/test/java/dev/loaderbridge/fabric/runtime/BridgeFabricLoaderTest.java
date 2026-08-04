@@ -327,6 +327,17 @@ class BridgeFabricLoaderTest {
                     assertThat(interval.getMin().getFriendlyString()).isEqualTo("1.21.1");
                     assertThat(interval.getMax()).isNull();
                 });
+        ModDependency equivalent = new ModDependency() {
+            @Override public Kind getKind() { return minecraft.getKind(); }
+            @Override public String getModId() { return minecraft.getModId(); }
+            @Override public boolean matches(Version version) { return minecraft.matches(version); }
+            @Override public java.util.Collection<net.fabricmc.loader.api.metadata.version.VersionPredicate>
+                    getVersionRequirements() { return minecraft.getVersionRequirements(); }
+            @Override public java.util.List<net.fabricmc.loader.api.metadata.version.VersionInterval>
+                    getVersionIntervals() { return minecraft.getVersionIntervals(); }
+        };
+        assertThat(minecraft).isEqualTo(equivalent);
+        assertThat(minecraft.toString()).isEqualTo("{depends minecraft @ [>=1.21.1]}");
     }
 
     @Test

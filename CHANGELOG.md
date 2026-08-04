@@ -16,6 +16,8 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Matched Fabric's cross-implementation `ModDependency` equality, hashing, and
+  diagnostic string representation using parsed version predicates.
 - Matched Fabric semantic-version equality across omitted trailing zero
   components, with consistent hashing and equivalent predicate deduplication.
 - Matched Fabric Loader's immutable `CustomValue` tree behavior: stable nested

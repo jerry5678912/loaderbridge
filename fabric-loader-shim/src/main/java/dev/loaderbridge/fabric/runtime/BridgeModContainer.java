@@ -280,5 +280,19 @@ public record BridgeModContainer(
             }
             return List.copyOf(result);
         }
+        @Override public boolean equals(Object other) {
+            return other instanceof ModDependency dependency
+                    && kind == dependency.getKind()
+                    && modId.equals(dependency.getModId())
+                    && getVersionRequirements().equals(dependency.getVersionRequirements());
+        }
+        @Override public int hashCode() {
+            return (kind.ordinal() * 31 + modId.hashCode()) * 257
+                    + getVersionRequirements().hashCode();
+        }
+        @Override public String toString() {
+            return "{" + kind.getKey() + " " + modId + " @ ["
+                    + String.join(" || ", ranges) + "]}";
+        }
     }
 }
