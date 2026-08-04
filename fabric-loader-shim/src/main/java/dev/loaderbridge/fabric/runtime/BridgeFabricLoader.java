@@ -2,6 +2,8 @@ package dev.loaderbridge.fabric.runtime;
 
 import dev.loaderbridge.fabric.metadata.FabricLoaderCompatibility;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -257,7 +259,17 @@ public final class BridgeFabricLoader implements FabricLoader {
     @Override @Deprecated public Object getGameInstance() { return gameInstance; }
     @Override public Path getGameDir() { return gameDirectory; }
     @Override @Deprecated public File getGameDirectory() { return gameDirectory.toFile(); }
-    @Override public Path getConfigDir() { return gameDirectory.resolve("config"); }
+    @Override public Path getConfigDir() {
+        Path configDirectory = gameDirectory.resolve("config");
+        if (!Files.exists(configDirectory)) {
+            try {
+                Files.createDirectories(configDirectory);
+            } catch (IOException exception) {
+                throw new RuntimeException("Creating config directory", exception);
+            }
+        }
+        return configDirectory;
+    }
     @Override @Deprecated public File getConfigDirectory() { return getConfigDir().toFile(); }
     @Override public boolean isDevelopmentEnvironment() { return developmentEnvironment; }
 

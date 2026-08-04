@@ -45,6 +45,18 @@ class BridgeFabricLoaderTest {
     }
 
     @Test
+    void createsTheFabricConfigDirectoryOnFirstAccess() {
+        BridgeFabricLoader loader = BridgeFabricLoader.getInstance();
+        Path gameDirectory = temporaryDirectory.resolve("instance");
+        loader.configure(EnvType.SERVER, gameDirectory);
+
+        Path configDirectory = loader.getConfigDir();
+
+        assertThat(configDirectory).isDirectory();
+        assertThat(configDirectory).isEqualTo(gameDirectory.resolve("config"));
+    }
+
+    @Test
     void exposesEntrypointContainersAndAggregatesInvocationFailures() {
         BridgeFabricLoader loader = BridgeFabricLoader.getInstance();
         loader.resetForTests();

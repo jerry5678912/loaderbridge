@@ -16,6 +16,8 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Made Fabric Loader's config-directory accessor create the directory on first
+  access and preserve its upstream failure wrapping for immediate mod writes.
 - Matched Fabric mod-container identity semantics and the public diagnostic
   strings for containers, path origins, and recursively nested origins.
 - Matched Fabric's cross-implementation `ModDependency` equality, hashing, and

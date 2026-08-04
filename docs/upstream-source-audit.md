@@ -60,6 +60,10 @@ joined by the platform classpath separator or a nested origin as
 `parent-id:sub-location`. LoaderBridge overrides its record defaults and
 anonymous-origin defaults to preserve those observable diagnostics and
 collection semantics.
+Fabric's `getConfigDir()` creates the configured `config` directory before
+returning it and wraps filesystem creation failures as a runtime error.
+LoaderBridge now performs the same lazy creation so mods can immediately open
+config files without a loader-specific directory bootstrap.
 Fabric Loader completes this setup for every active mod before invoking the
 `preLaunch` stage. LoaderBridge therefore queues prelaunch callbacks until
 Forge's first `FMLConstructModEvent`; all container constructors and entrypoint
