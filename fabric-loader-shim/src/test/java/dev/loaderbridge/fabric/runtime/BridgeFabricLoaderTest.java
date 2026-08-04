@@ -226,6 +226,36 @@ class BridgeFabricLoaderTest {
     }
 
     @Test
+    void exposesResolvedModsAndEntrypointsInCanonicalFabricOrder() {
+        BridgeFabricLoader loader = BridgeFabricLoader.getInstance();
+        loader.resetForTests();
+        ModContainer zulu = BridgeModContainer.create(
+                "zulu", "1", "Zulu", List.of("zulu_alias"), Path.of("zulu"));
+        ModContainer alpha = BridgeModContainer.create(
+                "alpha", "1", "Alpha", List.of(), Path.of("alpha"));
+        Runnable zuluFirst = () -> { };
+        Runnable zuluSecond = () -> { };
+        Runnable alphaOnly = () -> { };
+
+        // Forge may discover unrelated JARs in a different order than Fabric's resolver.
+        loader.registerMod(zulu);
+        loader.registerEntrypoint("main", zulu, "example.ZuluFirst", zuluFirst);
+        loader.registerEntrypoint("main", zulu, "example.ZuluSecond", zuluSecond);
+        loader.registerMod(alpha);
+        loader.registerEntrypoint("main", alpha, "example.Alpha", alphaOnly);
+
+        assertThat(loader.getAllMods())
+                .extracting(container -> container.getMetadata().getId())
+                .containsExactly("alpha", "fabricloader", "java", "minecraft", "zulu");
+        assertThat(loader.getEntrypointContainers("main", Runnable.class))
+                .extracting(container -> container.getDefinition())
+                .containsExactly("example.Alpha", "example.ZuluFirst", "example.ZuluSecond");
+        assertThat(loader.getEntrypoints("main", Runnable.class))
+                .containsExactly(alphaOnly, zuluFirst, zuluSecond);
+        assertThat(loader.getModContainer("zulu_alias")).contains(zulu);
+    }
+
+    @Test
     void preservesEveryHostMinecraftRootInForgeOrder() {
         BridgeFabricLoader loader = BridgeFabricLoader.getInstance();
         loader.resetForTests();

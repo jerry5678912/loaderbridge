@@ -6,12 +6,13 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Locale;
 import java.util.Set;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
@@ -162,7 +163,7 @@ public final class BridgeFabricLoader implements FabricLoader {
     public <T> List<T> getEntrypoints(String key, Class<T> type) {
         List<T> resolved = new ArrayList<>();
         EntrypointException failure = null;
-        for (RegisteredEntrypoint entrypoint : entrypoints.getOrDefault(key, List.of())) {
+        for (RegisteredEntrypoint entrypoint : orderedEntrypoints(key)) {
             try {
                 resolved.add(entrypoint.resolve(type));
             } catch (Throwable cause) {
@@ -184,7 +185,7 @@ public final class BridgeFabricLoader implements FabricLoader {
     @SuppressWarnings("deprecation")
     public <T> List<EntrypointContainer<T>> getEntrypointContainers(String key, Class<T> type) {
         List<EntrypointContainer<T>> containers = new ArrayList<>();
-        for (RegisteredEntrypoint entrypoint : entrypoints.getOrDefault(key, List.of())) {
+        for (RegisteredEntrypoint entrypoint : orderedEntrypoints(key)) {
             containers.add(entrypoint.container(key, type));
         }
         return List.copyOf(containers);
@@ -230,7 +231,23 @@ public final class BridgeFabricLoader implements FabricLoader {
     @Override
     public Collection<ModContainer> getAllMods() {
         synchronized (mods) {
-            return List.copyOf(new java.util.LinkedHashSet<>(mods.values()));
+            return mods.values().stream()
+                    .distinct()
+                    .sorted(Comparator.comparing(container -> container.getMetadata().getId()))
+                    .toList();
+        }
+    }
+
+    private List<RegisteredEntrypoint> orderedEntrypoints(String key) {
+        List<RegisteredEntrypoint> registered = entrypoints.get(key);
+        if (registered == null) {
+            return List.of();
+        }
+        synchronized (registered) {
+            return registered.stream()
+                    .sorted(Comparator.comparing(entrypoint ->
+                            entrypoint.provider.getMetadata().getId()))
+                    .toList();
         }
     }
 

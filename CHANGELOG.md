@@ -16,6 +16,9 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Exposed Fabric mod containers and entrypoints in the canonical mod-ID order
+  produced by Fabric Loader 0.16.14, independent of Forge JAR discovery order,
+  while retaining declaration order within each mod and alias lookup behavior.
 - Mirrored Fabric Loader's published self-container description, author,
   contact, license, and icon metadata, and exposed the shim's real resource root
   so `ModContainer.findPath` works on Forge `union:` filesystems.

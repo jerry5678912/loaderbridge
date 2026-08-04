@@ -21,6 +21,12 @@ Fabric's supplied `EntrypointStorage` source records every metadata key before
 normal initialization, creates modern entrypoints lazily, and caches a separate
 instance for each requested contract type. LoaderBridge now follows those
 observable contracts for both lifecycle and arbitrary API entrypoint keys.
+The exact 0.16.14 `ModResolver` sorts its final unique selected-mod list by
+canonical mod ID before `FabricLoaderImpl` registers containers and their
+entrypoints. Forge 52.1.0 instead topologically sorts unrelated mod files using
+their discovery index. LoaderBridge therefore sorts the public container and
+entrypoint views by canonical Fabric ID, retaining metadata declaration order
+within one provider and keeping aliases mapped to their canonical container.
 Fabric Loader completes this setup for every active mod before invoking the
 `preLaunch` stage. LoaderBridge therefore queues prelaunch callbacks until
 Forge's first `FMLConstructModEvent`; all container constructors and entrypoint
