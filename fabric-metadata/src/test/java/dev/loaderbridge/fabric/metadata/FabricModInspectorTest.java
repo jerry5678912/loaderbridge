@@ -156,6 +156,37 @@ final class FabricModInspectorTest {
                 .hasMessageContaining("Invalid environment type: desktop");
     }
 
+    @Test
+    void enforcesFabricProvidesShapeTypesAndIdentifierRules() throws IOException {
+        Path nonArray = tempDirectory.resolve("provides-not-array.jar");
+        writeJar(nonArray, Map.of("fabric.mod.json", """
+                {"schemaVersion":1,"id":"shape_mod","version":"1.0.0",
+                 "provides":"alias"}
+                """));
+        Path nonString = tempDirectory.resolve("provides-not-string.jar");
+        writeJar(nonString, Map.of("fabric.mod.json", """
+                {"schemaVersion":1,"id":"type_mod","version":"1.0.0",
+                 "provides":[42]}
+                """));
+        Path invalidId = tempDirectory.resolve("provides-invalid-id.jar");
+        writeJar(invalidId, Map.of("fabric.mod.json", """
+                {"schemaVersion":1,"id":"id_mod","version":"1.0.0",
+                 "provides":["Invalid Alias"]}
+                """));
+
+        FabricModInspector inspector = new FabricModInspector();
+
+        assertThatThrownBy(() -> inspector.inspect(nonArray))
+                .isInstanceOf(UnsafeJarException.class)
+                .hasMessageContaining("Provides must be an array");
+        assertThatThrownBy(() -> inspector.inspect(nonString))
+                .isInstanceOf(UnsafeJarException.class)
+                .hasMessageContaining("Provided id must be a string");
+        assertThatThrownBy(() -> inspector.inspect(invalidId))
+                .isInstanceOf(UnsafeJarException.class)
+                .hasMessageContaining("Invalid Fabric provides declaration");
+    }
+
     private static byte[] jarBytes(String metadata) throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(output)) {

@@ -13,6 +13,9 @@ import java.util.Map;
 import java.util.Optional;
 
 public final class FabricMetadataParser {
+    private static final java.util.regex.Pattern MOD_ID_PATTERN =
+            java.util.regex.Pattern.compile("[a-z][a-z0-9_-]{1,63}");
+
     public FabricModMetadata parse(byte[] bytes) throws UnsafeJarException {
         final JsonObject root;
         try {
@@ -27,7 +30,7 @@ public final class FabricMetadataParser {
         }
 
         String id = requiredString(root, "id");
-        if (!id.matches("[a-z][a-z0-9_-]{1,63}")) {
+        if (!MOD_ID_PATTERN.matcher(id).matches()) {
             throw new UnsafeJarException("Invalid Fabric mod id: " + id);
         }
         String version = requiredString(root, "version");
@@ -45,7 +48,7 @@ public final class FabricMetadataParser {
                         parseConstraints(root.getAsJsonObject("suggests")),
                         parseConstraints(root.getAsJsonObject("breaks")),
                         parseConstraints(root.getAsJsonObject("conflicts"))),
-                parseStringArray(root.getAsJsonArray("provides")),
+                parseProvides(root.get("provides")),
                 parseMixins(root.getAsJsonArray("mixins")),
                 optionalString(root, "accessWidener"),
                 parseNestedJars(root.getAsJsonArray("jars")),
@@ -137,10 +140,21 @@ public final class FabricMetadataParser {
         return result;
     }
 
-    private static List<String> parseStringArray(JsonArray array) {
+    private static List<String> parseProvides(JsonElement element) throws UnsafeJarException {
         List<String> result = new ArrayList<>();
-        if (array != null) {
-            array.forEach(element -> result.add(element.getAsString()));
+        if (element == null || element.isJsonNull()) return result;
+        if (!element.isJsonArray()) {
+            throw new UnsafeJarException("Provides must be an array");
+        }
+        for (JsonElement provided : element.getAsJsonArray()) {
+            if (!provided.isJsonPrimitive() || !provided.getAsJsonPrimitive().isString()) {
+                throw new UnsafeJarException("Provided id must be a string");
+            }
+            String id = provided.getAsString();
+            if (!MOD_ID_PATTERN.matcher(id).matches()) {
+                throw new UnsafeJarException("Invalid Fabric provides declaration: " + id);
+            }
+            result.add(id);
         }
         return result;
     }
