@@ -30,6 +30,9 @@ dependencies {
     testRuntimeOnly(project(":fabric-loot-api-v3-bridge")) {
         isTransitive = false
     }
+    testRuntimeOnly(project(":fabric-recipe-api-v1-bridge")) {
+        isTransitive = false
+    }
     testRuntimeOnly(project(":fabric-game-rule-api-v1-bridge")) {
         isTransitive = false
     }

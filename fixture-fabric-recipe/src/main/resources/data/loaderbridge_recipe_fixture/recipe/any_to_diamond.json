@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "fabric:type": "fabric:any",
+      "ingredients": [
+        {"item": "minecraft:cobblestone"},
+        {"item": "minecraft:stone"}
+      ]
+    }
+  ],
+  "result": {"id": "minecraft:diamond", "count": 1}
+}

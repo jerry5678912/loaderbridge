@@ -1,0 +1,8 @@
+{
+  "required": true,
+  "minVersion": "0.8.7",
+  "package": "dev.loaderbridge.fabric.api.recipe.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": ["ConnectionMixin", "IngredientMixin", "PacketEncoderMixin"],
+  "injectors": {"defaultRequire": 1}
+}

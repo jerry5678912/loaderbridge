@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "loaderbridge_recipe_fixture",
+  "version": "1.0.0",
+  "name": "LoaderBridge Recipe Fixture",
+  "environment": "*",
+  "entrypoints": { "main": ["dev.loaderbridge.fixture.recipe.FabricRecipeFixture"] },
+  "depends": {
+    "fabricloader": ">=0.15.11",
+    "minecraft": "1.21.1",
+    "fabric-recipe-api-v1": "*",
+    "fabric-lifecycle-events-v1": "*"
+  }
+}

@@ -111,6 +111,13 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   Resource sources distinguish vanilla, mod, external datapack, and replaced
   tables. Bytecode inspection installs the bridge and its API-base/resource
   dependencies automatically.
+- A separately versioned Recipe API v1 bridge matching
+  `fabric-recipe-api-v1:5.0.16+2475392c19`. It implements Fabric custom
+  ingredient registration, the five built-in ingredient serializers,
+  `fabric:type` JSON codecs, Forge-native matching, and negotiated client
+  synchronization with a vanilla matching-stack fallback for unsupported
+  serializers. Inspection installs Recipe API and its networking, lifecycle,
+  and API-base dependencies automatically.
 - A separately versioned Game Rule API v1 bridge matching
   `fabric-game-rule-api-v1:1.0.53+6ced4dd919`. Boolean, bounded integer,
   double, enum, visitor, callback, custom-category, command, serialization,
@@ -353,6 +360,17 @@ reopened the world, verified both persisted, and stopped cleanly. The dedicated
 server independently invoked all three events during initial load and
 `/reload`, reached ready, saved every dimension, and stopped cleanly. See
 [the controlled evidence](docs/controlled-fixtures/fabric-loot-api-v3.md).
+
+The Recipe API v1 M5 increment passed on 2026-08-04. A translated controlled
+Fabric fixture registered its own count-sensitive ingredient serializer,
+exercised all five built-in serializers, and loaded a `fabric:type` recipe that
+matched cobblestone and assembled a diamond. The unchanged final bridge JAR's
+graphical Forge 52.1.16 run negotiated all six serializers, transmitted the
+custom ingredient natively, created and saved a world, reopened it, and stopped
+cleanly. The tightened final fixture independently proved all five built-ins
+and the recipe result on the dedicated server before and after `/reload`, then
+flushed every dimension and stopped cleanly. See
+[the controlled evidence](docs/controlled-fixtures/fabric-recipe-api-v1.md).
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,

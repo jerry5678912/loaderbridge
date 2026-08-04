@@ -459,6 +459,40 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsRecipeApiBridgeAndItsTransitiveRuntimeDependencies() throws Exception {
+        Path source = referencedMod("recipe_api", "fabric-recipe-api-v1", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);
+            method.visitMethodInsn(Opcodes.INVOKESTATIC,
+                    "net/fabricmc/fabric/api/recipe/v1/ingredient/DefaultCustomIngredients",
+                    "any",
+                    "([Lnet/minecraft/class_1856;)Lnet/minecraft/class_1856;",
+                    false);
+            method.visitInsn(Opcodes.POP);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(1, 1);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "recipe-api");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
+        assertThat(plan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-FAPI-100");
+            assertThat(diagnostic.message()).contains("fabric-recipe-api-v1-bridge");
+        });
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains(
+                        "fabric-recipe-api-v1-bridge-5.0.16_2475392c19-loaderbridge.1.jar",
+                        "fabric-networking-api-v1-bridge-4.3.1_d30f6a7919-loaderbridge.4.jar",
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar");
+    }
+
+    @Test
     void rejectsConditionalPackOverlaysUntilTheirPackSelectionHookExists() throws Exception {
         Path source = temporaryDirectory.resolve("conditional_overlay.jar");
         Files.write(source, jarBytesWithResource(
