@@ -54,6 +54,12 @@ Fabric's dependency implementation also defines equality against any public
 than by its concrete implementation class. LoaderBridge mirrors that equality,
 its matching hash, and Fabric's diagnostic string form so consumers can safely
 compare bridge dependencies with their own implementations.
+Fabric's `ModContainerImpl` retains ordinary object identity rather than value
+equality and renders as its ID plus version. `ModOriginImpl` renders path roots
+joined by the platform classpath separator or a nested origin as
+`parent-id:sub-location`. LoaderBridge overrides its record defaults and
+anonymous-origin defaults to preserve those observable diagnostics and
+collection semantics.
 Fabric Loader completes this setup for every active mod before invoking the
 `preLaunch` stage. LoaderBridge therefore queues prelaunch callbacks until
 Forge's first `FMLConstructModEvent`; all container constructors and entrypoint

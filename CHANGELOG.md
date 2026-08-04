@@ -16,6 +16,8 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Matched Fabric mod-container identity semantics and the public diagnostic
+  strings for containers, path origins, and recursively nested origins.
 - Matched Fabric's cross-implementation `ModDependency` equality, hashing, and
   diagnostic string representation using parsed version predicates.
 - Matched Fabric semantic-version equality across omitted trailing zero

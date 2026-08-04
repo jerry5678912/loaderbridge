@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Files;
 import java.nio.charset.StandardCharsets;
@@ -365,6 +366,10 @@ class BridgeFabricLoaderTest {
                 .isEqualTo(net.fabricmc.loader.api.metadata.ModOrigin.Kind.NESTED);
         assertThat(child.getOrigin().getParentModId()).isEqualTo("parent");
         assertThat(child.getOrigin().getParentSubLocation()).isEqualTo("META-INF/jars/child.jar");
+        assertThat(child.getOrigin().toString()).isEqualTo("parent:META-INF/jars/child.jar");
+        assertThat(parent.toString()).isEqualTo("parent 1");
+        assertThat(parent).isNotEqualTo(new BridgeModContainer(
+                parent.metadata(), parent.rootPaths(), parent.parentModId(), parent.parentSubLocation()));
     }
 
     @Test
@@ -378,6 +383,8 @@ class BridgeFabricLoaderTest {
                 List.of(first, temporaryDirectory.resolve("second")), null, null);
 
         assertThat(container.getRootPaths()).containsExactly(first, temporaryDirectory.resolve("second"));
+        assertThat(container.getOrigin().toString())
+                .isEqualTo(first + File.pathSeparator + temporaryDirectory.resolve("second"));
         assertThat(container.findPath("assets/fixture/value.txt")).contains(resource);
         assertThat(container.getPath("assets/fixture/value.txt")).isEqualTo(resource);
         assertThat(container.findPath("assets/fixture/missing.txt")).isEmpty();

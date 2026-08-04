@@ -151,6 +151,7 @@ public record BridgeModContainer(
                 }
                 @Override public String getParentModId() { return parentModId; }
                 @Override public String getParentSubLocation() { return parentSubLocation; }
+                @Override public String toString() { return parentModId + ":" + parentSubLocation; }
             };
         }
         return new ModOrigin() {
@@ -161,6 +162,10 @@ public record BridgeModContainer(
             }
             @Override public String getParentSubLocation() {
                 throw new UnsupportedOperationException("kind PATH doesn't have a parent sub-location");
+            }
+            @Override public String toString() {
+                return String.join(File.pathSeparator,
+                        rootPaths.stream().map(Path::toString).toList());
             }
         };
     }
@@ -187,6 +192,11 @@ public record BridgeModContainer(
         }
         return Path.of(".").resolve("missing_ae236f4970ce")
                 .resolve(file.replace('/', File.separatorChar));
+    }
+    @Override public boolean equals(Object other) { return this == other; }
+    @Override public int hashCode() { return System.identityHashCode(this); }
+    @Override public String toString() {
+        return metadata.getId() + " " + metadata.getVersion();
     }
 
     private record SimpleMetadata(
