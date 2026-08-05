@@ -5,6 +5,12 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
+import net.fabricmc.fabric.api.tag.FabricTagKey;
+import net.fabricmc.fabric.api.tag.convention.v2.ConventionalBlockTags;
+import net.fabricmc.fabric.api.tag.convention.v2.ConventionalEntityTypeTags;
+import net.fabricmc.fabric.api.tag.convention.v2.ConventionalFluidTags;
+import net.fabricmc.fabric.api.tag.convention.v2.ConventionalItemTags;
+import net.fabricmc.fabric.api.tag.convention.v2.TagUtil;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
@@ -1314,6 +1320,20 @@ public final class FabricLifecycleFixture implements ModInitializer {
                 System.out.println("LOADERBRIDGE_FABRIC_SAVE_FINISHED:" + flush + ":" + force));
         CommonLifecycleEvents.TAGS_LOADED.register((registries, client) -> {
             if (!client) {
+                if (!TagUtil.isIn(ConventionalBlockTags.END_STONES, Blocks.END_STONE)
+                        || !TagUtil.isIn(ConventionalItemTags.IRON_INGOTS, Items.IRON_INGOT)
+                        || !TagUtil.isIn(ConventionalItemTags.BOWS_TOOLS, Items.BOW)
+                        || !TagUtil.isIn(ConventionalFluidTags.WATER, Fluids.WATER)
+                        || !TagUtil.isIn(ConventionalEntityTypeTags.BOSSES,
+                                EntityType.ENDER_DRAGON)) {
+                    throw new IllegalStateException("LOADERBRIDGE_FABRIC_CONVENTION_TAGS_FAILED");
+                }
+                Object fabricTag = ConventionalItemTags.IRON_INGOTS;
+                if (!(fabricTag instanceof FabricTagKey extension)
+                        || !"tag.item.c.ingots.iron".equals(extension.getTranslationKey())) {
+                    throw new IllegalStateException("LOADERBRIDGE_FABRIC_TAG_KEY_EXTENSION_FAILED");
+                }
+                System.out.println("LOADERBRIDGE_FABRIC_CONVENTION_TAGS_READY registries=5,alias=true");
                 System.out.println("LOADERBRIDGE_FABRIC_LIFECYCLE_TAGS_READY");
             }
         });

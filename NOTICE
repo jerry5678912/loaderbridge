@@ -15,6 +15,12 @@ only when inspected bytecode requires it, and remains under its own MIT license.
 This product implements compatibility with public contracts documented by
 FabricMC. Fabric Loader and Fabric API are Apache License 2.0 projects.
 
+The Fabric Convention Tags v2 bridge includes the standardized `c:` tag JSON
+and translation tables from Fabric API 0.116.15 for Minecraft 1.21.1. Those
+resources are Copyright FabricMC and contributors and are redistributed under
+the Apache License, Version 2.0; the upstream license is included in the bridge
+artifact as `LICENSE-fabric-convention-tags-v2`.
+
 Minecraft Forge and ForgeSPI are separate LGPL-2.1-only projects and are used
 as linked build/runtime dependencies. ModLauncher is LGPL-3.0-or-later.
 

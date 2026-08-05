@@ -59,6 +59,9 @@ dependencies {
     compileOnly(project(':fabric-biome-api-v1-bridge')) {
         transitive = false
     }
+    compileOnly(project(':fabric-convention-tags-v2-bridge')) {
+        transitive = false
+    }
 }
 
 tasks.named('jar') {

@@ -14,11 +14,19 @@ public final class FabricConventionTagsBridgeProvider implements RuntimeBridgeMo
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-convention-tags-v2-bridge",
             "fabric-convention-tags-v2:2.12.0",
-            "2.12.0+c3656daa19-loaderbridge.1",
+            "2.12.0+c3656daa19-loaderbridge.2",
             BridgeCapability.FABRIC_API,
-            Set.of("net.fabricmc.fabric.api.tag.convention.v2.ConventionalBiomeTags"),
+            Set.of("net.fabricmc.fabric.api.tag.FabricTagKey",
+                    "net.fabricmc.fabric.api.tag.convention.v2.TagUtil",
+                    "net.fabricmc.fabric.api.tag.convention.v2.ConventionalBiomeTags",
+                    "net.fabricmc.fabric.api.tag.convention.v2.ConventionalBlockTags",
+                    "net.fabricmc.fabric.api.tag.convention.v2.ConventionalItemTags",
+                    "net.fabricmc.fabric.api.tag.convention.v2.ConventionalFluidTags",
+                    "net.fabricmc.fabric.api.tag.convention.v2.ConventionalEntityTypeTags",
+                    "net.fabricmc.fabric.api.tag.convention.v2.ConventionalEnchantmentTags",
+                    "net.fabricmc.fabric.api.tag.convention.v2.ConventionalStructureTags"),
             Map.of("fabric-convention-tags-v2", "2.12.0+c3656daa19"),
-            Set.of());
+            Set.of("fabric-lifecycle-events-bridge"));
 
     @Override public RuntimeBridgeModule descriptor() { return DESCRIPTOR; }
 

@@ -3,7 +3,7 @@ loaderVersion="[52,)"
 license="Apache-2.0"
 [[mods]]
 modId="loaderbridge_fabric_convention_tags_v2"
-version="2.12.0.1"
+version="2.12.0.2"
 displayName="LoaderBridge Fabric Convention Tags v2 Bridge"
 [[dependencies.loaderbridge_fabric_convention_tags_v2]]
 modId="forge"

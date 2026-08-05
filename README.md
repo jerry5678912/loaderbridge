@@ -192,8 +192,11 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   the connection registry handshake; the controlled client proves static and
   dynamic registration through save and reload.
 - A Convention Tags v2 bridge matching
-  `fabric-convention-tags-v2:2.12.0+c3656daa19`, with the standard `c:` biome
-  tag keys used by Fabric 1.21.1 mods.
+  `fabric-convention-tags-v2:2.12.0+c3656daa19`. Revision 2 exposes all nine
+  pinned public classes and 494 block, item, fluid, entity-type, enchantment,
+  structure, and biome keys; `TagUtil`; and Fabric's injected `TagKey`
+  translation methods. The exact standardized `c:` data and translations merge
+  with Forge's native common tags, including Fabric aliases Forge does not ship.
 - A Biome API v1 bridge matching `fabric-biome-api-v1:13.0.31+d527f9fd19`.
   Fabric biome selectors plus placed-feature, configured-carver, and mob-spawn
   additions are translated into a registry-aware Forge biome modifier.
@@ -316,8 +319,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 ## Intentionally gated
 
 The adapter currently rejects Fabric API surfaces outside the implemented
-modules, including client fluid rendering, remaining biome, convention-tag,
-trade-helper, and broader rendering surfaces, unknown custom language adapters,
+modules, including client fluid rendering, remaining trade-helper and broader
+rendering surfaces, unknown custom language adapters,
 Loader API calls outside the current
 shim, and mods requiring unreviewed native-library behavior. Signed patch packs,
 broad semantic graphical assertions, and catalog-wide compatibility measurement

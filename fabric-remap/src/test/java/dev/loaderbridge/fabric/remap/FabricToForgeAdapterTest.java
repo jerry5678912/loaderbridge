@@ -909,7 +909,7 @@ class FabricToForgeAdapterTest {
         assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
                 .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
-                .contains("fabric-convention-tags-v2-bridge-2.12.0_c3656daa19-loaderbridge.1.jar");
+                .contains("fabric-convention-tags-v2-bridge-2.12.0_c3656daa19-loaderbridge.2.jar");
     }
 
     @Test

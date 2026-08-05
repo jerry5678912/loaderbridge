@@ -16,6 +16,12 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Completed the pinned Fabric Convention Tags v2 public contract: all nine
+  classes, 494 tag keys, `TagUtil`, and `FabricTagKey` translation/name methods
+  injected into Minecraft's real `TagKey`. The module carries the exact
+  Apache-licensed `c:` data and translations so Fabric-only aliases merge with
+  Forge's common tags. Real block, item, fluid, entity, and plural-alias
+  membership passed graphical and two-process dedicated-server save/reload.
 - Added Fabric Resource Loader v0 built-in resource-pack and data-pack
   registration through Forge's native pack repository. `NORMAL`,
   `DEFAULT_ENABLED`, and `ALWAYS_ENABLED` preserve selection semantics, packs
