@@ -6,6 +6,8 @@ import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -22,13 +24,24 @@ public final class FabricDataAttachmentFixture implements ModInitializer {
             AttachmentRegistry.createPersistent(id("persistent"), Codec.INT);
     private static final AttachmentType<Integer> DEFAULTED =
             AttachmentRegistry.createDefaulted(id("defaulted"), () -> 7);
+    static final AttachmentType<Integer> SYNCED_LEVEL = AttachmentRegistry.create(
+            id("synced_level"), builder -> builder.syncWith(
+                    ByteBufCodecs.VAR_INT, (target, player) -> true));
+    static final AttachmentType<Integer> SYNCED_PLAYER = AttachmentRegistry.create(
+            id("synced_player"), builder -> builder.syncWith(
+                    ByteBufCodecs.VAR_INT, (target, player) -> true));
 
     @Override public void onInitialize() {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> verify(server.overworld()));
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            ((AttachmentTarget) handler.player).setAttached(SYNCED_PLAYER, 59);
+            System.out.println("LOADERBRIDGE_DATA_ATTACHMENT_SERVER_MUTATION_READY player=59");
+        });
     }
 
     private static void verify(ServerLevel level) {
         AttachmentTarget levelTarget = (AttachmentTarget) level;
+        levelTarget.setAttached(SYNCED_LEVEL, 53);
         if (levelTarget.getAttachedOrCreate(DEFAULTED) != 7
                 || levelTarget.modifyAttached(DEFAULTED, value -> value + 1) != 7
                 || levelTarget.getAttachedOrThrow(DEFAULTED) != 8) {

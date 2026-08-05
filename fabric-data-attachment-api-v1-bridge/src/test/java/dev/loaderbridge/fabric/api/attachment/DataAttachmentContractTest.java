@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.mojang.serialization.Codec;
+import io.netty.buffer.Unpooled;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
@@ -13,8 +14,14 @@ import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.fabricmc.fabric.impl.attachment.AttachmentRegistryImpl;
 import net.fabricmc.fabric.impl.attachment.AttachmentSerialization;
 import net.fabricmc.fabric.impl.attachment.AttachmentTargetImpl;
+import net.fabricmc.fabric.impl.attachment.sync.AttachmentChange;
+import net.fabricmc.fabric.impl.attachment.sync.AttachmentTargetInfo;
+import net.fabricmc.fabric.impl.attachment.sync.s2c.AttachmentSyncPayloadS2C;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.fml.common.Mod;
 import org.junit.jupiter.api.Test;
@@ -28,7 +35,7 @@ class DataAttachmentContractTest {
         assertThat(descriptor.contractVersion())
                 .isEqualTo("fabric-data-attachment-api-v1:1.4.7");
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("1.4.7+5b36e0f719-loaderbridge.5");
+                .isEqualTo("1.4.7+5b36e0f719-loaderbridge.6");
         assertThat(descriptor.providedClasses()).contains(
                 "net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry",
                 "net.fabricmc.fabric.api.attachment.v1.AttachmentSyncPredicate",
@@ -120,6 +127,26 @@ class DataAttachmentContractTest {
 
         assertThat(replacement.getAttached(ordinary)).isNull();
         assertThat(replacement.getAttached(retained)).isEqualTo(2);
+    }
+
+    @Test
+    void synchronizedAttachmentPayloadRoundTripsTargetTypeAndValue() {
+        AttachmentType<Integer> type = AttachmentRegistry.create(
+                ResourceLocation.fromNamespaceAndPath("loaderbridge", "sync_round_trip"),
+                builder -> builder.syncWith(ByteBufCodecs.VAR_INT,
+                        AttachmentSyncPredicate.all()));
+        var payload = new AttachmentSyncPayloadS2C(java.util.List.of(
+                new AttachmentChange(AttachmentTargetInfo.LevelTarget.INSTANCE, type, 73)));
+        var buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(), RegistryAccess.EMPTY);
+
+        AttachmentSyncPayloadS2C.CODEC.encode(buffer, payload);
+        AttachmentSyncPayloadS2C restored = AttachmentSyncPayloadS2C.CODEC.decode(buffer);
+
+        assertThat(restored.attachments()).hasSize(1);
+        assertThat(restored.attachments().getFirst().targetInfo())
+                .isEqualTo(AttachmentTargetInfo.LevelTarget.INSTANCE);
+        assertThat(restored.attachments().getFirst().type()).isSameAs(type);
+        assertThat(restored.attachments().getFirst().value()).isEqualTo(73);
     }
 
     private static final class TestTarget implements AttachmentTargetImpl {

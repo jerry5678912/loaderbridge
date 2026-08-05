@@ -132,9 +132,12 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   and Fabric copy rules for respawn, world changes, and mob conversion.
   Inspection selects its Entity Events, Object Builder, Networking, and API
   Base dependencies automatically. Server-level SavedData and chunk serializer
-  persistence now survive process restarts. Wire synchronization and the full
-  proto-chunk generation path are still open, so the module is not yet declared
-  complete.
+  persistence now survive process restarts. Revision 6 adds structured target
+  addressing, codec-backed initial and mutation synchronization, tracking and
+  chunk-watch delivery, predicate filtering, and client application; a
+  graphical save/reload scenario proved the wire path in two client sessions.
+  Explicit per-attachment capability negotiation and the full proto-chunk
+  generation path are still open, so the module is not yet declared complete.
 - A separately versioned Game Rule API v1 bridge matching
   `fabric-game-rule-api-v1:1.0.53+6ced4dd919`. Boolean, bounded integer,
   double, enum, visitor, callback, custom-category, command, serialization,
@@ -410,6 +413,12 @@ The follow-up persistence wave used a fresh world and two separate Forge server
 processes to prove level value `41` and chunk value `43` survive disk save and
 reload through SavedData, chunk serialization, and the ImposterProtoChunk
 wrapper path.
+Revision 6 then passed a graphical Forge 52.1.16 run: the client observed
+server-level value `53` from join-time initial synchronization and player value
+`59` from live mutation synchronization, both before and after saving and
+reopening the world. A dedicated-server regression restored `41/43` and stopped
+cleanly. Per-attachment client capability negotiation and the generated
+ProtoChunk path remain open.
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,

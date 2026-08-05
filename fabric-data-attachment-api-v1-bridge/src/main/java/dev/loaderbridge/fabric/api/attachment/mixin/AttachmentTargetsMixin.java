@@ -4,6 +4,7 @@ import java.util.IdentityHashMap;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.fabricmc.fabric.impl.attachment.AttachmentTargetImpl;
 import net.fabricmc.fabric.impl.attachment.AttachmentPersistentState;
+import net.fabricmc.fabric.impl.attachment.sync.AttachmentSyncRuntime;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
@@ -25,12 +26,16 @@ abstract class AttachmentTargetsMixin implements AttachmentTargetImpl {
     @Override @SuppressWarnings("unchecked")
     public <A> A setAttached(AttachmentType<A> type, A value) {
         loaderbridge$markChanged();
+        A previous;
         if (value == null) {
-            return loaderbridge$attachments == null
+            previous = loaderbridge$attachments == null
                     ? null : (A) loaderbridge$attachments.remove(type);
+        } else {
+            if (loaderbridge$attachments == null) loaderbridge$attachments = new IdentityHashMap<>();
+            previous = (A) loaderbridge$attachments.put(type, value);
         }
-        if (loaderbridge$attachments == null) loaderbridge$attachments = new IdentityHashMap<>();
-        return (A) loaderbridge$attachments.put(type, value);
+        AttachmentSyncRuntime.syncChange(this, type, value);
+        return previous;
     }
 
     @Override public boolean hasAttached(AttachmentType<?> type) {

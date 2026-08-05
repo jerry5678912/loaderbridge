@@ -14,6 +14,7 @@ dependencies {
     compileOnly(project(':fabric-loader-shim')) { transitive = false }
     compileOnly(project(':fabric-api-base-bridge')) { transitive = false }
     compileOnly(project(':fabric-lifecycle-events-bridge')) { transitive = false }
+    compileOnly(project(':fabric-networking-api-v1-bridge')) { transitive = false }
     compileOnly(project(':fabric-data-attachment-api-v1-bridge')) { transitive = false }
 }
 

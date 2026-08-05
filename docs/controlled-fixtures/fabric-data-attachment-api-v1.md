@@ -1,7 +1,7 @@
 # Fabric Data Attachment API v1 controlled fixture
 
 This fixture tests the pinned `fabric-data-attachment-api-v1:1.4.7+5b36e0f719`
-contract through LoaderBridge revision 5 on Minecraft 1.21.1 and Forge 52.1.16.
+contract through LoaderBridge revision 6 on Minecraft 1.21.1 and Forge 52.1.16.
 
 The source fixture is compiled as a Fabric mod and transformed by the ordinary
 `prepare` command. Content inspection automatically selected Data Attachment
@@ -24,6 +24,24 @@ The dedicated-server scenario proves the first storage and persistence wave:
 - a second server process restoring both `41` and `43` from disk through the
   LevelChunk/ImposterProtoChunk wrapper path.
 
+The graphical integrated-server scenario proves the first wire-synchronization
+wave:
+
+- attachment values are encoded by each registered Fabric packet codec;
+- level, player/entity, block-entity, and chunk targets have structured network
+  addresses rather than filename or mod-ID rules;
+- join-time level/player, entity-tracking, and chunk-watch snapshots are wired;
+- live mutations select tracking recipients and honor the Fabric sync
+  predicate;
+- the client resolves targets and applies synchronized values on its game
+  thread;
+- the client observed level value `53` from initial synchronization and player
+  value `59` from mutation synchronization in the fresh session;
+- after save and world reopen, a new client player observed `53/59` again as
+  synchronization session 2;
+- the integrated server simultaneously restored persistent values `41/43` and
+  the graphical process stopped cleanly.
+
 The runtime marker was:
 
 `LOADERBRIDGE_DATA_ATTACHMENT_BASE_READY entity=19 block=23 level=8 chunk=31`
@@ -32,11 +50,15 @@ The runtime marker was:
 
 `LOADERBRIDGE_DATA_ATTACHMENT_PERSIST_RELOAD level=41 chunk=43`
 
+`LOADERBRIDGE_DATA_ATTACHMENT_CLIENT_SYNC_READY level=53 player=59 session=1`
+
+`LOADERBRIDGE_DATA_ATTACHMENT_CLIENT_SYNC_READY level=53 player=59 session=2`
+
 Prepared artifact evidence:
 
-- bridge SHA-256: `724deb796f6c32d9bfd56c58b900acccccb4e66d76e68453e7faadcc7933eb39`
-- fixture SHA-256: `9c8afdc8c92ffa4b2e8adf197738f0c5d43d40ab3c8daadc46f7bf519419fd14`
-- lock SHA-256: `5ff23a1d5eccb90b052bc722323096084677c23fd25bf110c183074e1b5fbd89`
+- bridge SHA-256: `ce17b6dff509125df1ac606a76fa88c40669e63eb64821374236395bcf1bd0d1`
+- fixture SHA-256: `9f49a97d1fd491d8d3153469f7a90c47464911d50224d9d332e6e622f4cede30`
+- lock SHA-256: `4d9df4f302a4f0fadcb7ee5a47fdacc43be8f960d7628c51a9442137ca2fad68`
 
 Unit contracts additionally prove persistent-only serialization, registry
 lookup, built-in synchronization predicates, null/error semantics, and
@@ -44,7 +66,8 @@ copy-on-death filtering. Runtime callbacks transfer attachments on respawn,
 entity world replacement, and mob conversion using the completed Entity Events
 bridge.
 
-This evidence does not yet prove a generated ProtoChunk-to-LevelChunk transfer,
-client synchronization, or client-side attachment application. Those are
-explicit open gates before Data Attachment API v1 is called complete. It also
-does not complete M5 or establish the roadmap's 60% catalog gate.
+This evidence does not yet prove explicit negotiation of the exact synchronized
+attachment type set with a client whose registered types differ, nor a
+generated ProtoChunk-to-LevelChunk transfer. Those are explicit open gates
+before Data Attachment API v1 is called complete. It also does not complete M5
+or establish the roadmap's 60% catalog gate.
