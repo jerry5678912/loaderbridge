@@ -13,7 +13,7 @@ import java.util.Set;
 public final class FabricItemApiBridgeProvider implements RuntimeBridgeModuleProvider {
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-item-api-v1-bridge", "fabric-item-api-v1:11.3.0",
-            "11.3.0+467044f319-loaderbridge.2", BridgeCapability.FABRIC_API,
+            "11.3.0+467044f319-loaderbridge.3", BridgeCapability.FABRIC_API,
             Set.of(
                     "net.fabricmc.fabric.api.item.v1.CustomDamageHandler",
                     "net.fabricmc.fabric.api.item.v1.DefaultItemComponentEvents",

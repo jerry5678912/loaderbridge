@@ -2,6 +2,8 @@ package dev.loaderbridge.fabric.api.item;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import net.fabricmc.fabric.api.item.v1.EnchantmentSource;
 import net.fabricmc.fabric.api.item.v1.FabricItem;
 import net.minecraftforge.fml.common.Mod;
@@ -9,11 +11,11 @@ import org.junit.jupiter.api.Test;
 
 class FabricItemApiContractTest {
     @Test
-    void providerPinsOnlyTheImplementedCommonSurface() {
+    void providerPinsOnlyTheImplementedCommonSurface() throws IOException {
         var descriptor = new FabricItemApiBridgeProvider().descriptor();
         assertThat(descriptor.contractVersion()).isEqualTo("fabric-item-api-v1:11.3.0");
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("11.3.0+467044f319-loaderbridge.2");
+                .isEqualTo("11.3.0+467044f319-loaderbridge.3");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrder(
                 "net.fabricmc.fabric.api.item.v1.CustomDamageHandler",
                 "net.fabricmc.fabric.api.item.v1.DefaultItemComponentEvents",
@@ -28,6 +30,11 @@ class FabricItemApiContractTest {
         assertThat(descriptor.requiredModules()).containsExactly("fabric-api-base-bridge");
         assertThat(FabricItemApiBridgeMod.class.getAnnotation(Mod.class).value())
                 .isEqualTo("loaderbridge_fabric_item_api_v1");
+        try (var metadata = getClass().getResourceAsStream("/META-INF/mods.toml")) {
+            assertThat(metadata).isNotNull();
+            assertThat(new String(metadata.readAllBytes(), StandardCharsets.UTF_8))
+                    .contains("version=\"11.3.0.3\"");
+        }
     }
 
     @Test

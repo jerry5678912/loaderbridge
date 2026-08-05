@@ -18,16 +18,20 @@ component-builder helpers. The runtime module is discovered through
 `ServiceLoader` and selected from inspected bytecode references rather than
 artifact names.
 
+Forge's crafting, furnace, and brewing implementations already call generic
+stack-aware remainder hooks. The bridge delegates those hooks to Fabric and
+carries an identity-bound result between Forge's separate predicate and
+retrieval calls so a mod callback executes once.
+
 Default component callbacks run after Fabric initialization on either Forge
 lifecycle ordering. Mutations update vanilla's backing component map and
 Forge's gathered-component cache together, preserving components contributed
 by either loader.
 
 This is deliberately not advertised as the complete pinned module yet.
-Vanilla enchanting event hooks, recipe-manager integration for stack-aware
-remainders, client tooltip and animation callbacks, and special creator
-namespaces remain unimplemented and therefore are not listed as provided
-reference surfaces.
+Vanilla enchanting event hooks, a direct custom-brewing behavioral gate, client
+tooltip and animation callbacks, and special creator namespaces remain
+unimplemented and therefore are not listed as provided reference surfaces.
 
 The controlled fixture registers a real Fabric item with working model and
 language resources. Its client and dedicated-server evidence is documented in

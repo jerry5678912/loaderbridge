@@ -16,6 +16,12 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added stack-aware Fabric recipe remainders to Forge's crafting and furnace
+  pipelines. The bridge delegates Forge's stack hooks to `FabricItem` and
+  carries one identity-bound result between Forge's separate predicate and
+  retrieval calls, preventing duplicate mod callback execution. A translated
+  Fabric-only item passed real recipe, vanilla-bucket control, furnace,
+  graphical save/reload, and two-process dedicated-server tests.
 - Added Fabric Item API v1 default component events with the exact callback and
   nested context contracts. Item, collection, and predicate mutations preserve
   Forge-gathered components while updating both Minecraft's backing map and

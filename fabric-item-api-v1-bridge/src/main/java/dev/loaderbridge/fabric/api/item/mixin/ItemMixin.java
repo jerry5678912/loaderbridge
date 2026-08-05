@@ -5,8 +5,9 @@ import net.fabricmc.fabric.api.item.v1.EquipmentSlotProvider;
 import net.fabricmc.fabric.api.item.v1.FabricItem;
 import net.fabricmc.fabric.impl.item.FabricItemInternals;
 import net.fabricmc.fabric.impl.item.ItemExtensions;
-import net.minecraft.world.item.Item;
 import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -16,6 +17,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Item.class)
 public abstract class ItemMixin implements ItemExtensions, FabricItem {
+    @Unique private static final ThreadLocal<PendingRecipeRemainder>
+            LOADERBRIDGE$PENDING_RECIPE_REMAINDER = new ThreadLocal<>();
     @org.spongepowered.asm.mixin.Shadow @org.spongepowered.asm.mixin.Final
     @org.spongepowered.asm.mixin.Mutable private DataComponentMap components;
     @org.spongepowered.asm.mixin.Shadow private DataComponentMap builtComponents;
@@ -43,4 +46,26 @@ public abstract class ItemMixin implements ItemExtensions, FabricItem {
         this.components = components;
         this.builtComponents = components;
     }
+
+    public boolean hasCraftingRemainingItem(ItemStack stack) {
+        ItemStack remainder = ((FabricItem) (Object) this).getRecipeRemainder(stack);
+        if (remainder.isEmpty()) {
+            LOADERBRIDGE$PENDING_RECIPE_REMAINDER.remove();
+            return false;
+        }
+        LOADERBRIDGE$PENDING_RECIPE_REMAINDER.set(
+                new PendingRecipeRemainder(stack, remainder));
+        return true;
+    }
+
+    public ItemStack getCraftingRemainingItem(ItemStack stack) {
+        PendingRecipeRemainder pending = LOADERBRIDGE$PENDING_RECIPE_REMAINDER.get();
+        LOADERBRIDGE$PENDING_RECIPE_REMAINDER.remove();
+        return pending != null && pending.input() == stack
+                ? pending.remainder()
+                : ((FabricItem) (Object) this).getRecipeRemainder(stack);
+    }
+
+    @Unique
+    private record PendingRecipeRemainder(ItemStack input, ItemStack remainder) { }
 }

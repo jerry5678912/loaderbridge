@@ -15,6 +15,7 @@ dependencies {
     compileOnly(project(':fabric-api-base-bridge')) { transitive = false }
     compileOnly(project(':fabric-lifecycle-events-bridge')) { transitive = false }
     compileOnly(project(':fabric-item-api-v1-bridge')) { transitive = false }
+    compileOnly(project(':fabric-content-registries-v0-bridge')) { transitive = false }
 }
 
 tasks.named('jar') { manifest { attributes('LICENSE': 'Apache-2.0') } }

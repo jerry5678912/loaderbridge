@@ -550,6 +550,20 @@ Both integrated-server starts and two dedicated-server processes observed
 shutdown all passed. Enchanting, recipe-pipeline, and client Item API hooks
 remain open, so the complete module and M5 gates remain unclaimed.
 
+Fabric Item API v1 revision 16 passed on 2026-08-05. Forge 52 already exposes
+stack-sensitive remainder hooks to its crafting, furnace, and brewing code, so
+the bridge now delegates those generic hooks to Fabric's
+`FabricItem.getRecipeRemainder(stack)`. An identity-bound thread-local carries
+the result across Forge's separate predicate and retrieval calls, ensuring mod
+code runs once. The fixture's Fabric-only item returned a gold nugget through
+a real `Recipe.getRemainingItems` call while a vanilla water bucket still
+returned a bucket. Registered as fuel through Fabric Content Registries, the
+same item powered a real furnace that produced stone and retained the gold
+nugget. Fresh graphical world creation, same-process save/reload, two separate
+dedicated-server processes, and deterministic preparation passed. A direct
+custom brewing scenario, enchanting, and client Item API hooks remain open, so
+the complete module and M5 gates remain unclaimed.
+
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,
 tilde ranges, caret ranges, trailing-zero equality, and the special
