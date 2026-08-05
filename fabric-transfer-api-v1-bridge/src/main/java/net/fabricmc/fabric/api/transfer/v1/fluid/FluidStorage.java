@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
 import net.fabricmc.fabric.api.lookup.v1.item.ItemApiLookup;
 import net.fabricmc.fabric.api.transfer.v1.context.ContainerItemContext;
 import net.fabricmc.fabric.api.transfer.v1.fluid.base.FullItemFluidStorage;
+import net.fabricmc.fabric.api.transfer.v1.fluid.base.EmptyItemFluidStorage;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.StoragePreconditions;
@@ -23,6 +24,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 
@@ -38,11 +42,19 @@ public final class FluidStorage {
             createCombinedEvent(false);
 
     static {
+        CauldronFluidContent.getForFluid(Fluids.WATER);
         SIDED.registerFallback((world, pos, state, blockEntity, direction) ->
                 blockEntity instanceof SidedStorageBlockEntity provider
                         ? provider.getFluidStorage(direction) : null);
         ITEM.registerFallback((stack, context) -> GENERAL_COMBINED_PROVIDER.invoker().find(context));
         combinedItemApiProvider(Items.BUCKET).register(EmptyBucketStorage::new);
+        combinedItemApiProvider(Items.GLASS_BOTTLE).register(context ->
+                new EmptyItemFluidStorage(context, empty -> {
+                    var stack = empty.toStack();
+                    stack.set(DataComponents.POTION_CONTENTS, new PotionContents(Potions.WATER));
+                    return ItemVariant.of(Items.POTION, stack.getComponentsPatch());
+                }, Fluids.WATER, FluidConstants.BOTTLE));
+        combinedItemApiProvider(Items.POTION).register(BridgeWaterPotionStorage::find);
         GENERAL_COMBINED_PROVIDER.register(context -> {
             Item item = context.getItemVariant().getItem();
             if (item instanceof BucketItem bucket) {

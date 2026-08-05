@@ -1,7 +1,9 @@
 package dev.loaderbridge.fabric.remap;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 public record PreparationManifest(
         String formatVersion,
@@ -21,8 +23,12 @@ public record PreparationManifest(
         Objects.requireNonNull(forgeVersion, "forgeVersion");
         Objects.requireNonNull(sourceNamespace, "sourceNamespace");
         Objects.requireNonNull(targetNamespace, "targetNamespace");
-        fulfilledFabricDependencies = Map.copyOf(fulfilledFabricDependencies);
-        resolvedDependencyModIds = Map.copyOf(resolvedDependencyModIds);
+        fulfilledFabricDependencies = Collections.unmodifiableMap(
+                new TreeMap<>(Objects.requireNonNull(
+                        fulfilledFabricDependencies, "fulfilledFabricDependencies")));
+        resolvedDependencyModIds = Collections.unmodifiableMap(
+                new TreeMap<>(Objects.requireNonNull(
+                        resolvedDependencyModIds, "resolvedDependencyModIds")));
     }
 
     public static PreparationManifest pinned(String minecraftVersion, String forgeVersion) {

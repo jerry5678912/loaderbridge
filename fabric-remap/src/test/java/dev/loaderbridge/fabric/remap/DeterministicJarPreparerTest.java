@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
@@ -21,6 +22,25 @@ import org.objectweb.asm.Type;
 class DeterministicJarPreparerTest {
     @TempDir
     Path temporaryDirectory;
+
+    @Test
+    void canonicalizesManifestMapsBeforeSerializationAndCacheKeying() {
+        Map<String, String> fulfilled = new LinkedHashMap<>();
+        fulfilled.put("z-api", "2");
+        fulfilled.put("a-api", "1");
+        Map<String, String> resolved = new LinkedHashMap<>();
+        resolved.put("z-dependency", "z_host");
+        resolved.put("a-dependency", "a_host");
+
+        PreparationManifest manifest = PreparationManifest.pinned("1.21.1", "52.1.16")
+                .fulfilledFabricDependencies(fulfilled)
+                .resolvedDependencyModIds(resolved);
+
+        assertThat(manifest.fulfilledFabricDependencies().keySet())
+                .containsExactly("a-api", "z-api");
+        assertThat(manifest.resolvedDependencyModIds().keySet())
+                .containsExactly("a-dependency", "z-dependency");
+    }
 
     @Test
     void producesStableUnsignedJarWithForgeAndBridgeMetadata() throws Exception {

@@ -30,7 +30,7 @@ class TransactionContractTest {
     void providerAdvertisesOnlyImplementedTransactionSurface() {
         var descriptor = new FabricTransferApiBridgeProvider().descriptor();
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("5.4.4+7b3d111d19-loaderbridge.9");
+                .isEqualTo("5.4.4+7b3d111d19-loaderbridge.10");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrderElementsOf(Set.of(
                 "net.fabricmc.fabric.api.transfer.v1.transaction.Transaction",
                 "net.fabricmc.fabric.api.transfer.v1.transaction.Transaction$Lifecycle",
@@ -67,6 +67,10 @@ class TransactionContractTest {
                 "net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant",
                 "net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage",
                 "net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage$CombinedItemApiProvider",
+                "net.fabricmc.fabric.api.transfer.v1.fluid.CauldronFluidContent",
+                "net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorageUtil",
+                "net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributeHandler",
+                "net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributes",
                 "net.fabricmc.fabric.api.transfer.v1.fluid.base.SingleFluidStorage",
                 "net.fabricmc.fabric.api.transfer.v1.fluid.base.EmptyItemFluidStorage",
                 "net.fabricmc.fabric.api.transfer.v1.fluid.base.FullItemFluidStorage"));

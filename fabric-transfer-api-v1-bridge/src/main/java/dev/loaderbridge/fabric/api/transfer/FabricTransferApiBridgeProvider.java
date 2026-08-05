@@ -15,7 +15,7 @@ public final class FabricTransferApiBridgeProvider implements RuntimeBridgeModul
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-transfer-api-v1-bridge",
             "fabric-transfer-api-v1:5.4.4",
-            "5.4.4+7b3d111d19-loaderbridge.9",
+            "5.4.4+7b3d111d19-loaderbridge.10",
             BridgeCapability.FABRIC_API,
             Set.of(
                     "net.fabricmc.fabric.api.transfer.v1.transaction.Transaction",
@@ -53,6 +53,10 @@ public final class FabricTransferApiBridgeProvider implements RuntimeBridgeModul
                     "net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant",
                     "net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage",
                     "net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage$CombinedItemApiProvider",
+                    "net.fabricmc.fabric.api.transfer.v1.fluid.CauldronFluidContent",
+                    "net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorageUtil",
+                    "net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributeHandler",
+                    "net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributes",
                     "net.fabricmc.fabric.api.transfer.v1.fluid.base.SingleFluidStorage",
                     "net.fabricmc.fabric.api.transfer.v1.fluid.base.EmptyItemFluidStorage",
                     "net.fabricmc.fabric.api.transfer.v1.fluid.base.FullItemFluidStorage"),

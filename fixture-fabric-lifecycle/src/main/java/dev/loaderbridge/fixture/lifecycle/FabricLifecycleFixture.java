@@ -27,6 +27,7 @@ import net.minecraft.server.packs.resources.ResourceManager;
 import net.fabricmc.fabric.api.gamerule.v1.GameRuleFactory;
 import net.fabricmc.fabric.api.gamerule.v1.GameRuleRegistry;
 import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.GameType;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -64,7 +65,10 @@ import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
 import net.fabricmc.fabric.api.transfer.v1.item.PlayerInventoryStorage;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorageUtil;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributes;
+import net.fabricmc.fabric.api.transfer.v1.fluid.CauldronFluidContent;
 import net.fabricmc.fabric.api.transfer.v1.fluid.base.SingleFluidStorage;
 import net.fabricmc.fabric.api.transfer.v1.context.ContainerItemContext;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
@@ -102,6 +106,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.WeatheringCopper;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockSetType;
 import net.minecraft.world.level.block.state.properties.WoodType;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -110,6 +115,9 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.alchemy.Potions;
+import net.minecraft.world.level.block.LayeredCauldronBlock;
 
 /** Verifies Forge-to-Fabric server and world tick ordering at runtime. */
 public final class FabricLifecycleFixture implements ModInitializer {
@@ -400,10 +408,52 @@ public final class FabricLifecycleFixture implements ModInitializer {
         if (!bucketContainer.getItem(0).is(Items.BUCKET)) {
             throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_BUCKET_ROUNDTRIP_FAILED");
         }
+        SimpleContainer bottleContainer = new SimpleContainer(new ItemStack(Items.GLASS_BOTTLE));
+        ContainerItemContext bottleContext = ContainerItemContext.ofSingleSlot(
+                InventoryStorage.of(bottleContainer, null).getSlot(0));
+        Storage<FluidVariant> bottleStorage = bottleContext.find(FluidStorage.ITEM);
+        try (Transaction committed = Transaction.openOuter()) {
+            if (bottleStorage == null
+                    || bottleStorage.insert(water, FluidConstants.BOTTLE, committed)
+                    != FluidConstants.BOTTLE) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_BOTTLE_FILL_FAILED");
+            }
+            committed.commit();
+        }
+        PotionContents potionContents = bottleContainer.getItem(0)
+                .getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY);
+        Storage<FluidVariant> potionStorage = bottleContext.find(FluidStorage.ITEM);
+        try (Transaction committed = Transaction.openOuter()) {
+            if (!bottleContainer.getItem(0).is(Items.POTION)
+                    || !potionContents.is(Potions.WATER)
+                    || potionStorage == null
+                    || potionStorage.extract(water, FluidConstants.BOTTLE, committed)
+                    != FluidConstants.BOTTLE) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_POTION_DRAIN_FAILED");
+            }
+            committed.commit();
+        }
+        if (!bottleContainer.getItem(0).is(Items.GLASS_BOTTLE)
+                || FluidVariantAttributes.getTemperature(water)
+                != FluidConstants.WATER_TEMPERATURE
+                || FluidVariantAttributes.getTemperature(FluidVariant.of(Fluids.LAVA))
+                != FluidConstants.LAVA_TEMPERATURE
+                || FluidVariantAttributes.getFillSound(FluidVariant.of(Fluids.LAVA))
+                != net.minecraft.sounds.SoundEvents.BUCKET_FILL_LAVA
+                || CauldronFluidContent.getForFluid(Fluids.WATER).maxLevel != 3) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_BUILTINS_FAILED");
+        }
+        SingleFluidStorage interactionTank = SingleFluidStorage.withFixedCapacity(
+                FluidConstants.BUCKET, () -> { });
+        try (Transaction committed = Transaction.openOuter()) {
+            interactionTank.insert(water, FluidConstants.BUCKET, committed);
+            committed.commit();
+        }
         FluidStorage.SIDED.registerForBlocks(
                 (world, pos, state, blockEntity, direction) -> fluidTank, Blocks.STONE);
         System.out.println("LOADERBRIDGE_FABRIC_FLUID_STORAGE_READY amount="
                 + expectedFluidAmount);
+        System.out.println("LOADERBRIDGE_FABRIC_FLUID_POTION_ATTRIBUTES_READY");
         Block flattenInput = Registry.register(BuiltInRegistries.BLOCK,
                 ResourceLocation.fromNamespaceAndPath("loaderbridge", "flatten_input"),
                 new Block(BlockBehaviour.Properties.of()));
@@ -652,6 +702,22 @@ public final class FabricLifecycleFixture implements ModInitializer {
             player.containerMenu.setCarried(previousCarried);
             player.containerMenu.broadcastChanges();
             System.out.println("LOADERBRIDGE_FABRIC_PLAYER_ITEM_CONTEXT_READY");
+            ItemStack previousHand = player.getMainHandItem().copy();
+            GameType previousGameType = player.gameMode.getGameModeForPlayer();
+            player.setGameMode(GameType.SURVIVAL);
+            player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.BUCKET));
+            if (!FluidStorageUtil.interactWithFluidStorage(
+                    interactionTank, player, InteractionHand.MAIN_HAND)
+                    || !player.getMainHandItem().is(Items.WATER_BUCKET)
+                    || !FluidStorageUtil.interactWithFluidStorage(
+                            interactionTank, player, InteractionHand.MAIN_HAND)
+                    || !player.getMainHandItem().is(Items.BUCKET)
+                    || interactionTank.getAmount() != FluidConstants.BUCKET) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_PLAYER_UTILITY_FAILED");
+            }
+            player.setItemInHand(InteractionHand.MAIN_HAND, previousHand);
+            player.setGameMode(previousGameType);
+            System.out.println("LOADERBRIDGE_FABRIC_FLUID_PLAYER_UTILITY_READY");
             sender.sendPacket(new FabricNetworkingPayload(FabricNetworkingPayload.PLAY_TYPE, "ping"));
             if (TRACKING_ENTITY_SPAWNED.compareAndSet(false, true)) {
                 var entity = EntityType.ARMOR_STAND.create(player.serverLevel());
@@ -803,6 +869,50 @@ public final class FabricLifecycleFixture implements ModInitializer {
                 throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_NBT_FAILED");
             }
             System.out.println("LOADERBRIDGE_FABRIC_FLUID_SIDED_NBT_READY");
+            BlockPos cauldronPos = lookupPos.east(4);
+            BlockState existingCauldron = world.getBlockState(cauldronPos);
+            if (existingCauldron.is(Blocks.WATER_CAULDRON)) {
+                Storage<FluidVariant> cauldron =
+                        FluidStorage.SIDED.find(world, cauldronPos, Direction.UP);
+                if (cauldron == null || cauldron.iterator().next().getAmount()
+                        != FluidConstants.BOTTLE
+                        || existingCauldron.getValue(LayeredCauldronBlock.LEVEL) != 1) {
+                    throw new IllegalStateException(
+                            "LOADERBRIDGE_FABRIC_FLUID_CAULDRON_RELOAD_FAILED");
+                }
+                System.out.println("LOADERBRIDGE_FABRIC_FLUID_CAULDRON_RELOADED");
+            } else {
+                world.setBlockAndUpdate(cauldronPos, Blocks.CAULDRON.defaultBlockState());
+                Storage<FluidVariant> cauldron =
+                        FluidStorage.SIDED.find(world, cauldronPos, Direction.UP);
+                try (Transaction aborted = Transaction.openOuter()) {
+                    if (cauldron == null || cauldron.insert(water,
+                            2 * FluidConstants.BOTTLE, aborted)
+                            != 2 * FluidConstants.BOTTLE) {
+                        throw new IllegalStateException(
+                                "LOADERBRIDGE_FABRIC_FLUID_CAULDRON_ABORT_FAILED");
+                    }
+                }
+                if (!world.getBlockState(cauldronPos).is(Blocks.CAULDRON)) {
+                    throw new IllegalStateException(
+                            "LOADERBRIDGE_FABRIC_FLUID_CAULDRON_ROLLBACK_FAILED");
+                }
+                try (Transaction committed = Transaction.openOuter()) {
+                    cauldron.insert(water, 2 * FluidConstants.BOTTLE, committed);
+                    committed.commit();
+                }
+                try (Transaction committed = Transaction.openOuter()) {
+                    cauldron.extract(water, FluidConstants.BOTTLE, committed);
+                    committed.commit();
+                }
+                BlockState cauldronState = world.getBlockState(cauldronPos);
+                if (!cauldronState.is(Blocks.WATER_CAULDRON)
+                        || cauldronState.getValue(LayeredCauldronBlock.LEVEL) != 1) {
+                    throw new IllegalStateException(
+                            "LOADERBRIDGE_FABRIC_FLUID_CAULDRON_FAILED");
+                }
+                System.out.println("LOADERBRIDGE_FABRIC_FLUID_CAULDRON_READY");
+            }
             BlockApiCache<String, Void> lookupCache = BlockApiCache.create(
                     BLOCK_LOOKUP, world, lookupPos);
             if (!"direct".equals(BLOCK_LOOKUP.find(world, lookupPos, null))

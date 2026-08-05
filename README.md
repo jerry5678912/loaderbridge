@@ -232,7 +232,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   Fabric fluid units and variants, transactional `SingleFluidStorage`, NBT
   persistence, sided block lookup, combined item providers, and vanilla bucket
   fill/drain. Both a graphical client and a dedicated server passed fresh-world,
-  save, reload, and clean-stop gates on Forge 52.1.16. See
+  save, reload, and clean-stop gates on Forge 52.1.16. Revision 10 adds the
+  remaining pinned server-safe public types: fluid attributes, player
+  interaction utilities, transactional cauldrons, and vanilla water-potion
+  containers. See
   [the controlled evidence](docs/controlled-fixtures/fabric-transfer-api-v1.md).
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
@@ -474,6 +477,17 @@ independently proved fresh-world and saved-world readiness plus clean shutdown.
 This closes the initial fluid-storage foundation, not the remaining built-in
 potion/cauldron, attribute/rendering, container-component, or bundle surfaces,
 the whole Transfer module, or M5.
+
+Transfer API v1 revision 10 passed on 2026-08-05. It adds all remaining public
+server-safe types in the pinned module: cauldron registration/storage, validated
+fluid attributes and sounds, and player-hand fluid interaction. It also bridges
+vanilla glass-bottle/water-potion conversion. The graphical client proved
+survival hand fill/drain in both sessions and cauldron rollback, committed level
+changes, save, and reload. Two dedicated-server launches independently proved
+fresh-world cauldron mutation, saved-world restoration, and clean shutdown.
+Client-only fluid rendering and the remaining container-component/bundle
+providers are still open, so this does not close the entire Transfer module or
+M5.
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,
