@@ -591,6 +591,19 @@ two dedicated-server processes, clean saves, and deterministic preparation
 passed. Client tooltip/animation hooks and special creator namespaces remain,
 so the complete module and M5 gates remain unclaimed.
 
+Fabric Item API revision 19 passed on 2026-08-05. `getCreatorNamespace()` now
+matches Fabric's registry-aware attribution rules: ordinary stacks use their
+item namespace, potion and tipped-arrow stacks use the potion holder namespace,
+and enchanted books containing exactly one stored enchantment use that
+enchantment holder namespace. The translated fixture registered its own potion
+and data-driven enchantment, proved potion and tipped-arrow attribution, saw the
+enchantment through the `MOD` modify-event source, and attributed the resulting
+enchanted book to the fixture. Both dedicated-server processes and both halves
+of the graphical world save/reload cycle emitted `creator=potion+book`; the
+final five-JAR preparation was byte-identical. This largely closes the pinned
+common/server Item API surface. Client tooltip and animation hooks remain for
+M6, and M5's catalog gate remains open.
+
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,
 tilde ranges, caret ranges, trailing-zero equality, and the special

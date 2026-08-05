@@ -14,6 +14,7 @@ import net.fabricmc.fabric.api.item.v1.FabricTooltipType;
 import net.fabricmc.fabric.api.registry.FabricBrewingRecipeRegistryBuilder;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.Registry;
@@ -21,9 +22,11 @@ import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.enchantment.LevelBasedValue;
 import net.minecraft.world.item.enchantment.effects.AddValue;
@@ -33,8 +36,10 @@ import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.Recipe;
@@ -48,12 +53,18 @@ import net.minecraft.world.level.block.entity.BrewingStandBlockEntity;
 import net.minecraft.world.level.block.entity.FurnaceBlockEntity;
 
 public final class FabricItemApiFixture implements ModInitializer {
+    private static final ResourceKey<net.minecraft.world.item.enchantment.Enchantment>
+            CREATOR_ENCHANTMENT = ResourceKey.create(Registries.ENCHANTMENT,
+                    ResourceLocation.fromNamespaceAndPath(
+                            "loaderbridge_item_api_fixture", "creator_enchantment"));
     private static Item fabricTool;
+    private static Holder<Potion> fixturePotion;
     private static int remainderCalls;
     private static int primaryEnchantingCalls;
     private static int acceptableEnchantingCalls;
     private static int modifyEnchantingCalls;
     private static EnchantmentSource sharpnessSource;
+    private static EnchantmentSource creatorEnchantmentSource;
 
     @Override
     public void onInitialize() {
@@ -65,6 +76,10 @@ public final class FabricItemApiFixture implements ModInitializer {
                 ResourceLocation.fromNamespaceAndPath(
                         "loaderbridge_item_api_fixture", "fabric_tool"),
                 new FabricTool(properties));
+        fixturePotion = Registry.registerForHolder(BuiltInRegistries.POTION,
+                ResourceLocation.fromNamespaceAndPath(
+                        "loaderbridge_item_api_fixture", "creator_potion"),
+                new Potion());
         FuelRegistry.INSTANCE.add(fabricTool, 200);
         FabricBrewingRecipeRegistryBuilder.BUILD.register(builder ->
                 ((FabricBrewingRecipeRegistryBuilder) (Object) builder)
@@ -81,6 +96,10 @@ public final class FabricItemApiFixture implements ModInitializer {
             return net.fabricmc.fabric.api.util.TriState.TRUE;
         });
         EnchantmentEvents.MODIFY.register((key, builder, source) -> {
+            if (key.equals(CREATOR_ENCHANTMENT)) {
+                creatorEnchantmentSource = source;
+                return;
+            }
             if (!key.equals(Enchantments.SHARPNESS)) return;
             sharpnessSource = source;
             modifyEnchantingCalls++;
@@ -89,6 +108,8 @@ public final class FabricItemApiFixture implements ModInitializer {
         });
 
         ItemStack stack = new ItemStack(fabricTool);
+        ItemStack potionStack = PotionContents.createItemStack(Items.POTION, fixturePotion);
+        ItemStack arrowStack = PotionContents.createItemStack(Items.TIPPED_ARROW, fixturePotion);
         DataComponentMap.Builder componentBuilder = DataComponentMap.builder();
         int maximum = ((FabricComponentMapBuilder) componentBuilder)
                 .getOrDefault(DataComponents.MAX_STACK_SIZE, 17);
@@ -99,6 +120,10 @@ public final class FabricItemApiFixture implements ModInitializer {
                 || componentBuilder.build().get(DataComponents.MAX_STACK_SIZE) != 17
                 || !((FabricItemStack) (Object) stack).getRecipeRemainder().is(Items.GOLD_NUGGET)
                 || !((FabricItemStack) (Object) stack).getCreatorNamespace()
+                        .equals("loaderbridge_item_api_fixture")
+                || !((FabricItemStack) (Object) potionStack).getCreatorNamespace()
+                        .equals("loaderbridge_item_api_fixture")
+                || !((FabricItemStack) (Object) arrowStack).getCreatorNamespace()
                         .equals("loaderbridge_item_api_fixture")) {
             throw new IllegalStateException("Fabric item common contracts failed");
         }
@@ -177,6 +202,15 @@ public final class FabricItemApiFixture implements ModInitializer {
             Registry<net.minecraft.world.item.enchantment.Enchantment> enchantments =
                     server.registryAccess().registryOrThrow(Registries.ENCHANTMENT);
             var sharpness = enchantments.getHolderOrThrow(Enchantments.SHARPNESS);
+            var creatorEnchantment = enchantments.getHolderOrThrow(CREATOR_ENCHANTMENT);
+            ItemStack creatorBook = EnchantedBookItem.createForEnchantment(
+                    new EnchantmentInstance(creatorEnchantment, 1));
+            if (!((FabricItemStack) (Object) creatorBook).getCreatorNamespace()
+                    .equals("loaderbridge_item_api_fixture")
+                    || creatorEnchantmentSource != EnchantmentSource.MOD) {
+                throw new IllegalStateException("Fabric enchanted-book creator failed: "
+                        + creatorEnchantmentSource);
+            }
             ItemStack enchantingTarget = new ItemStack(fabricTool);
             var availableEnchantments = EnchantmentHelper.getAvailableEnchantmentResults(
                     20, enchantingTarget, java.util.stream.Stream.of(sharpness));
@@ -218,7 +252,8 @@ public final class FabricItemApiFixture implements ModInitializer {
             }
             System.out.println("LOADERBRIDGE_FABRIC_ITEM_API_READY "
                     + "damage=2,slot=head,glint=true,remainder=gold_nugget,"
-                    + "furnace=stone,brewing=awkward,enchanting=sharpness");
+                    + "furnace=stone,brewing=awkward,enchanting=sharpness,"
+                    + "creator=potion+book");
         });
     }
 

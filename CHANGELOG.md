@@ -16,6 +16,13 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added Fabric Item API creator attribution for normal items, potion and tipped
+  arrow stacks, and enchanted books containing exactly one stored enchantment.
+  Attribution follows registry holder namespaces rather than artifact names: a
+  translated fixture proved a mod-owned potion on both item forms and a
+  mod-owned data-driven enchantment classified through the `MOD` source path.
+  The result passed repeated graphical and dedicated-server world reloads and
+  deterministic preparation.
 - Added the pinned Fabric Item API enchanting contracts. Ordered tri-state
   decisions now cover enchanting-table, anvil, command, and compatible random
   loot checks, while data-driven enchantments are rebuilt through Fabric's

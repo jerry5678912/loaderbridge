@@ -45,6 +45,14 @@ applying Sharpness I to a spawned armor stand's held item. The modify callback
 identifies Sharpness as a vanilla resource and adds an XP-repair effect; the
 live `modifyDurabilityToRepairFromXp` result changes from one to four.
 
+Revision 19 adds the special creator-attribution paths. The fixture registers
+`loaderbridge_item_api_fixture:creator_potion` and requires both a potion and a
+tipped-arrow stack carrying it to report the fixture namespace. Its custom
+data-driven `creator_enchantment` is observed by the modify callback with
+`EnchantmentSource.MOD`; a book containing exactly that stored enchantment must
+also report the fixture namespace. Ordinary item attribution remains covered
+by `fabric_tool`.
+
 The fixture is also a content-mod gate. It registers
 `loaderbridge_item_api_fixture:fabric_tool` and packages a valid inventory
 model using a vanilla gold-ingot texture plus an English translation. The final
@@ -54,7 +62,7 @@ item.
 The Forge 52.1.16 graphical scenario used a clean world and reached:
 
 - `LOADERBRIDGE_FABRIC_ITEM_CONTENT_READY` before the title screen;
-- `LOADERBRIDGE_FABRIC_ITEM_API_READY damage=2,slot=head,glint=true,remainder=gold_nugget,furnace=stone,brewing=awkward,enchanting=sharpness` on both integrated
+- `LOADERBRIDGE_FABRIC_ITEM_API_READY damage=2,slot=head,glint=true,remainder=gold_nugget,furnace=stone,brewing=awkward,enchanting=sharpness,creator=potion+book` on both integrated
   server starts;
 - title screen and integrated-world ready;
 - world save, clean disconnect, and same-process world reload;
@@ -71,14 +79,14 @@ Repeated preparation was byte-identical:
   `338872b4c7690bc9c784275502f0b13b094db29a46fc0f881d141c79d01b2e32`
 - Content Registries bridge SHA-256:
   `4ed6126734be46dae847446281e47776671675e8b1aba57b5748e43416fc2b19`
-- Item API bridge revision 18 SHA-256:
-  `7959725221cba8bd911440d21379983ab4b66def077a6993af00d9aaf57b332d`
+- Item API bridge revision 19 SHA-256:
+  `19b51d90a036d71f67d61bb65227689fee4e6ff313f30d58a32b5814a05fabb1`
 - Lifecycle bridge SHA-256:
   `4c60518155e5402b78a764c2804ea8fe01e530c0a05ba6e6357c00a97ae472fa`
-- transformed fixture revision 18 SHA-256:
-  `5161ab28192d5bb8aa1d0992919c58b944b6759c8b2068daccc5b1f00536dcee`
+- transformed fixture revision 19 SHA-256:
+  `48b02c9ba0952e9df1bee06ffcc85133eee84e0174264f6d9ce5355326492317`
 
 This closes the common/server enchanting increment along with crafting,
-furnace, and direct custom-brewing remainders. Client tooltip/animation behavior
-and special creator namespaces remain open, so this does not close the entire
-module, M5, or the 60% catalog gate.
+furnace, direct custom-brewing remainders, and registry-aware creator
+attribution. Client tooltip/animation behavior remains open for M6, so this does
+not close M5 or the 60% catalog gate.

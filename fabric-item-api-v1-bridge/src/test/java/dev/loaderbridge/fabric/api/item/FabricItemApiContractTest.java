@@ -18,7 +18,7 @@ class FabricItemApiContractTest {
         var descriptor = new FabricItemApiBridgeProvider().descriptor();
         assertThat(descriptor.contractVersion()).isEqualTo("fabric-item-api-v1:11.3.0");
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("11.3.0+467044f319-loaderbridge.4");
+                .isEqualTo("11.3.0+467044f319-loaderbridge.5");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrder(
                 "net.fabricmc.fabric.api.item.v1.CustomDamageHandler",
                 "net.fabricmc.fabric.api.item.v1.DefaultItemComponentEvents",
@@ -41,7 +41,7 @@ class FabricItemApiContractTest {
         try (var metadata = getClass().getResourceAsStream("/META-INF/mods.toml")) {
             assertThat(metadata).isNotNull();
             assertThat(new String(metadata.readAllBytes(), StandardCharsets.UTF_8))
-                    .contains("version=\"11.3.0.4\"");
+                    .contains("version=\"11.3.0.5\"");
         }
     }
 

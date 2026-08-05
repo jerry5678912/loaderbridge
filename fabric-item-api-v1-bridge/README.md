@@ -1,7 +1,7 @@
 # Fabric Item API v1 bridge
 
 This module targets `fabric-item-api-v1` 11.3.0+467044f319 for Minecraft
-1.21.1. Revision 1 provides the pinned common item contracts used by the
+1.21.1. Revision 5 provides the pinned common item contracts used by the
 controlled content fixture:
 
 - `FabricItem`, `FabricItem.Settings`, and `FabricItemStack`;
@@ -37,9 +37,15 @@ a mutable builder. Resource provenance is reported as vanilla, mod, or external
 data pack. The controlled fixture proved PRIMARY table filtering, ACCEPTABLE
 `/enchant` execution, and a modified Sharpness XP-repair effect in live worlds.
 
+Revision 5 implements Fabric's registry-aware creator attribution. Ordinary
+stacks use their item namespace, potion and tipped-arrow stacks use the potion
+holder namespace, and enchanted books with exactly one stored enchantment use
+the enchantment holder namespace. The controlled fixture proves both special
+paths with its own registered potion and data-driven enchantment.
+
 This is deliberately not advertised as the complete pinned module yet.
-Client tooltip and animation callbacks and special creator namespaces remain
-unimplemented and therefore are not listed as provided reference surfaces.
+Client tooltip and animation callbacks remain unimplemented and therefore are
+not listed as provided reference surfaces.
 
 The controlled fixture registers a real Fabric item with working model and
 language resources. Its client and dedicated-server evidence is documented in
