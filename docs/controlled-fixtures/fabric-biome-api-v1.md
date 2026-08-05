@@ -1,6 +1,6 @@
 # Fabric Biome API v1 controlled fixture
 
-This fixture tests LoaderBridge revisions 2 through 6 of pinned
+This fixture tests LoaderBridge revisions 2 through 7 of pinned
 `fabric-biome-api-v1:13.0.31+d527f9fd19` on Minecraft 1.21.1 and Forge
 52.1.16. The ordinary `prepare` command inspects bytecode and automatically
 selects the Biome bridge and its dependencies without relying on artifact
@@ -103,11 +103,27 @@ byte-identical JARs:
 - bridge SHA-256: `33a6f2951dd29b378ac350f146949bd5f23f17f6938516ff0fa98fe6f4a62255`
 - transformed fixture SHA-256: `7701a1ea6d04866870fbd03d96c37d46aba1f144a4828fdee6029199377e5d79`
 
+Revision 7 implements all five pinned `TheEndBiomes` registration forms. The
+fixture adds Plains as a heavily weighted main-island, highlands, and small-
+islands replacement, then adds Desert midlands and Badlands barrens whose
+parent is the selected Plains highlands. It scans the actual End biome source
+with the level's seeded climate sampler and requires all three custom results:
+
+`LOADERBRIDGE_FABRIC_END_BIOME_SOURCE_READY main=true,midlands=true,barrens=true`
+
+The registry-aware source codec and cached-sampler seed propagation passed both
+graphical sessions and fresh plus saved-world dedicated-server processes. Every
+process saved all three dimensions and stopped cleanly. Two fresh preparations
+automatically selected revision 7 and produced byte-identical JARs:
+
+- bridge SHA-256: `239880f0a939b94a377ca3a9be28226ac97d5363a04102e45b0d5c56492f491d`
+- transformed fixture SHA-256: `170058e9a1d496adf237865a27040c4b40cf75acd4661da57cafbdaef5c21bc9`
+
 The bridge emits `LB-BIOME-003` when a configured-carver target cannot be
 resolved. Revision 4 covers general ordered phases, current-state biome reads,
 weather and effects mutation including clears, generation additions/removals,
 and spawn additions/removals/probability/cost installation and clearing.
 `getBiomeRegistryEntry().value()` still refers to the registry's original
-biome while a rule is executing. Specialized End source mutation remains open.
-This does not complete the Biome API module, M5, or the roadmap's 60% catalog
-gate.
+biome while a rule is executing. Revision 7 closes the pinned public class
+surface, but remaining behavioral parity audits, M5, and the roadmap's 60%
+catalog gate remain open.

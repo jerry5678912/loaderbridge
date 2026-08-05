@@ -11,6 +11,7 @@ import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
 import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
 import net.fabricmc.fabric.api.biome.v1.ModificationPhase;
 import net.fabricmc.fabric.api.biome.v1.NetherBiomes;
+import net.fabricmc.fabric.api.biome.v1.TheEndBiomes;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.worldgen.Carvers;
 import net.minecraft.resources.ResourceKey;
@@ -25,7 +26,7 @@ class FabricBiomeContractTest {
     @Test
     void advertisesOnlyImplementedBiomeContracts() {
         var descriptor = new FabricBiomeBridgeProvider().descriptor();
-        assertThat(descriptor.implementationVersion()).isEqualTo("13.0.31+d527f9fd19-loaderbridge.6");
+        assertThat(descriptor.implementationVersion()).isEqualTo("13.0.31+d527f9fd19-loaderbridge.7");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrderElementsOf(Set.of(
                 "net.fabricmc.fabric.api.biome.v1.BiomeSelectionContext",
                 "net.fabricmc.fabric.api.biome.v1.BiomeSelectors",
@@ -37,7 +38,8 @@ class FabricBiomeContractTest {
                 "net.fabricmc.fabric.api.biome.v1.BiomeModificationContext$GenerationSettingsContext",
                 "net.fabricmc.fabric.api.biome.v1.BiomeModificationContext$SpawnSettingsContext",
                 "net.fabricmc.fabric.api.biome.v1.ModificationPhase",
-                "net.fabricmc.fabric.api.biome.v1.NetherBiomes"));
+                "net.fabricmc.fabric.api.biome.v1.NetherBiomes",
+                "net.fabricmc.fabric.api.biome.v1.TheEndBiomes"));
     }
 
     @Test
@@ -91,5 +93,14 @@ class FabricBiomeContractTest {
         NetherBiomes.addNetherBiome(Biomes.PLAINS,
                 Climate.parameters(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F));
         assertThat(NetherBiomes.canGenerateInNether(Biomes.PLAINS)).isTrue();
+    }
+
+    @Test
+    void endBiomeRegistrationAcceptsEveryFabricRegionContract() {
+        TheEndBiomes.addMainIslandBiome(Biomes.PLAINS, 2.0);
+        TheEndBiomes.addHighlandsBiome(Biomes.PLAINS, 2.0);
+        TheEndBiomes.addSmallIslandsBiome(Biomes.PLAINS, 2.0);
+        TheEndBiomes.addMidlandsBiome(Biomes.PLAINS, Biomes.DESERT, 2.0);
+        TheEndBiomes.addBarrensBiome(Biomes.PLAINS, Biomes.BADLANDS, 2.0);
     }
 }

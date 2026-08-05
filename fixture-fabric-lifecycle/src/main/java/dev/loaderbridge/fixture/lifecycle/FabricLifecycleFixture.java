@@ -1,5 +1,7 @@
 package dev.loaderbridge.fixture.lifecycle;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
@@ -35,7 +37,9 @@ import net.minecraft.data.worldgen.Carvers;
 import net.minecraft.data.worldgen.features.VegetationFeatures;
 import net.minecraft.data.worldgen.placement.VegetationPlacements;
 import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.structure.BuiltinStructures;
@@ -70,6 +74,7 @@ import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
 import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
 import net.fabricmc.fabric.api.biome.v1.ModificationPhase;
 import net.fabricmc.fabric.api.biome.v1.NetherBiomes;
+import net.fabricmc.fabric.api.biome.v1.TheEndBiomes;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
@@ -711,6 +716,11 @@ public final class FabricLifecycleFixture implements ModInitializer {
                 mobBuilderFixtureType);
         NetherBiomes.addNetherBiome(Biomes.PLAINS,
                 Climate.parameters(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F));
+        TheEndBiomes.addMainIslandBiome(Biomes.PLAINS, 1.0E12);
+        TheEndBiomes.addHighlandsBiome(Biomes.PLAINS, 1.0E12);
+        TheEndBiomes.addSmallIslandsBiome(Biomes.PLAINS, 1.0E12);
+        TheEndBiomes.addMidlandsBiome(Biomes.PLAINS, Biomes.DESERT, 1.0);
+        TheEndBiomes.addBarrensBiome(Biomes.PLAINS, Biomes.BADLANDS, 1.0);
         BiomeModifications.addCarver(BiomeSelectors.includeByKey(Biomes.PLAINS),
                 GenerationStep.Carving.AIR, Carvers.NETHER_CAVE);
         BiomeModifications.addSpawn(BiomeSelectors.includeByKey(Biomes.PLAINS),
@@ -775,7 +785,7 @@ public final class FabricLifecycleFixture implements ModInitializer {
                             }
                             if (!selection.canGenerateIn(LevelStem.OVERWORLD)
                                     || !selection.canGenerateIn(LevelStem.NETHER)
-                                    || selection.canGenerateIn(LevelStem.END)) {
+                                    || !selection.canGenerateIn(LevelStem.END)) {
                                 throw new IllegalStateException(
                                         "LOADERBRIDGE_FABRIC_BIOME_DIMENSION_SELECTION_FAILED");
                             }
@@ -1066,6 +1076,29 @@ public final class FabricLifecycleFixture implements ModInitializer {
                 throw new IllegalStateException("LOADERBRIDGE_FABRIC_NETHER_BIOME_SOURCE_FAILED");
             }
             System.out.println("LOADERBRIDGE_FABRIC_NETHER_BIOME_SOURCE_READY biome=plains");
+            var endLevel = server.getLevel(Level.END);
+            if (endLevel == null) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_END_LEVEL_MISSING");
+            }
+            var endSource = endLevel.getChunkSource().getGenerator().getBiomeSource();
+            var endSampler = endLevel.getChunkSource().randomState().sampler();
+            Set<ResourceKey<Biome>> observedEndBiomes = new HashSet<>();
+            for (int x = -1024; x <= 1024 && observedEndBiomes.size() < 3; x += 8) {
+                for (int z = -1024; z <= 1024 && observedEndBiomes.size() < 3; z += 8) {
+                    endSource.getNoiseBiome(x, 0, z, endSampler).unwrapKey()
+                            .filter(key -> key == Biomes.PLAINS || key == Biomes.DESERT
+                                    || key == Biomes.BADLANDS)
+                            .ifPresent(observedEndBiomes::add);
+                }
+            }
+            if (!observedEndBiomes.containsAll(Set.of(
+                    Biomes.PLAINS, Biomes.DESERT, Biomes.BADLANDS))) {
+                throw new IllegalStateException(
+                        "LOADERBRIDGE_FABRIC_END_BIOME_SOURCE_FAILED observed="
+                                + observedEndBiomes);
+            }
+            System.out.println("LOADERBRIDGE_FABRIC_END_BIOME_SOURCE_READY "
+                    + "main=true,midlands=true,barrens=true");
             var world = server.overworld();
             BlockPos lookupPos = new BlockPos(world.getSharedSpawnPos().getX(),
                     world.getMinBuildHeight() + 1, world.getSharedSpawnPos().getZ());

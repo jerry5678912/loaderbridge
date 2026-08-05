@@ -16,6 +16,12 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added Fabric `TheEndBiomes` with world-seeded weighted replacements for main
+  islands, highlands, and small islands plus parent-aware midlands and barrens.
+  A registry-aware End source codec includes custom holders before construction,
+  and cached world-generation samplers retain the seed used by Fabric's picker.
+  Deep source-selection assertions passed graphical and two-process dedicated-
+  server save/reload gates.
 - Added the pinned Fabric `NetherBiomes` contract and early Mixin integration
   with Minecraft's native Nether multi-noise preset. Registered biome/noise
   points now participate in actual Nether biome-source construction and

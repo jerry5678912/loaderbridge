@@ -576,6 +576,18 @@ server processes. Repeated preparation produced byte-identical revision-6
 artifacts. `TheEndBiomes` remains open, so the complete Biome module, M5, and
 the 60% catalog gate remain unclaimed.
 
+Fabric Biome API v1 revision 7 passed on 2026-08-05. The bridge now exposes
+all five pinned `TheEndBiomes` registration forms. Its registry-aware source
+codec resolves every custom holder before End source construction, world-seeded
+simplex noise selects weighted main-island, highlands, and small-island
+replacements, and midlands/barrens select against the chosen parent highlands
+biome. The controlled fixture observed Plains, Desert midlands, and Badlands
+barrens through real End source queries in both graphical world sessions and
+fresh plus saved-world dedicated-server processes. Repeated preparation
+produced byte-identical revision-7 artifacts. This closes the pinned public
+Biome API class surface, but remaining behavioral parity audits, M5, and its
+60% catalog gate remain open.
+
 Fabric Block API v1 revision 11 passed on 2026-08-05. The bridge matches pinned
 `1.1.0+0bc3503219`, injects the exact Fabric interfaces into vanilla `Block`
 and `BlockState`, delegates custom appearance through the block-state contract,
