@@ -542,8 +542,31 @@ class FabricToForgeAdapterTest {
         });
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
                 .contains(
-                        "fabric-events-interaction-v0-bridge-0.7.14_ba9dae0619-loaderbridge.1.jar",
+                        "fabric-events-interaction-v0-bridge-0.7.14_ba9dae0619-loaderbridge.2.jar",
                         "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar");
+    }
+
+    @Test
+    void automaticallySelectsInteractionBridgeForFakePlayerReference() throws Exception {
+        Path source = referencedMod("fake_player", "fabric-events-interaction-v0", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "player",
+                    "()Lnet/fabricmc/fabric/api/entity/FakePlayer;", null, null);
+            method.visitInsn(Opcodes.ACONST_NULL);
+            method.visitInsn(Opcodes.ARETURN);
+            method.visitMaxs(1, 1);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "fake-player");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-FAPI-002", "LB-MODULE-003");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains("fabric-events-interaction-v0-bridge-0.7.14_ba9dae0619-loaderbridge.2.jar");
     }
 
     @Test

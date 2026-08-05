@@ -3,6 +3,7 @@ package dev.loaderbridge.fabric.api.interaction;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
@@ -17,12 +18,14 @@ class FabricInteractionEventsContractTest {
         assertThat(descriptor.contractVersion())
                 .isEqualTo("fabric-events-interaction-v0:0.7.14");
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("0.7.14+ba9dae0619-loaderbridge.1");
+                .isEqualTo("0.7.14+ba9dae0619-loaderbridge.2");
         assertThat(descriptor.providedModVersions())
                 .containsEntry("fabric-events-interaction-v0", "0.7.14+ba9dae0619");
-        assertThat(descriptor.requiredModules()).containsExactly("fabric-api-base-bridge");
+        assertThat(descriptor.requiredModules()).containsExactlyInAnyOrder(
+                "fabric-api-base-bridge", "fabric-networking-api-v1-bridge");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrder(
                 "net.fabricmc.fabric.api.block.BlockAttackInteractionAware",
+                "net.fabricmc.fabric.api.entity.FakePlayer",
                 "net.fabricmc.fabric.api.event.player.AttackBlockCallback",
                 "net.fabricmc.fabric.api.event.player.AttackEntityCallback",
                 "net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents",
@@ -32,6 +35,30 @@ class FabricInteractionEventsContractTest {
                 "net.fabricmc.fabric.api.event.player.UseBlockCallback",
                 "net.fabricmc.fabric.api.event.player.UseEntityCallback",
                 "net.fabricmc.fabric.api.event.player.UseItemCallback");
+    }
+
+    @Test
+    void fakePlayerExposesThePinnedConstructionAndOverrideContract() throws Exception {
+        assertThat(FakePlayer.class.getDeclaredField("DEFAULT_UUID").getType())
+                .isEqualTo(java.util.UUID.class);
+        assertThat(FakePlayer.class.getDeclaredMethod("get",
+                net.minecraft.server.level.ServerLevel.class).getReturnType())
+                .isEqualTo(FakePlayer.class);
+        assertThat(FakePlayer.class.getDeclaredMethod("get",
+                net.minecraft.server.level.ServerLevel.class,
+                com.mojang.authlib.GameProfile.class).getReturnType())
+                .isEqualTo(FakePlayer.class);
+        assertThat(FakePlayer.class.getDeclaredConstructor(
+                net.minecraft.server.level.ServerLevel.class,
+                com.mojang.authlib.GameProfile.class).getModifiers())
+                .matches(modifiers -> java.lang.reflect.Modifier.isProtected(modifiers));
+        assertThat(FakePlayer.class.getDeclaredMethod("tick")).isNotNull();
+        assertThat(FakePlayer.class.getDeclaredMethod("updateOptions",
+                net.minecraft.server.level.ClientInformation.class)).isNotNull();
+        assertThat(FakePlayer.class.getDeclaredMethod("isInvulnerableTo",
+                net.minecraft.world.damagesource.DamageSource.class)).isNotNull();
+        assertThat(FakePlayer.class.getDeclaredMethod("openMenu",
+                net.minecraft.world.MenuProvider.class)).isNotNull();
     }
 
     @Test

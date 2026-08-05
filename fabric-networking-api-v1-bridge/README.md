@@ -14,6 +14,8 @@ Implemented in this release:
 - server play init, join, and disconnect events;
 - server/world/chunk/proximity/entity player lookup helpers;
 - entity start/stop tracking callbacks backed by Forge tracking events;
+- Fabric's internal untracked-handler marker used by synthetic fake-player
+  connections, preventing them from being treated as normal network clients;
 - server configuration C2S receivers, S2C sending, channel queries, packet
   senders, and configure/disconnect lifecycle events;
 - client configuration S2C receivers, C2S sending, channel queries, packet

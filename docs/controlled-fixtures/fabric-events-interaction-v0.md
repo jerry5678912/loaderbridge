@@ -5,8 +5,9 @@ This controlled Fabric-only mod tests the server/shared subset of pinned
 Minecraft 1.21.1 and Forge 52.1.16.
 
 The ordinary `prepare` command inspected class references and automatically
-selected the interaction, API-base, and lifecycle bridges. No artifact-name or
-mod-ID compatibility rule selected them.
+selected the interaction, API-base, lifecycle, and networking bridges. The
+networking module is a declared transitive requirement of the FakePlayer
+surface. No artifact-name or mod-ID compatibility rule selected them.
 
 In a real integrated world the fixture placed blocks, spawned an entity, and
 called Minecraft's actual server interaction paths. The bridge observed one
@@ -24,18 +25,29 @@ world, and stopped cleanly. Two dedicated-server processes independently
 created and reloaded `loaderbridge-interaction-server-r1`; both emitted the
 module load marker, reached `Done`, saved every dimension, and stopped cleanly.
 
+Revision 13 adds a dedicated FakePlayer behavioral gate. On each integrated
+and dedicated server start, the translated fixture verifies default and custom
+profile caching, the pinned default UUID and name, profile separation, the
+no-output connection, the untracked networking marker, invulnerability,
+absence from the real player list, and no-op sleeping, riding, and menu
+behavior. Both integrated-server launches and both dedicated-server processes
+emitted:
+
+`LOADERBRIDGE_FABRIC_FAKE_PLAYER_READY profile=[LoaderBridge Fixture],cached=true,untracked=true`
+
 Repeated preparation produced byte-identical artifacts:
 
 - API-base bridge SHA-256: `338872b4c7690bc9c784275502f0b13b094db29a46fc0f881d141c79d01b2e32`
-- interaction bridge SHA-256: `99adcac7928045d14c1f3f3e3fbd0104f988b9b69726f1be6e7e1b38ff85f642`
+- interaction bridge SHA-256: `4e227c27986d2f8bf58677763ea7bed7fc4167a9f996b57d5fa82091d4b82022`
 - lifecycle bridge SHA-256: `4c60518155e5402b78a764c2804ea8fe01e530c0a05ba6e6357c00a97ae472fa`
-- transformed fixture SHA-256: `aea34e4a3da8b015bc3041d5dde823d2c07605162f1685b3ec220088b0712be4`
+- networking bridge SHA-256: `1305d2afbfdf695deeb20d1e854aef2395e1334a67b7a3823e4371088e8648b1`
+- transformed fixture SHA-256: `0c4b8b90695be6e0cdabb7aa5804e4b60489f7e91a23fb2f6da5dcf74726ad0d`
 
 Lock files intentionally record absolute source and output locations, so locks
 prepared in different directories differ only in those paths while retaining
 the same artifact and cache hashes.
 
-This closes the pinned server/shared interaction-events increment. Client pick
-callbacks, client block-breaking callbacks, client pre-attack, fake-player,
-and pick-aware interfaces remain open, so it does not close the entire Fabric
-module, M5, or the 60% catalog gate.
+This closes the pinned server/shared interaction-events and FakePlayer
+increments. Client pick callbacks, client block-breaking callbacks, client
+pre-attack, and pick-aware interfaces remain open, so it does not close the
+entire Fabric module, M5, or the 60% catalog gate.

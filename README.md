@@ -514,6 +514,16 @@ remain explicitly unsupported rather than falsely advertised, so this closes
 one server/shared increment, not the complete module, M5, or its 60% catalog
 gate.
 
+Fabric Events Interaction v0 revision 13 passed later on 2026-08-05. It adds
+the pinned `FakePlayer` class, weak-value world/profile caching, default and
+custom profiles, a no-output untracked connection, safe gameplay overrides,
+and advancement-owner protection. Content inspection selects the interaction
+bridge and its networking dependency. The controlled translated fixture proved
+the FakePlayer contract during both halves of a graphical save/reload run and
+during two fresh/reload dedicated-server processes. This closes the server
+FakePlayer increment; client interaction callbacks and pick-aware contracts
+remain for M6, and M5's catalog gate remains open.
+
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,
 tilde ranges, caret ranges, trailing-zero equality, and the special

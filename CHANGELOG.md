@@ -16,6 +16,11 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added the pinned Fabric Interaction Events `FakePlayer` surface with
+  world/profile caching, default profile compatibility, a no-output untracked
+  connection, gameplay-safe overrides, and advancement-owner protection. The
+  translated fixture proved it on both halves of an integrated-world
+  save/reload and two dedicated-server launches on Forge 52.1.16.
 - Added the server/shared Fabric Events Interaction v0 bridge matching
   `0.7.14+ba9dae0619`. It translates ordered Fabric callbacks for block/entity
   attack, block/entity/item use, and before/after/canceled block breaking onto

@@ -1,11 +1,14 @@
 package dev.loaderbridge.fixture.interaction;
 
+import com.mojang.authlib.GameProfile;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
@@ -15,6 +18,7 @@ import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -106,12 +110,52 @@ public final class FabricInteractionEventsFixture implements ModInitializer {
                 BREAK_AFTER.incrementAndGet();
             }
         });
-        ServerLifecycleEvents.SERVER_STARTED.register(server ->
-                System.out.println("LOADERBRIDGE_FABRIC_INTERACTION_EVENTS_LOADED"));
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            runFakePlayerScenario(server.overworld());
+            System.out.println("LOADERBRIDGE_FABRIC_INTERACTION_EVENTS_LOADED");
+        });
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             if (COMPLETE.get() || server.getPlayerList().getPlayers().isEmpty()) return;
             runScenario(server.getPlayerList().getPlayers().getFirst());
         });
+    }
+
+    private static void runFakePlayerScenario(ServerLevel level) {
+        FakePlayer defaultPlayer = FakePlayer.get(level);
+        FakePlayer repeatedDefault = FakePlayer.get(level);
+        GameProfile profile = new GameProfile(
+                UUID.fromString("84ef7824-50f1-4e4f-bf4e-301a1bc1ab3d"),
+                "[LoaderBridge Fixture]");
+        FakePlayer profiled = FakePlayer.get(level, profile);
+        FakePlayer repeatedProfiled = FakePlayer.get(level, profile);
+        ArmorStand mount = EntityType.ARMOR_STAND.create(level);
+        if (mount == null) throw new IllegalStateException("could not create fake-player mount");
+
+        defaultPlayer.tick();
+        defaultPlayer.updateOptions(net.minecraft.server.level.ClientInformation.createDefault());
+        defaultPlayer.displayClientMessage(Component.literal("discarded fake-player packet"), false);
+        defaultPlayer.startSleeping(level.getSharedSpawnPos());
+
+        if (defaultPlayer != repeatedDefault || profiled != repeatedProfiled
+                || defaultPlayer == profiled
+                || !defaultPlayer.getUUID().equals(FakePlayer.DEFAULT_UUID)
+                || !"[Minecraft]".equals(defaultPlayer.getGameProfile().getName())
+                || !profile.equals(profiled.getGameProfile())
+                || defaultPlayer.connection == null
+                || !defaultPlayer.connection.getClass().getName().equals(
+                        "net.fabricmc.fabric.impl.event.interaction.FakePlayerNetworkHandler")
+                || !java.util.Arrays.stream(defaultPlayer.connection.getClass().getInterfaces())
+                        .anyMatch(type -> type.getName().equals(
+                                "net.fabricmc.fabric.impl.networking.UntrackedNetworkHandler"))
+                || !defaultPlayer.isInvulnerableTo(level.damageSources().generic())
+                || defaultPlayer.getTeam() != null || defaultPlayer.isSleeping()
+                || defaultPlayer.startRiding(mount, true)
+                || defaultPlayer.openMenu(null).isPresent()
+                || level.getServer().getPlayerList().getPlayers().contains(defaultPlayer)) {
+            throw new IllegalStateException("fake-player compatibility scenario failed");
+        }
+        System.out.println("LOADERBRIDGE_FABRIC_FAKE_PLAYER_READY profile="
+                + profiled.getGameProfile().getName() + ",cached=true,untracked=true");
     }
 
     private static void runScenario(ServerPlayer player) {

@@ -14,10 +14,11 @@ public final class FabricInteractionEventsBridgeProvider implements RuntimeBridg
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-events-interaction-v0-bridge",
             "fabric-events-interaction-v0:0.7.14",
-            "0.7.14+ba9dae0619-loaderbridge.1",
+            "0.7.14+ba9dae0619-loaderbridge.2",
             BridgeCapability.FABRIC_API,
             Set.of(
                     "net.fabricmc.fabric.api.block.BlockAttackInteractionAware",
+                    "net.fabricmc.fabric.api.entity.FakePlayer",
                     "net.fabricmc.fabric.api.event.player.AttackBlockCallback",
                     "net.fabricmc.fabric.api.event.player.AttackEntityCallback",
                     "net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents",
@@ -28,7 +29,7 @@ public final class FabricInteractionEventsBridgeProvider implements RuntimeBridg
                     "net.fabricmc.fabric.api.event.player.UseEntityCallback",
                     "net.fabricmc.fabric.api.event.player.UseItemCallback"),
             Map.of("fabric-events-interaction-v0", "0.7.14+ba9dae0619"),
-            Set.of("fabric-api-base-bridge"));
+            Set.of("fabric-api-base-bridge", "fabric-networking-api-v1-bridge"));
 
     @Override
     public RuntimeBridgeModule descriptor() {

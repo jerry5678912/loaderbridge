@@ -61,7 +61,8 @@ class FabricNetworkingContractTest {
                 "net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents$Join",
                 "net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking",
                 "net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking$Context",
-                "net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking$PlayPayloadHandler");
+                "net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking$PlayPayloadHandler",
+                "net.fabricmc.fabric.impl.networking.UntrackedNetworkHandler");
     }
 
     @Test

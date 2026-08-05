@@ -15,6 +15,7 @@ public final class FabricNetworkingBridgeProvider implements RuntimeBridgeModule
             "net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents",
             "net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents$StartTracking",
             "net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents$StopTracking",
+            "net.fabricmc.fabric.impl.networking.UntrackedNetworkHandler",
             "net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking",
             "net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking$Context",
             "net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking$PlayPayloadHandler",

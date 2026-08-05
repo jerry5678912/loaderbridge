@@ -7,7 +7,9 @@ provides the pinned contracts for:
 - attacking blocks and entities;
 - using blocks, entities, and items;
 - block-break before, after, and canceled callbacks;
-- Fabric's internal block-attack interaction hook.
+- Fabric's internal block-attack interaction hook;
+- cached default and custom-profile `FakePlayer` instances with a no-output,
+  untracked network handler and Fabric's gameplay-safe overrides.
 
 Forge interaction events are translated at highest priority while retaining
 Fabric's ordered, first-non-`PASS` callback semantics. A small early Mixin
@@ -17,9 +19,11 @@ the player.
 
 The runtime module is discovered through `ServiceLoader` and selected from
 inspected binary API references, including the nested block-break callback
-types. It does not advertise the still-unimplemented client pick, client block
-break, client pre-attack, or fake-player surfaces; references to those APIs
-therefore remain explicit `LB-FAPI-001` preparation failures.
+types and `FakePlayer`. The networking bridge is selected transitively to
+provide Fabric's untracked-handler marker. The module does not advertise the
+still-unimplemented client pick, client block-break, client pre-attack, or
+pick-aware surfaces; references to those APIs remain explicit `LB-FAPI-001`
+preparation failures.
 
 Behavioral evidence is documented in
 `docs/controlled-fixtures/fabric-events-interaction-v0.md`.
