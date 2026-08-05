@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.item.v1.FabricItem;
 import net.fabricmc.fabric.impl.item.FabricItemInternals;
 import net.fabricmc.fabric.impl.item.ItemExtensions;
 import net.minecraft.world.item.Item;
+import net.minecraft.core.component.DataComponentMap;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -15,6 +16,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Item.class)
 public abstract class ItemMixin implements ItemExtensions, FabricItem {
+    @org.spongepowered.asm.mixin.Shadow @org.spongepowered.asm.mixin.Final
+    @org.spongepowered.asm.mixin.Mutable private DataComponentMap components;
+    @org.spongepowered.asm.mixin.Shadow private DataComponentMap builtComponents;
     @Unique private @Nullable EquipmentSlotProvider loaderbridge$equipmentSlotProvider;
     @Unique private @Nullable CustomDamageHandler loaderbridge$customDamageHandler;
 
@@ -34,5 +38,9 @@ public abstract class ItemMixin implements ItemExtensions, FabricItem {
     }
     @Override public void fabric_setCustomDamageHandler(@Nullable CustomDamageHandler handler) {
         loaderbridge$customDamageHandler = handler;
+    }
+    @Override public void fabric_setDefaultComponents(DataComponentMap components) {
+        this.components = components;
+        this.builtComponents = components;
     }
 }

@@ -12,6 +12,13 @@ interfaces. It registers a real Fabric item whose settings select the head
 equipment slot and replace five durability damage with two, and whose stack
 returns a custom recipe remainder and creator namespace.
 
+Revision 15 adds `DefaultItemComponentEvents`. The fixture registers a callback
+that gives the content item a default enchantment-glint override. Forge caches
+gathered item components separately from vanilla's component field, so the
+bridge preserves the gathered map and updates both storage locations. The
+fixture creates a new stack at server start and requires the default glint
+component to be present.
+
 The fixture is also a content-mod gate. It registers
 `loaderbridge_item_api_fixture:fabric_tool` and packages a valid inventory
 model using a vanilla gold-ingot texture plus an English translation. The final
@@ -21,7 +28,7 @@ item.
 The Forge 52.1.16 graphical scenario used a clean world and reached:
 
 - `LOADERBRIDGE_FABRIC_ITEM_CONTENT_READY` before the title screen;
-- `LOADERBRIDGE_FABRIC_ITEM_API_READY damage=2,slot=head` on both integrated
+- `LOADERBRIDGE_FABRIC_ITEM_API_READY damage=2,slot=head,glint=true` on both integrated
   server starts;
 - title screen and integrated-world ready;
 - world save, clean disconnect, and same-process world reload;
@@ -37,14 +44,14 @@ Repeated preparation was byte-identical:
 
 - API Base bridge SHA-256:
   `338872b4c7690bc9c784275502f0b13b094db29a46fc0f881d141c79d01b2e32`
-- Item API bridge SHA-256:
-  `2b8f56d1522af1d1b9b01766229209d17720082bed3024cea52013334e426e8e`
+- Item API bridge revision 15 SHA-256:
+  `1e496917de5ccaef165562a032fa011840d56583661ad1c10ae92d37d7ec3754`
 - Lifecycle bridge SHA-256:
   `4c60518155e5402b78a764c2804ea8fe01e530c0a05ba6e6357c00a97ae472fa`
-- transformed fixture SHA-256:
-  `56d6d3198c7771421b0e1c77077d2c36f088d535de311ae430683afe9952c8cc`
+- transformed fixture revision 15 SHA-256:
+  `f27b6f9c99c0cc29abecd2a60153edd11a4bd34d1a1ffe0f6719894003dfa938`
 
-This closes only the first common Item API v1 increment. Default component
-events, full enchanting integration, recipe-pipeline remainder handling, and
-client tooltip/animation behavior remain open, so this does not close the
-entire module, M5, or the 60% catalog gate.
+This closes the default-component increment. Full enchanting integration,
+recipe-pipeline remainder handling, and client tooltip/animation behavior
+remain open, so this does not close the entire module, M5, or the 60% catalog
+gate.

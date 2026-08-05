@@ -16,6 +16,11 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added Fabric Item API v1 default component events with the exact callback and
+  nested context contracts. Item, collection, and predicate mutations preserve
+  Forge-gathered components while updating both Minecraft's backing map and
+  Forge's component cache. A real content item acquired a default glint and
+  passed graphical and two-process dedicated-server save/reload gates.
 - Added the first common Fabric Item API v1 bridge slice matching
   `11.3.0+467044f319`. It injects Fabric item, stack, settings, component-map,
   tooltip, custom-damage, and equipment-slot contracts into Minecraft's real

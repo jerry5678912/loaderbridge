@@ -3,6 +3,7 @@ package dev.loaderbridge.fixture.item;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.item.v1.FabricComponentMapBuilder;
+import net.fabricmc.fabric.api.item.v1.DefaultItemComponentEvents;
 import net.fabricmc.fabric.api.item.v1.FabricItem;
 import net.fabricmc.fabric.api.item.v1.FabricItemStack;
 import net.fabricmc.fabric.api.item.v1.FabricTooltipType;
@@ -32,6 +33,8 @@ public final class FabricItemApiFixture implements ModInitializer {
                 ResourceLocation.fromNamespaceAndPath(
                         "loaderbridge_item_api_fixture", "fabric_tool"),
                 new FabricTool(properties));
+        DefaultItemComponentEvents.MODIFY.register(context -> context.modify(
+                fabricTool, builder -> builder.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true)));
 
         ItemStack stack = new ItemStack(fabricTool);
         DataComponentMap.Builder componentBuilder = DataComponentMap.builder();
@@ -51,13 +54,17 @@ public final class FabricItemApiFixture implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             ArmorStand entity = EntityType.ARMOR_STAND.create(server.overworld());
             if (entity == null) throw new IllegalStateException("could not create item fixture entity");
+            if (!new ItemStack(fabricTool).getOrDefault(
+                    DataComponents.ENCHANTMENT_GLINT_OVERRIDE, false)) {
+                throw new IllegalStateException("Fabric default item component event failed");
+            }
             ItemStack damaged = new ItemStack(fabricTool);
             damaged.hurtAndBreak(5, entity, EquipmentSlot.HEAD);
             if (entity.getEquipmentSlotForItem(damaged) != EquipmentSlot.HEAD
                     || damaged.getDamageValue() != 2) {
                 throw new IllegalStateException("Fabric item behavior hooks failed");
             }
-            System.out.println("LOADERBRIDGE_FABRIC_ITEM_API_READY damage=2,slot=head");
+            System.out.println("LOADERBRIDGE_FABRIC_ITEM_API_READY damage=2,slot=head,glint=true");
         });
     }
 

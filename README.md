@@ -534,10 +534,21 @@ slot, and stack-aware remainder and creator-namespace overrides dispatched.
 The graphical Forge 52.1.16 run had no fixture model/texture warning, saved and
 reopened its world, and observed the behavior on both integrated-server starts.
 Dedicated-server processes loaded the same saved world and stopped with every
-dimension saved. Repeated preparation produced byte-identical artifacts. Full
-default-component, enchanting, recipe-pipeline, tooltip, and client-animation
-hooks remain open, so this is an Item API increment rather than the complete
-module or M5.
+dimension saved. Repeated preparation produced byte-identical artifacts. At
+that revision, default-component, enchanting, recipe-pipeline, tooltip, and
+client-animation hooks remained open, so it was an Item API increment rather
+than the complete module or M5.
+
+Fabric Item API v1 revision 15 passed on 2026-08-05. It adds the exact
+`DefaultItemComponentEvents` root and nested contracts, preserving callback
+order plus item, collection, and predicate mutation forms. Forge 52 caches its
+gathered default item components separately from Minecraft's backing field, so
+the bridge updates both atomically while retaining Forge additions. A real
+Fabric callback added a default glint component to the fixture content item.
+Both integrated-server starts and two dedicated-server processes observed
+`glint=true`; fresh worlds, save, graphical reload, process reload, and clean
+shutdown all passed. Enchanting, recipe-pipeline, and client Item API hooks
+remain open, so the complete module and M5 gates remain unclaimed.
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,

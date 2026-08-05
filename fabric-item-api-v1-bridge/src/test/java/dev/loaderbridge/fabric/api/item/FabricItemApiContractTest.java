@@ -13,9 +13,12 @@ class FabricItemApiContractTest {
         var descriptor = new FabricItemApiBridgeProvider().descriptor();
         assertThat(descriptor.contractVersion()).isEqualTo("fabric-item-api-v1:11.3.0");
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("11.3.0+467044f319-loaderbridge.1");
+                .isEqualTo("11.3.0+467044f319-loaderbridge.2");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrder(
                 "net.fabricmc.fabric.api.item.v1.CustomDamageHandler",
+                "net.fabricmc.fabric.api.item.v1.DefaultItemComponentEvents",
+                "net.fabricmc.fabric.api.item.v1.DefaultItemComponentEvents$ModifyCallback",
+                "net.fabricmc.fabric.api.item.v1.DefaultItemComponentEvents$ModifyContext",
                 "net.fabricmc.fabric.api.item.v1.EquipmentSlotProvider",
                 "net.fabricmc.fabric.api.item.v1.FabricComponentMapBuilder",
                 "net.fabricmc.fabric.api.item.v1.FabricItem",
