@@ -913,6 +913,31 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsTagApiBridgeAndRuntimeDependencies() throws Exception {
+        Path source = referencedMod("tag_api", "fabric-tag-api-v1", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references",
+                    "(Lnet/fabricmc/fabric/api/tag/v1/FabricTagFile;)V", null, null);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(0, 2);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "tag-api");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains(
+                        "fabric-tag-api-v1-bridge-1.3.0_1eb36c0719-loaderbridge.1.jar",
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
+                        "fabric-resource-loader-v0-bridge-1.3.1_5b5275af19-loaderbridge.2.jar");
+    }
+
+    @Test
     void automaticallySelectsScreenHandlerBridgeAndNetworkingDependency() throws Exception {
         Path source = referencedMod("screen_handler", "fabric-screen-handler-api-v1", writer -> {
             var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references",

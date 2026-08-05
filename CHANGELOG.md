@@ -33,6 +33,11 @@ All notable user-facing changes will be recorded here.
   1,000-project capture reproduced the snapshot and dependency lock
   byte-for-byte with no credential or repository access, completing the M0
   reproducibility acceptance gate.
+- Added the complete pinned Fabric Tag API v1 bridge. Fabric `fabric:remove`
+  resources now use Forge's native ordered removal engine, the injected
+  `FabricTagFile` interface is present, and a real Forge 52.1.16 server passed
+  fresh-world and restarted-world assertions, all-dimension saves, and clean
+  shutdown.
 - Added the complete pinned Fabric Screen Handler API v1 contract with typed
   extended opening data, client screen construction, replacement-menu close
   semantics, simple-factory unwrapping, mismatch validation, and Fabric-style

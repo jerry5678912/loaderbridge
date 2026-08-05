@@ -53,6 +53,7 @@ include(
     "fabric-content-registries-v0-bridge",
     "fabric-item-group-api-v1-bridge",
     "fabric-convention-tags-v2-bridge",
+    "fabric-tag-api-v1-bridge",
     "fabric-biome-api-v1-bridge",
     "fabric-block-api-v1-bridge",
     "fabric-item-api-v1-bridge",

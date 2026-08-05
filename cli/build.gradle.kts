@@ -69,6 +69,9 @@ dependencies {
     runtimeOnly(project(":fabric-convention-tags-v2-bridge")) {
         isTransitive = false
     }
+    runtimeOnly(project(":fabric-tag-api-v1-bridge")) {
+        isTransitive = false
+    }
     runtimeOnly(project(":fabric-biome-api-v1-bridge")) {
         isTransitive = false
     }

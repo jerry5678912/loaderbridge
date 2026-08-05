@@ -66,6 +66,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.TagKey;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType;
 import net.fabricmc.fabric.api.lookup.v1.block.BlockApiCache;
@@ -152,6 +153,8 @@ import net.minecraft.world.level.block.LayeredCauldronBlock;
 
 /** Verifies Forge-to-Fabric server and world tick ordering at runtime. */
 public final class FabricLifecycleFixture implements ModInitializer {
+    private static final TagKey<Item> TAG_REMOVAL_FIXTURE = TagKey.create(Registries.ITEM,
+            ResourceLocation.fromNamespaceAndPath("loaderbridge", "tag_removal_fixture"));
     private static final GameRules.Key<GameRules.BooleanValue> PERSISTED_RULE =
             GameRuleRegistry.register("loaderbridgeEnabled", GameRules.Category.MISC,
                     GameRuleFactory.createBooleanRule(false, (server, rule) -> {
@@ -1334,7 +1337,12 @@ public final class FabricLifecycleFixture implements ModInitializer {
                         || !"tag.item.c.ingots.iron".equals(extension.getTranslationKey())) {
                     throw new IllegalStateException("LOADERBRIDGE_FABRIC_TAG_KEY_EXTENSION_FAILED");
                 }
+                if (!Items.STONE.builtInRegistryHolder().is(TAG_REMOVAL_FIXTURE)
+                        || Items.DIRT.builtInRegistryHolder().is(TAG_REMOVAL_FIXTURE)) {
+                    throw new IllegalStateException("LOADERBRIDGE_FABRIC_TAG_REMOVAL_FAILED");
+                }
                 System.out.println("LOADERBRIDGE_FABRIC_CONVENTION_TAGS_READY registries=5,alias=true");
+                System.out.println("LOADERBRIDGE_FABRIC_TAG_API_READY removed=minecraft:dirt");
                 System.out.println("LOADERBRIDGE_FABRIC_LIFECYCLE_TAGS_READY");
             }
         });

@@ -213,6 +213,13 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   structure, and biome keys; `TagUtil`; and Fabric's injected `TagKey`
   translation methods. The exact standardized `c:` data and translations merge
   with Forge's native common tags, including Fabric aliases Forge does not ship.
+- A Tag API v1 bridge matching `fabric-tag-api-v1:1.3.0+1eb36c0719`.
+  It exposes Fabric's injected `FabricTagFile` ABI and structurally translates
+  the `fabric:remove` JSON member into Forge's native ordered tag-removal
+  engine. Existing Forge `remove` entries are preserved and malformed fields
+  remain errors rather than being silently accepted. A dedicated-server
+  fixture retained stone, removed dirt, saved all dimensions, restarted, and
+  repeated the assertion on Forge 52.1.16.
 - A Biome API v1 bridge matching `fabric-biome-api-v1:13.0.31+d527f9fd19`.
   Fabric biome selectors plus placed-feature, configured-carver, and mob-spawn
   additions are translated into a registry-aware Forge biome modifier.

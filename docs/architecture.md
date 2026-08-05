@@ -32,6 +32,7 @@ The engine is split so a future GUI can call the same Java API as the CLI.
 | `fabric-registry-sync-v0-bridge` | Static Fabric custom-registry builders, attributes, and registry-local events over Forge synchronization |
 | `fabric-screen-handler-api-v1-bridge` | Typed Fabric extended-menu opening data and client screen construction over Forge payloads and menus |
 | `fabric-convention-tags-v2-bridge` | Complete pinned Fabric common-tag ABI, TagKey extensions, and standardized `c:` data merged with Forge resources |
+| `fabric-tag-api-v1-bridge` | Fabric tag-file ABI and `fabric:remove` translation into Forge's ordered tag-removal engine |
 
 Adapter discovery is exclusively through Java `ServiceLoader`. A future loader
 direction can be added as another provider without editing the CLI.

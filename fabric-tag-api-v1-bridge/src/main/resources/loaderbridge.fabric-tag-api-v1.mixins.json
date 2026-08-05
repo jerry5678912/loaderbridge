@@ -1,0 +1,8 @@
+{
+  "required": true,
+  "minVersion": "0.8.7",
+  "package": "dev.loaderbridge.fabric.api.tag.v1.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": ["TagFileMixin", "TagLoaderMixin"],
+  "injectors": {"defaultRequire": 1}
+}
