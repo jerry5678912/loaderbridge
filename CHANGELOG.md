@@ -21,6 +21,13 @@ All notable user-facing changes will be recorded here.
   and response failures are typed and retried exactly three times, metadata
   requests have a 30-second bound, and four-worker page resolution preserves
   repository rank order. A live run froze 1,000 unique Fabric 1.21.1 projects.
+- Added catalog-wide recursive required-dependency locking, snapshot SHA-256
+  binding, dependency-first artifact order, lookup caching, duplicate-edge
+  removal, and explicit declared-to-resolved edges. Installability validation
+  now excludes broken roots and tops up rankings. Required alpha libraries and
+  exact Fabric pins are supported; cross-loader pins may substitute only a
+  compatible Fabric artifact from the same project. A live gate locked 1,000
+  roots into 1,126 artifacts and 1,444 unique edges.
 - Added the complete pinned Fabric Screen Handler API v1 contract with typed
   extended opening data, client screen construction, replacement-menu close
   semantics, simple-factory unwrapping, mismatch validation, and Fabric-style

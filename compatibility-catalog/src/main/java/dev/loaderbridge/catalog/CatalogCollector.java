@@ -6,7 +6,6 @@ import dev.loaderbridge.api.repository.RepositoryProject;
 import dev.loaderbridge.api.repository.RepositoryProvider;
 import dev.loaderbridge.api.repository.RepositoryQuery;
 import dev.loaderbridge.api.repository.RepositorySort;
-import dev.loaderbridge.api.repository.RetryableRepositoryException;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -24,6 +23,7 @@ public final class CatalogCollector {
     private static final int RESOLUTION_WORKERS = 4;
     private static final int MAXIMUM_SEARCH_OFFSET = 10_000;
     private final List<RepositoryProvider> providers;
+    private final RepositoryDependencyResolver dependencyResolver;
 
     public CatalogCollector(List<RepositoryProvider> providers) {
         this.providers = List.copyOf(providers).stream()
@@ -31,6 +31,7 @@ public final class CatalogCollector {
         if (this.providers.isEmpty()) {
             throw new IllegalArgumentException("At least one repository provider is required");
         }
+        this.dependencyResolver = new RepositoryDependencyResolver(this.providers);
     }
 
     public CatalogSnapshot collectAndFreeze(int targetSize, int repositoryQuota, String snapshotId,
@@ -48,12 +49,13 @@ public final class CatalogCollector {
                 if (offset >= total || offset >= MAXIMUM_SEARCH_OFFSET) {
                     continue;
                 }
-                RepositoryPage page = retryTransportFailures(provider, "search at offset " + offset,
+                RepositoryPage page = RepositoryRequestRetrier.retry(provider,
+                        "search at offset " + offset,
                         () -> provider.search(new RepositoryQuery("1.21.1", "fabric", offset,
                                 PAGE_SIZE, RepositorySort.DOWNLOADS)));
                 totals.put(id, page.total());
                 offsets.put(id, Math.min(MAXIMUM_SEARCH_OFFSET, offset + PAGE_SIZE));
-                candidates.addAll(resolvePage(provider, page.projects()));
+                candidates.addAll(resolvePage(provider, page.projects(), dependencyResolver));
                 fetched = true;
             }
             if (candidates.size() >= targetSize) {
@@ -74,10 +76,12 @@ public final class CatalogCollector {
     }
 
     private static List<CatalogCandidate> resolvePage(RepositoryProvider provider,
-            List<RepositoryProject> projects) throws IOException {
+            List<RepositoryProject> projects, RepositoryDependencyResolver dependencyResolver)
+            throws IOException {
         try (var executor = Executors.newFixedThreadPool(RESOLUTION_WORKERS)) {
             List<Future<Optional<CatalogCandidate>>> futures = projects.stream()
-                    .map(project -> executor.submit(() -> resolveProject(provider, project))).toList();
+                    .map(project -> executor.submit(() -> resolveProject(
+                            provider, project, dependencyResolver))).toList();
             List<CatalogCandidate> resolved = new ArrayList<>();
             for (Future<Optional<CatalogCandidate>> future : futures) {
                 try {
@@ -98,8 +102,9 @@ public final class CatalogCollector {
     }
 
     private static Optional<CatalogCandidate> resolveProject(RepositoryProvider provider,
-            RepositoryProject project) throws IOException {
-        var fabricArtifact = retryTransportFailures(provider,
+            RepositoryProject project, RepositoryDependencyResolver dependencyResolver)
+            throws IOException {
+        var fabricArtifact = RepositoryRequestRetrier.retry(provider,
                 "Fabric versions for " + project.projectId(),
                 () -> provider.versions(project.projectId(), "1.21.1", "fabric")).stream()
                 .filter(RepositoryArtifact::isEligibleFabric1211)
@@ -108,30 +113,20 @@ public final class CatalogCollector {
         if (fabricArtifact.isEmpty()) {
             return Optional.empty();
         }
-        boolean hasNativeForgeRelease = retryTransportFailures(provider,
+        boolean hasNativeForgeRelease = RepositoryRequestRetrier.retry(provider,
                 "Forge versions for " + project.projectId(),
                 () -> provider.versions(project.projectId(), "1.21.1", "forge")).stream()
                 .anyMatch(artifact -> artifact.isEligibleFor("1.21.1", "forge"));
-        return hasNativeForgeRelease ? Optional.empty()
-                : Optional.of(new CatalogCandidate(project, fabricArtifact.orElseThrow()));
-    }
-
-    private static <T> T retryTransportFailures(RepositoryProvider provider, String operation,
-            IoSupplier<T> request) throws IOException {
-        RetryableRepositoryException lastFailure = null;
-        for (int attempt = 1; attempt <= 3; attempt++) {
-            try {
-                return request.get();
-            } catch (RetryableRepositoryException exception) {
-                lastFailure = exception;
-            }
+        if (hasNativeForgeRelease) {
+            return Optional.empty();
         }
-        throw new IOException(provider.id().value() + " " + operation
-                + " failed after 3 transport attempts", lastFailure);
+        RepositoryArtifact root = fabricArtifact.orElseThrow();
+        try {
+            dependencyResolver.resolveRequired(List.of(root));
+            return Optional.of(new CatalogCandidate(project, root));
+        } catch (UnresolvableRepositoryDependencyException exception) {
+            return Optional.empty();
+        }
     }
 
-    @FunctionalInterface
-    private interface IoSupplier<T> {
-        T get() throws IOException;
-    }
 }

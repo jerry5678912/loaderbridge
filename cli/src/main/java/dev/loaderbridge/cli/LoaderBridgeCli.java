@@ -10,6 +10,7 @@ import dev.loaderbridge.api.DiagnosticSeverity;
 import dev.loaderbridge.api.LoaderId;
 import dev.loaderbridge.api.repository.RepositoryProvider;
 import dev.loaderbridge.catalog.CatalogCollector;
+import dev.loaderbridge.catalog.CatalogDependencyLockCodec;
 import dev.loaderbridge.catalog.CatalogSnapshotCodec;
 import dev.loaderbridge.catalog.RepositoryDependencyResolver;
 import dev.loaderbridge.catalog.RepositoryResolutionLockCodec;
@@ -223,7 +224,7 @@ public final class LoaderBridgeCli implements Runnable {
     }
 
     @Command(name = "catalog", description = "Manage measured compatibility catalogs.",
-            subcommands = Catalog.Freeze.class)
+            subcommands = {Catalog.Freeze.class, Catalog.Lock.class})
     static final class Catalog implements Runnable {
         @Override
         public void run() {
@@ -241,6 +242,10 @@ public final class LoaderBridgeCli implements Runnable {
 
             @Option(names = "--output", required = true)
             Path output;
+
+            @Option(names = "--lock-output",
+                    description = "Companion recursive dependency lock destination.")
+            Path lockOutput;
 
             @Option(names = "--target", defaultValue = "1000")
             int target;
@@ -261,6 +266,12 @@ public final class LoaderBridgeCli implements Runnable {
                     System.err.println("Invalid --frozen-at timestamp: " + frozenAt);
                     return INVALID_INPUT;
                 }
+                Path dependencyLock = lockOutput == null ? defaultCatalogLock(output) : lockOutput;
+                if (output.toAbsolutePath().normalize().equals(
+                        dependencyLock.toAbsolutePath().normalize())) {
+                    System.err.println("Catalog snapshot and dependency lock must use different paths");
+                    return INVALID_INPUT;
+                }
                 List<RepositoryProvider> providers = ServiceLoader.load(RepositoryProvider.class).stream()
                         .map(ServiceLoader.Provider::get).toList();
                 if (providers.isEmpty()) {
@@ -270,11 +281,56 @@ public final class LoaderBridgeCli implements Runnable {
                 try {
                     var snapshot = new CatalogCollector(providers).collectAndFreeze(target,
                             perRepository, snapshotId, timestamp);
+                    var roots = snapshot.entries().stream().map(entry -> entry.artifact()).toList();
+                    var graph = new RepositoryDependencyResolver(providers).resolveRequired(roots);
                     new CatalogSnapshotCodec().write(snapshot, output);
+                    new CatalogDependencyLockCodec().write(snapshot, graph, dependencyLock);
                     System.out.println("Frozen " + snapshot.entries().size() + " projects to " + output);
+                    System.out.println("Locked " + graph.installationOrder().size()
+                            + " root/dependency artifacts to " + dependencyLock);
                     return 0;
                 } catch (IOException exception) {
                     System.err.println("Catalog freeze failed: " + exception.getMessage());
+                    return UNSUPPORTED;
+                }
+            }
+
+            private static Path defaultCatalogLock(Path snapshot) {
+                Path fileName = snapshot.getFileName();
+                String name = fileName == null ? "catalog" : fileName.toString();
+                String base = name.endsWith(".json") ? name.substring(0, name.length() - 5) : name;
+                Path parent = snapshot.getParent();
+                Path lockName = Path.of(base + ".dependencies.lock.json");
+                return parent == null ? lockName : parent.resolve(lockName);
+            }
+        }
+
+        @Command(name = "lock", description = "Resolve a frozen catalog's required dependencies.")
+        static final class Lock implements Callable<Integer> {
+            @Option(names = "--snapshot", required = true)
+            Path snapshotFile;
+
+            @Option(names = "--output", required = true)
+            Path output;
+
+            @Override
+            public Integer call() {
+                List<RepositoryProvider> providers = ServiceLoader.load(RepositoryProvider.class).stream()
+                        .map(ServiceLoader.Provider::get).toList();
+                if (providers.isEmpty()) {
+                    System.err.println("No repository providers are installed");
+                    return UNSUPPORTED;
+                }
+                try {
+                    var snapshot = new CatalogSnapshotCodec().read(snapshotFile);
+                    var roots = snapshot.entries().stream().map(entry -> entry.artifact()).toList();
+                    var graph = new RepositoryDependencyResolver(providers).resolveRequired(roots);
+                    new CatalogDependencyLockCodec().write(snapshot, graph, output);
+                    System.out.println("Locked " + graph.installationOrder().size()
+                            + " root/dependency artifacts to " + output);
+                    return 0;
+                } catch (IOException exception) {
+                    System.err.println("Catalog dependency lock failed: " + exception.getMessage());
                     return UNSUPPORTED;
                 }
             }

@@ -38,10 +38,18 @@ public record RepositoryArtifact(RepositoryId repository, String projectId, Stri
     }
 
     public boolean isEligibleFor(String minecraftVersion, String loaderId) {
+        return releaseChannel != ReleaseChannel.ALPHA && isCompatibleWith(minecraftVersion, loaderId);
+    }
+
+    /** Compatibility predicate for required dependencies, including author-labelled alpha builds. */
+    public boolean isCompatibleWith(String minecraftVersion, String loaderId) {
         Objects.requireNonNull(minecraftVersion, "minecraftVersion");
+        return gameVersions.contains(minecraftVersion) && supportsLoader(loaderId);
+    }
+
+    public boolean supportsLoader(String loaderId) {
         Objects.requireNonNull(loaderId, "loaderId");
-        return releaseChannel != ReleaseChannel.ALPHA && gameVersions.contains(minecraftVersion)
-                && loaders.stream().anyMatch(loader -> loader.equalsIgnoreCase(loaderId));
+        return loaders.stream().anyMatch(loader -> loader.equalsIgnoreCase(loaderId));
     }
 
     public Optional<ArtifactHash> preferredHash() {

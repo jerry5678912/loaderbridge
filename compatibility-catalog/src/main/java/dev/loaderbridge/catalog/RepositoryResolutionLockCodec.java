@@ -23,6 +23,7 @@ public final class RepositoryResolutionLockCodec {
         JsonArray artifacts = new JsonArray();
         graph.installationOrder().forEach(artifact -> artifacts.add(artifact(artifact)));
         document.add("artifacts", artifacts);
+        document.add("resolvedEdges", resolvedEdges(graph));
         return (JSON.toJson(document) + "\n").getBytes(StandardCharsets.UTF_8);
     }
 
@@ -48,7 +49,7 @@ public final class RepositoryResolutionLockCodec {
         }
     }
 
-    private static JsonObject artifact(RepositoryArtifact artifact) {
+    static JsonObject artifact(RepositoryArtifact artifact) {
         JsonObject value = new JsonObject();
         value.addProperty("repository", artifact.repository().value());
         value.addProperty("projectId", artifact.projectId());
@@ -86,6 +87,36 @@ public final class RepositoryResolutionLockCodec {
                 });
         value.add("dependencies", dependencies);
         return value;
+    }
+
+    static JsonArray resolvedEdges(ResolvedDependencyGraph graph) {
+        JsonArray edges = new JsonArray();
+        graph.resolvedEdges().stream().sorted(java.util.Comparator
+                .comparing((ResolvedDependencyEdge edge) -> edge.ownerRepository().value())
+                .thenComparing(ResolvedDependencyEdge::ownerVersionId)
+                .thenComparing(edge -> edge.declaredDependency().projectId() == null
+                        ? "" : edge.declaredDependency().projectId())
+                .thenComparing(edge -> edge.declaredDependency().versionId() == null
+                        ? "" : edge.declaredDependency().versionId())
+                .thenComparing(ResolvedDependencyEdge::resolvedVersionId)).forEach(edge -> {
+                    JsonObject value = new JsonObject();
+                    value.addProperty("owner", edge.ownerRepository().value() + ":"
+                            + edge.ownerVersionId());
+                    JsonObject declared = new JsonObject();
+                    if (edge.declaredDependency().projectId() != null) {
+                        declared.addProperty("projectId", edge.declaredDependency().projectId());
+                    }
+                    if (edge.declaredDependency().versionId() != null) {
+                        declared.addProperty("versionId", edge.declaredDependency().versionId());
+                    }
+                    declared.addProperty("kind", edge.declaredDependency().kind().name()
+                            .toLowerCase(java.util.Locale.ROOT));
+                    value.add("declared", declared);
+                    value.addProperty("resolved", edge.resolvedRepository().value() + ":"
+                            + edge.resolvedVersionId());
+                    edges.add(value);
+                });
+        return edges;
     }
 
     private static JsonArray strings(java.util.Set<String> source) {

@@ -30,6 +30,7 @@ class RepositoryResolutionLockCodecTest {
         assertThat(json).contains("\"root\": \"test:root-v1\"");
         assertThat(json.indexOf("\"versionId\": \"dep-v1\""))
                 .isLessThan(json.indexOf("\"versionId\": \"root-v1\""));
+        assertThat(json).contains("\"resolvedEdges\": []");
     }
 
     private static RepositoryArtifact artifact(String project, String version) {

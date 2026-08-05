@@ -26,6 +26,15 @@ class LoaderBridgeCliTest {
     }
 
     @Test
+    void rejectsCatalogSnapshotAndDependencyLockAtTheSamePath() {
+        int exitCode = new CommandLine(new LoaderBridgeCli()).execute("catalog", "freeze",
+                "--snapshot-id", "2026-08", "--frozen-at", "2026-08-01T00:00:00Z",
+                "--output", "snapshot.json", "--lock-output", "snapshot.json");
+
+        assertThat(exitCode).isEqualTo(LoaderBridgeCli.INVALID_INPUT);
+    }
+
+    @Test
     void rejectsUnqualifiedRepositoryProjectIds() {
         int exitCode = new CommandLine(new LoaderBridgeCli()).execute("resolve",
                 "--project", "missing-prefix", "--output", "resolved");

@@ -15,8 +15,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - Authenticated CurseForge and public Modrinth catalog providers with
   author-disabled artifact filtering, typed transient-network retries, bounded
   metadata timeouts, and deterministic four-worker page resolution. A live
-  probe froze 1,000 unique Fabric 1.21.1 projects on 2026-08-06; recursive
-  catalog-wide dependency locking remains open before M0 can be claimed.
+  probe froze 1,000 unique installable Fabric 1.21.1 projects on 2026-08-06.
+  Its companion lock contains 1,126 checksum-pinned artifacts and 1,444
+  explicit declared-to-resolved required edges. Captured upstream ranking
+  inputs and scheduled publication remain open before M0 can be claimed.
 - ASM reference inventory for Loader API, Fabric API, Minecraft, reflection-like
   strings, and native libraries.
 - Checksum-verified Mojang 1.21.1 client artifacts plus bundled Fabric
@@ -778,6 +780,10 @@ CURSEFORGE_API_KEY=... cli/build/install/cli/bin/cli catalog freeze \
   --frozen-at 2026-08-01T00:00:00Z \
   --output catalog-2026-08.json
 
+CURSEFORGE_API_KEY=... cli/build/install/cli/bin/cli catalog lock \
+  --snapshot catalog-2026-08.json \
+  --output catalog-2026-08.dependencies.lock.json
+
 cli/build/install/cli/bin/cli resolve \
   --project modrinth:AABBCCDD \
   --output path/to/resolved-instance
@@ -792,6 +798,13 @@ cli/build/install/cli/bin/cli test \
 `catalog freeze` queries both official repositories. The CurseForge key is read
 only from the process environment, is sent only to CurseForge API metadata
 endpoints, and is never written to snapshots or sent to artifact CDNs.
+It validates every root's recursively required graph, excludes roots that
+cannot be installed from declared metadata, and writes a companion dependency
+lock by default. `catalog lock` rebuilds that graph from a bounded, validated
+frozen snapshot without re-querying rankings. Catalog roots exclude alpha
+releases; required dependencies may use compatible alpha builds or exact
+Fabric pins, and a cross-loader pin falls back only to a Fabric build from the
+same repository project. Every substitution is explicit in `resolvedEdges`.
 `resolve` installs the selected release and its recursively required
 dependencies under `mods/`, retaining verified downloads in `.cache/` and
 writing `bridge.repository.lock.json`.
