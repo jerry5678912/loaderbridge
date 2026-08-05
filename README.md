@@ -378,14 +378,14 @@ and the recipe result on the dedicated server before and after `/reload`, then
 flushed every dimension and stopped cleanly. See
 [the controlled evidence](docs/controlled-fixtures/fabric-recipe-api-v1.md).
 
-The Entity Events v1 M5 controlled damage/death/conversion/player/sleep wave
-passed on 2026-08-04. Dedicated Forge runs proved exact damage and fatal-death
-values, cancellation, actual death and combat callbacks, mob conversion,
-world flush, clean stop, and a second-process reload. The graphical run
-required eight standard bed callback families on both the initial and reloaded
-integrated world, observed player join and final-disconnect leave, saved, and
-stopped cleanly. Elytra, respawn/copy, and cross-dimension behavior remain open
-deep-scenario gates for this module. See
+The Entity Events v1 M5 controlled module gate passed on 2026-08-05. Dedicated
+Forge runs proved exact damage and fatal-death values, cancellation, actual
+death and combat callbacks, mob conversion, world flush, clean stop, and a
+second-process reload. The graphical run required all nine sleep callback
+families plus custom elytra start/tick, mob and player cross-dimension changes,
+and an actual alive respawn with matching copy/after-respawn values. Every
+counter doubled after reopening the saved world; player leave fired on the
+final disconnect and the process stopped cleanly. See
 [the controlled evidence](docs/controlled-fixtures/fabric-entity-events-v1.md).
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
