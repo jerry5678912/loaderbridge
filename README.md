@@ -138,9 +138,11 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   graphical save/reload scenario proved the wire path in two client sessions.
   Revision 7 adds a configuration-phase request/response task that intersects
   the client and server attachment-type sets before any play packets are sent.
-  Target-specific entity/block-entity/chunk ordering, packet partitioning and
-  limits, unknown-target handling, and the full proto-chunk generation path are
-  still open, so the module is not yet declared complete.
+  Revision 8 proves correctly ordered level, player, entity, block-entity, and
+  chunk delivery, including a persistent entity already loaded before the
+  second client login. Packet partitioning and limits, unknown-target handling,
+  and the full proto-chunk generation path are still open, so the module is not
+  yet declared complete.
 - A separately versioned Game Rule API v1 bridge matching
   `fabric-game-rule-api-v1:1.0.53+6ced4dd919`. Boolean, bounded integer,
   double, enum, visitor, callback, custom-category, command, serialization,
@@ -424,11 +426,16 @@ Revision 6 then passed a graphical Forge 52.1.16 run: the client observed
 server-level value `53` from join-time initial synchronization and player value
 `59` from live mutation synchronization, both before and after saving and
 reopening the world. A dedicated-server regression restored `41/43` and stopped
-cleanly. Revision 7 added a blocking configuration task and negotiated both
-fixture attachment types in each of the two graphical connection sessions;
+cleanly. Revision 7 added a blocking configuration task and negotiated all five
+syncable fixture attachment types in each of the two graphical connection
+sessions;
 unit coverage also removes an unknown client-only ID from the accepted set.
-Entity/block-entity/chunk wire ordering and the generated ProtoChunk path remain
-open.
+Revision 8 moved entity initial synchronization to Fabric's packet-order
+boundary after the spawn bundle. A fresh graphical run synchronized level `53`,
+player `59`, entity `67`, block entity `71`, and chunk `73` in both sessions.
+Only session 1 spawned the persistent entity, proving that the already-loaded
+entity was synchronized on session 2 after save/reload. Packet partitioning,
+unknown-target policy, and the generated ProtoChunk path remain open.
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,

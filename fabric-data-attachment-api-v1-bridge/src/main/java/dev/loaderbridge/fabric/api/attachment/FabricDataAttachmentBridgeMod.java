@@ -3,7 +3,6 @@ package dev.loaderbridge.fabric.api.attachment;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
-import net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
@@ -30,8 +29,6 @@ public final class FabricDataAttachmentBridgeMod {
             AttachmentSyncRuntime.syncInitial((AttachmentTarget) (Object) player.serverLevel(), player);
             AttachmentSyncRuntime.syncInitial((AttachmentTarget) (Object) player, player);
         });
-        EntityTrackingEvents.START_TRACKING.register((entity, player) ->
-                AttachmentSyncRuntime.syncInitial((AttachmentTarget) (Object) entity, player));
         MinecraftForge.EVENT_BUS.addListener(this::onChunkWatch);
         MinecraftForge.EVENT_BUS.addListener(AttachmentNegotiation::gatherLoginTask);
         if (FMLEnvironment.dist == Dist.CLIENT) FabricDataAttachmentClientHooks.register();

@@ -11,6 +11,7 @@
     "EntityPersistenceMixin",
     "ImposterProtoChunkMixin",
     "LevelChunkTransferMixin",
+    "ServerEntityPairingMixin",
     "ServerLevelPersistenceMixin"
   ],
   "injectors": {"defaultRequire": 1}
