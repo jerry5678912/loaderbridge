@@ -534,6 +534,20 @@ biome rather than a synthetic view of the in-progress Forge builder; selectors
 and key/tag/dimension queries are supported, while current-state reads remain a
 tracked parity gap.
 
+Fabric Biome API v1 revision 4 passed on 2026-08-05 and supersedes revision
+3's clearing and current-state limitations. Required bridge-owned Mixin
+accessors clear every optional effects field and individual spawn costs before
+the modified biome is built. `BiomeSelectionContext.getBiome()` now constructs
+a synthetic biome from Forge's in-progress climate, effects, generation, and
+spawn builders, so a later Fabric phase can observe an earlier phase's
+temperature. The translated fixture set then cleared a foliage override and a
+zombie spawn cost and observed the intermediate temperature. Exact assertions
+passed during graphical create/reload and two independent dedicated-server
+processes; repeated preparation produced byte-identical revision-4 bridge and
+fixture JARs. Registry-entry current-state parity, configured-feature and
+structure lookup parity, and specialized Nether/End helpers remain open, so
+this still does not complete the Biome module, M5, or its 60% catalog gate.
+
 Fabric Block API v1 revision 11 passed on 2026-08-05. The bridge matches pinned
 `1.1.0+0bc3503219`, injects the exact Fabric interfaces into vanilla `Block`
 and `BlockState`, delegates custom appearance through the block-state contract,

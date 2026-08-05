@@ -16,6 +16,7 @@ import java.util.stream.Stream;
 import net.fabricmc.fabric.api.biome.v1.BiomeSelectionContext;
 import net.fabricmc.fabric.api.biome.v1.BiomeModificationContext;
 import net.fabricmc.fabric.api.biome.v1.ModificationPhase;
+import dev.loaderbridge.fabric.api.biome.mixin.BiomeInvoker;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.core.registries.Registries;
@@ -60,7 +61,7 @@ public final class BridgeBiomeRules implements BiomeModifier {
 
     @Override
     public void modify(Holder<Biome> biome, Phase phase, ModifiableBiomeInfo.BiomeInfo.Builder builder) {
-        BiomeSelectionContext context = new ForgeSelectionContext(biome);
+        BiomeSelectionContext context = new ForgeSelectionContext(biome, builder);
         ModificationPhase fabricPhase = fabricPhase(phase);
         if (fabricPhase == null) return;
         ForgeModificationContext modificationContext =
@@ -137,10 +138,18 @@ public final class BridgeBiomeRules implements BiomeModifier {
 
     private static final class ForgeSelectionContext implements BiomeSelectionContext {
         private final Holder<Biome> biome;
+        private final ModifiableBiomeInfo.BiomeInfo.Builder builder;
 
-        ForgeSelectionContext(Holder<Biome> biome) { this.biome = biome; }
+        ForgeSelectionContext(Holder<Biome> biome, ModifiableBiomeInfo.BiomeInfo.Builder builder) {
+            this.biome = biome;
+            this.builder = builder;
+        }
         @Override public ResourceKey<Biome> getBiomeKey() { return biome.unwrapKey().orElseThrow(); }
-        @Override public Biome getBiome() { return biome.value(); }
+        @Override public Biome getBiome() {
+            ModifiableBiomeInfo.BiomeInfo info = builder.build();
+            return BiomeInvoker.loaderbridge$create(info.climateSettings(), info.effects(),
+                    info.generationSettings(), info.mobSpawnSettings());
+        }
         @Override public Holder<Biome> getBiomeRegistryEntry() { return biome; }
         @Override public Optional<ResourceKey<ConfiguredFeature<?, ?>>> getFeatureKey(
                 ConfiguredFeature<?, ?> feature) { return Optional.empty(); }

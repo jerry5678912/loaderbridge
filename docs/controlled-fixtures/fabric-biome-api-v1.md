@@ -1,6 +1,6 @@
 # Fabric Biome API v1 controlled fixture
 
-This fixture tests LoaderBridge revisions 2 and 3 of pinned
+This fixture tests LoaderBridge revisions 2 through 4 of pinned
 `fabric-biome-api-v1:13.0.31+d527f9fd19` on Minecraft 1.21.1 and Forge
 52.1.16. The ordinary `prepare` command inspects bytecode and automatically
 selects the Biome bridge and its dependencies without relying on artifact
@@ -48,14 +48,27 @@ Revision 3 deterministic artifacts:
 - bridge SHA-256: `eebe4eb2cf1d9a7bb0b587b4a554b63d83630e948d6a216c37ea71b1b12af483`
 - transformed fixture SHA-256: `98d168115b6571fea2244ee6b21dd2f60b0dad0d1f4c495d988dbffc5c98b686`
 
+Revision 4 replaces revision 3's clearing diagnostics with required early
+Mixin accessors. The ADDITIONS phase sets temperature to 0.31, installs a
+foliage override, and installs a zombie spawn cost. POST_PROCESSING observes
+the 0.31 temperature through `BiomeSelectionContext.getBiome()`, then clears
+the foliage override and zombie cost before applying the final state. The live
+biome assertions emit:
+
+`LOADERBRIDGE_FABRIC_BIOME_CLEARING_READY effect=true,cost=true,current_state=0.31`
+
+That marker passed both graphical sessions and both dedicated-server
+processes. Two fresh preparations selected revision 4 automatically and
+produced byte-identical artifacts:
+
+- bridge SHA-256: `060d3ecba9fa1b652144d3a039a2c7b5a61f79f1c3403764d1f1b15c1269b545`
+- transformed fixture SHA-256: `2bdb6039dbdc9745e92026c54d2be240bda3be7d5a9b2e018aae5fba78bfb59f`
+
 The bridge emits `LB-BIOME-003` when a configured-carver target cannot be
-resolved. Revision 3 covers general ordered phases, weather mutation,
-non-clearing effects mutation, generation additions/removals, and spawn
-additions/removals/probability/cost installation. Effect clearing and spawn-cost
-clearing emit stable `LB-BIOME-004` and `LB-BIOME-005` diagnostics until an
-early-transform accessor can implement them safely. Specialized Nether/End
-helpers also remain open. Context-sensitive callbacks receive both public
-contexts, but `BiomeSelectionContext.getBiome()` currently exposes the stable
-pre-modification biome rather than a synthetic view of the in-progress Forge
-builder. This does not complete the Biome API module, M5, or the roadmap's 60%
-catalog gate.
+resolved. Revision 4 covers general ordered phases, current-state biome reads,
+weather and effects mutation including clears, generation additions/removals,
+and spawn additions/removals/probability/cost installation and clearing.
+`getBiomeRegistryEntry().value()` still refers to the registry's original
+biome while a rule is executing, and configured-feature lookup, structure
+lookup, and specialized Nether/End helpers remain open. This does not complete
+the Biome API module, M5, or the roadmap's 60% catalog gate.

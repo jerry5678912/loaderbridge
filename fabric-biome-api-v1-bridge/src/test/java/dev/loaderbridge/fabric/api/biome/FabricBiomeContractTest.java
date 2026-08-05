@@ -18,7 +18,7 @@ class FabricBiomeContractTest {
     @Test
     void advertisesOnlyImplementedBiomeContracts() {
         var descriptor = new FabricBiomeBridgeProvider().descriptor();
-        assertThat(descriptor.implementationVersion()).isEqualTo("13.0.31+d527f9fd19-loaderbridge.3");
+        assertThat(descriptor.implementationVersion()).isEqualTo("13.0.31+d527f9fd19-loaderbridge.4");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrderElementsOf(Set.of(
                 "net.fabricmc.fabric.api.biome.v1.BiomeSelectionContext",
                 "net.fabricmc.fabric.api.biome.v1.BiomeSelectors",

@@ -2,6 +2,8 @@ package dev.loaderbridge.fabric.api.biome;
 
 import java.util.Optional;
 import java.util.function.BiPredicate;
+import dev.loaderbridge.fabric.api.biome.mixin.BiomeSpecialEffectsBuilderAccessor;
+import dev.loaderbridge.fabric.api.biome.mixin.MobSpawnSettingsBuilderAccessor;
 import net.fabricmc.fabric.api.biome.v1.BiomeModificationContext;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderGetter;
@@ -60,39 +62,31 @@ final class ForgeModificationContext implements BiomeModificationContext {
         @Override public void setWaterFogColor(int color) { builder.waterFogColor(color); }
         @Override public void setSkyColor(int color) { builder.skyColor(color); }
         @Override public void setFoliageColor(Optional<Integer> color) {
-            color.ifPresentOrElse(builder::foliageColorOverride,
-                    () -> unsupportedClear("foliage color"));
+            accessor().loaderbridge$setFoliageColorOverride(color);
         }
         @Override public void setGrassColor(Optional<Integer> color) {
-            color.ifPresentOrElse(builder::grassColorOverride,
-                    () -> unsupportedClear("grass color"));
+            accessor().loaderbridge$setGrassColorOverride(color);
         }
         @Override public void setGrassColorModifier(BiomeSpecialEffects.GrassColorModifier modifier) {
             builder.grassColorModifier(modifier);
         }
         @Override public void setParticleConfig(Optional<AmbientParticleSettings> value) {
-            value.ifPresentOrElse(builder::ambientParticle,
-                    () -> unsupportedClear("ambient particle"));
+            accessor().loaderbridge$setAmbientParticle(value);
         }
         @Override public void setAmbientSound(Optional<Holder<SoundEvent>> value) {
-            value.ifPresentOrElse(builder::ambientLoopSound,
-                    () -> unsupportedClear("ambient sound"));
+            accessor().loaderbridge$setAmbientLoopSound(value);
         }
         @Override public void setMoodSound(Optional<AmbientMoodSettings> value) {
-            value.ifPresentOrElse(builder::ambientMoodSound,
-                    () -> unsupportedClear("mood sound"));
+            accessor().loaderbridge$setAmbientMoodSound(value);
         }
         @Override public void setAdditionsSound(Optional<AmbientAdditionsSettings> value) {
-            value.ifPresentOrElse(builder::ambientAdditionsSound,
-                    () -> unsupportedClear("additions sound"));
+            accessor().loaderbridge$setAmbientAdditionsSound(value);
         }
         @Override public void setMusic(Optional<Music> value) {
-            value.ifPresentOrElse(builder::backgroundMusic,
-                    () -> unsupportedClear("music"));
+            accessor().loaderbridge$setBackgroundMusic(value);
         }
-        private static void unsupportedClear(String property) {
-            throw new UnsupportedOperationException(
-                    "LB-BIOME-004: Forge 52 does not expose safe removal for biome " + property);
+        private BiomeSpecialEffectsBuilderAccessor accessor() {
+            return (BiomeSpecialEffectsBuilderAccessor) (Object) builder;
         }
     }
 
@@ -143,8 +137,8 @@ final class ForgeModificationContext implements BiomeModificationContext {
             builder.addMobCharge(type, mass, gravityLimit);
         }
         @Override public void clearSpawnCost(EntityType<?> type) {
-            throw new UnsupportedOperationException(
-                    "LB-BIOME-005: Forge 52 does not expose safe biome spawn-cost removal for " + type);
+            ((MobSpawnSettingsBuilderAccessor) (Object) builder)
+                    .loaderbridge$getMobSpawnCosts().remove(type);
         }
     }
 

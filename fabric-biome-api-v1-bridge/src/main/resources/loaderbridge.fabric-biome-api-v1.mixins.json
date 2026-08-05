@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8.7",
+  "package": "dev.loaderbridge.fabric.api.biome.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "BiomeInvoker",
+    "BiomeSpecialEffectsBuilderAccessor",
+    "MobSpawnSettingsBuilderAccessor"
+  ],
+  "injectors": {"defaultRequire": 1}
+}

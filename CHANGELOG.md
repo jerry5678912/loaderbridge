@@ -16,6 +16,13 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Completed the mutable-context portion of Fabric Biome API's general
+  modification contract. Bridge-owned Mixin accessors now support clearing all
+  optional biome effects and spawn costs, while selection callbacks receive a
+  synthetic biome assembled from Forge's in-progress builder. A translated
+  fixture observed an earlier phase's temperature, cleared a foliage override
+  and vanilla zombie cost, and passed graphical plus two-process dedicated-
+  server save/reload and deterministic preparation gates.
 - Added Fabric Biome API's general `BiomeModification`, four ordered phases,
   and weather, effects, generation, and spawn contexts. Fabric phase and
   identifier ordering maps deterministically onto Forge's native biome
