@@ -10,6 +10,9 @@ import net.minecraft.world.level.Level;
 
 public record AttachmentChange(AttachmentTargetInfo targetInfo, AttachmentType<?> type,
         Object value) {
+    private static final System.Logger LOGGER = System.getLogger(AttachmentChange.class.getName());
+    private static final boolean DISCONNECT_ON_UNKNOWN_TARGETS =
+            System.getProperty("fabric.attachment.disconnect_on_unknown_targets") != null;
     public void encode(RegistryFriendlyByteBuf buffer) {
         targetInfo.encode(buffer);
         buffer.writeResourceLocation(type.identifier());
@@ -46,9 +49,21 @@ public record AttachmentChange(AttachmentTargetInfo targetInfo, AttachmentType<?
     }
 
     @SuppressWarnings("unchecked")
-    public void apply(Level level) {
+    public boolean apply(Level level) {
         AttachmentTarget target = targetInfo.resolve(level);
-        if (target == null) return;
+        if (target == null) {
+            handleUnknownTarget(targetInfo, type, DISCONNECT_ON_UNKNOWN_TARGETS);
+            return false;
+        }
         target.setAttached((AttachmentType<Object>) type, value);
+        return true;
+    }
+
+    public static void handleUnknownTarget(AttachmentTargetInfo targetInfo,
+            AttachmentType<?> type, boolean disconnect) {
+        String message = "LB-ATTACH-006: unknown synchronized target " + targetInfo
+                + " for attachment '" + type.identifier() + "'";
+        if (disconnect) throw new IllegalStateException(message);
+        LOGGER.log(System.Logger.Level.WARNING, message);
     }
 }

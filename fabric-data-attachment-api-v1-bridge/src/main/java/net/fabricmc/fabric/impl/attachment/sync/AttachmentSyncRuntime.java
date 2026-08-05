@@ -24,10 +24,9 @@ public final class AttachmentSyncRuntime {
         if (!type.isSynced()) return;
         AttachmentTargetInfo targetInfo = AttachmentTargetInfo.of(target);
         if (targetInfo == null) return;
-        var payload = new AttachmentSyncPayloadS2C(List.of(
-                new AttachmentChange(targetInfo, type, value)));
+        var changes = List.of(new AttachmentChange(targetInfo, type, value));
         for (ServerPlayer player : recipients(target)) {
-            if (shouldSend(target, type, player)) ServerPlayNetworking.send(player, payload);
+            if (shouldSend(target, type, player)) sendChanges(player, changes);
         }
     }
 
@@ -40,7 +39,14 @@ public final class AttachmentSyncRuntime {
                 .map(entry -> new AttachmentChange(targetInfo, entry.getKey(), entry.getValue()))
                 .toList();
         if (!changes.isEmpty()) {
-            ServerPlayNetworking.send(player, new AttachmentSyncPayloadS2C(changes));
+            sendChanges(player, changes);
+        }
+    }
+
+    private static void sendChanges(ServerPlayer player, List<AttachmentChange> changes) {
+        for (AttachmentSyncPayloadS2C payload : AttachmentSyncPayloadS2C.partition(
+                changes, player.registryAccess())) {
+            ServerPlayNetworking.send(player, payload);
         }
     }
 

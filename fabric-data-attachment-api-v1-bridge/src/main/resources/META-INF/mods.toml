@@ -4,7 +4,7 @@ license="Apache-2.0"
 
 [[mods]]
 modId="loaderbridge_fabric_data_attachment_api_v1"
-version="1.4.7.8"
+version="1.4.7.9"
 displayName="LoaderBridge Fabric Data Attachment API v1 Bridge"
 
 [[dependencies.loaderbridge_fabric_data_attachment_api_v1]]

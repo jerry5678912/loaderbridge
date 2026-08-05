@@ -140,9 +140,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   the client and server attachment-type sets before any play packets are sent.
   Revision 8 proves correctly ordered level, player, entity, block-entity, and
   chunk delivery, including a persistent entity already loaded before the
-  second client login. Packet partitioning and limits, unknown-target handling,
-  and the full proto-chunk generation path are still open, so the module is not
-  yet declared complete.
+  second client login. Revision 9 adds bounded deterministic packet partitioning,
+  a 1 MiB payload ceiling, stable oversized-value diagnostics, and Fabric's
+  warn-or-strict unknown-target policy. The full proto-chunk generation path is
+  still open, so the module is not yet declared complete.
 - A separately versioned Game Rule API v1 bridge matching
   `fabric-game-rule-api-v1:1.0.53+6ced4dd919`. Boolean, bounded integer,
   double, enum, visitor, callback, custom-category, command, serialization,
@@ -434,8 +435,11 @@ Revision 8 moved entity initial synchronization to Fabric's packet-order
 boundary after the spawn bundle. A fresh graphical run synchronized level `53`,
 player `59`, entity `67`, block entity `71`, and chunk `73` in both sessions.
 Only session 1 spawned the persistent entity, proving that the already-loaded
-entity was synchronized on session 2 after save/reload. Packet partitioning,
-unknown-target policy, and the generated ProtoChunk path remain open.
+entity was synchronized on session 2 after save/reload. Revision 9 partitions
+batches within the 1 MiB clientbound limit, rejects oversized single values as
+`LB-ATTACH-005`, and reports missing client targets as `LB-ATTACH-006` under
+Fabric's default-warning or strict-failure policy. The generated ProtoChunk path
+remains open.
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,

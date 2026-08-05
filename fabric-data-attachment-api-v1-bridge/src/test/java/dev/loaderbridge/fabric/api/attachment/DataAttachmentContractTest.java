@@ -35,7 +35,7 @@ class DataAttachmentContractTest {
         assertThat(descriptor.contractVersion())
                 .isEqualTo("fabric-data-attachment-api-v1:1.4.7");
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("1.4.7+5b36e0f719-loaderbridge.8");
+                .isEqualTo("1.4.7+5b36e0f719-loaderbridge.9");
         assertThat(descriptor.providedClasses()).contains(
                 "net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry",
                 "net.fabricmc.fabric.api.attachment.v1.AttachmentSyncPredicate",
@@ -148,6 +148,61 @@ class DataAttachmentContractTest {
                 .isEqualTo(AttachmentTargetInfo.LevelTarget.INSTANCE);
         assertThat(restored.attachments().getFirst().type()).isSameAs(type);
         assertThat(restored.attachments().getFirst().value()).isEqualTo(73);
+    }
+
+    @Test
+    void synchronizedAttachmentBatchesStayWithinTheConfiguredPacketLimit() {
+        AttachmentType<byte[]> type = AttachmentRegistry.create(
+                ResourceLocation.fromNamespaceAndPath("loaderbridge", "partitioned_sync"),
+                builder -> builder.syncWith(ByteBufCodecs.BYTE_ARRAY,
+                        AttachmentSyncPredicate.all()));
+        var changes = java.util.stream.IntStream.range(0, 6)
+                .mapToObj(index -> new AttachmentChange(
+                        new AttachmentTargetInfo.EntityTarget(index + 1), type,
+                        new byte[64 + index]))
+                .toList();
+
+        var packets = AttachmentSyncPayloadS2C.partition(
+                changes, RegistryAccess.EMPTY, 180);
+
+        assertThat(packets).hasSizeGreaterThan(1);
+        assertThat(packets).allSatisfy(packet -> assertThat(
+                packet.encodedSize(RegistryAccess.EMPTY)).isLessThanOrEqualTo(180));
+        assertThat(packets.stream().flatMap(packet -> packet.attachments().stream()))
+                .containsExactlyInAnyOrderElementsOf(changes);
+    }
+
+    @Test
+    void oversizedSynchronizedAttachmentFailsWithStableDiagnostic() {
+        AttachmentType<byte[]> type = AttachmentRegistry.create(
+                ResourceLocation.fromNamespaceAndPath("loaderbridge", "oversized_sync"),
+                builder -> builder.syncWith(ByteBufCodecs.BYTE_ARRAY,
+                        AttachmentSyncPredicate.all()));
+        var change = new AttachmentChange(AttachmentTargetInfo.LevelTarget.INSTANCE,
+                type, new byte[256]);
+
+        assertThatThrownBy(() -> AttachmentSyncPayloadS2C.partition(
+                java.util.List.of(change), RegistryAccess.EMPTY, 128))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("LB-ATTACH-005")
+                .hasMessageContaining("loaderbridge:oversized_sync");
+    }
+
+    @Test
+    void unknownSynchronizedTargetsWarnOrFailAccordingToPolicy() {
+        AttachmentType<Integer> type = AttachmentRegistry.create(
+                ResourceLocation.fromNamespaceAndPath("loaderbridge", "unknown_target"),
+                builder -> builder.syncWith(ByteBufCodecs.VAR_INT,
+                        AttachmentSyncPredicate.all()));
+        var target = new AttachmentTargetInfo.EntityTarget(404);
+
+        AttachmentChange.handleUnknownTarget(target, type, false);
+
+        assertThatThrownBy(() -> AttachmentChange.handleUnknownTarget(target, type, true))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("LB-ATTACH-006")
+                .hasMessageContaining("loaderbridge:unknown_target")
+                .hasMessageContaining("EntityTarget[networkId=404]");
     }
 
     private static final class TestTarget implements AttachmentTargetImpl {

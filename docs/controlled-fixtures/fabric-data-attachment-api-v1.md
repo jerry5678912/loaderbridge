@@ -1,7 +1,7 @@
 # Fabric Data Attachment API v1 controlled fixture
 
 This fixture tests the pinned `fabric-data-attachment-api-v1:1.4.7+5b36e0f719`
-contract through LoaderBridge revision 8 on Minecraft 1.21.1 and Forge 52.1.16.
+contract through LoaderBridge revision 9 on Minecraft 1.21.1 and Forge 52.1.16.
 
 The source fixture is compiled as a Fabric mod and transformed by the ordinary
 `prepare` command. Content inspection automatically selected Data Attachment
@@ -59,9 +59,9 @@ The runtime marker was:
 
 Prepared artifact evidence:
 
-- bridge SHA-256: `86d9ba1e0c0aef39981bd18691d12856ac91808616488369addeefd3cadbe9ca`
-- fixture SHA-256: `7eb6834593e06eb6480d23d1e4736889ca0125d5633c13d9ea31a51c099a698e`
-- lock SHA-256: `45af2412524e357417938c1b96b93007a057f6bf02fe1ef9b1dc890c4134b9a6`
+- bridge SHA-256: `4729842ba12bd8a196364804832844de185757338d8da93666a33a050dbd7f39`
+- fixture SHA-256: `b3287947adecacd6c3e8301bdb4c94e6bcb0912d89ada207d6206b94c5ef5253`
+- lock SHA-256: `fb1d8d49f660c5c722505f32fab73c7c3e5016925f33418848dcd1e6b5826457`
 
 Unit contracts additionally prove persistent-only serialization, registry
 lookup, built-in synchronization predicates, null/error semantics, and
@@ -71,9 +71,15 @@ client-only ID. Runtime callbacks transfer attachments on respawn,
 entity world replacement, and mob conversion using the completed Entity Events
 bridge.
 
+Revision 9 unit contracts encode real payloads while packing them, prove every
+partition stays within the 1 MiB clientbound limit, cap batches at 4,096
+changes, reject an oversized single attachment as `LB-ATTACH-005`, and apply
+the default-warning or strict-failure unknown-target policy as `LB-ATTACH-006`.
+The two-session graphical scenario passed unchanged with this bounded sender.
+
 The graphical run proves equal-set negotiation but not a remote client and
 server with different mod lists; mismatched-set intersection is currently a
-unit contract. This evidence does not yet prove packet partitioning/limits, the
-unknown-target policy, or a generated ProtoChunk-to-LevelChunk transfer. Those
-remain open before Data Attachment API v1 is called complete. It also does not
-complete M5 or establish the roadmap's 60% catalog gate.
+unit contract. This evidence does not yet prove a generated
+ProtoChunk-to-LevelChunk transfer. That remains open before Data Attachment API
+v1 is called complete. It also does not complete M5 or establish the roadmap's
+60% catalog gate.
