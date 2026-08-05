@@ -489,6 +489,18 @@ Client-only fluid rendering and the remaining container-component/bundle
 providers are still open, so this does not close the entire Transfer module or
 M5.
 
+Fabric Block API v1 revision 11 passed on 2026-08-05. The bridge matches pinned
+`1.1.0+0bc3503219`, injects the exact Fabric interfaces into vanilla `Block`
+and `BlockState`, delegates custom appearance through the block-state contract,
+and exposes `fabric:can_climb_trapdoor_above`. Inspection selected the module
+from bytecode references. Its controlled Fabric content mod registers a mimic
+block and block item with a valid blockstate, world model, inventory model, and
+translation; the clean-world Forge 52.1.16 client emitted both API/content
+markers with no missing-model warning, saved and reopened the world, and
+stopped cleanly. Two dedicated-server processes independently proved fresh
+world creation, saved-world reload, and clean shutdown. This closes the pinned
+Block API v1 module gate, not M5 or the 60% catalog acceptance gate.
+
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,
 tilde ranges, caret ranges, trailing-zero equality, and the special

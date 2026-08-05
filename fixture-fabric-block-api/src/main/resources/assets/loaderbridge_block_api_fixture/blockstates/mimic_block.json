@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": {"model": "loaderbridge_block_api_fixture:block/mimic_block"}
+  }
+}

@@ -493,6 +493,32 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsBlockApiBridgeFromInterfaceReference() throws Exception {
+        Path source = referencedMod("block_api", "fabric-block-api-v1", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "appearance",
+                    "(Lnet/fabricmc/fabric/api/block/v1/FabricBlock;)V", null, null);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(0, 2);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "block-api");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-FAPI-002", "LB-MODULE-003");
+        assertThat(plan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-FAPI-100");
+            assertThat(diagnostic.message()).contains("fabric-block-api-v1-bridge");
+        });
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains("fabric-block-api-v1-bridge-1.1.0_0bc3503219-loaderbridge.1.jar");
+    }
+
+    @Test
     void automaticallySelectsEntityEventsBridgeForNestedCallbackReferences() throws Exception {
         Path source = referencedMod("entity_events_api", "fabric-entity-events-v1", writer -> {
             var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "callback",

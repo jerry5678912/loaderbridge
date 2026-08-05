@@ -16,6 +16,13 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added the Fabric Block API v1 bridge matching `1.1.0+0bc3503219`. It injects
+  Fabric's exact block and block-state appearance contracts into every vanilla
+  target, preserves custom appearance delegation, exposes the functionality
+  tag, and is selected from bytecode references. A controlled Fabric content
+  mod registers a block and block item with working blockstate, world model,
+  inventory model, and translation resources. It passed a fresh graphical
+  world, save/reload, and two-launch dedicated-server reload on Forge 52.1.16.
 - Added the Fabric Loot API v3 bridge matching `1.0.3+3f89f5a519`. It exposes
   the complete public event/source/builder surface, injects built-object
   builder operations, identifies vanilla/mod/datapack sources, and runs

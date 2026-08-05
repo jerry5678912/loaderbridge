@@ -66,6 +66,9 @@ dependencies {
     runtimeOnly(project(":fabric-biome-api-v1-bridge")) {
         isTransitive = false
     }
+    runtimeOnly(project(":fabric-block-api-v1-bridge")) {
+        isTransitive = false
+    }
     runtimeOnly(project(":fabric-blockrenderlayer-v1-bridge")) {
         isTransitive = false
     }
