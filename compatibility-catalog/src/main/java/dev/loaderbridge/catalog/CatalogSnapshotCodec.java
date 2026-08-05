@@ -87,13 +87,10 @@ public final class CatalogSnapshotCodec {
             for (var encoded : encodedEntries) {
                 JsonObject value = encoded.getAsJsonObject();
                 JsonObject projectValue = object(value, "project");
-                RepositoryId repository = new RepositoryId(string(projectValue, "repository"));
-                String projectId = string(projectValue, "projectId");
-                RepositoryProject project = new RepositoryProject(repository, projectId,
-                        string(projectValue, "slug"), string(projectValue, "title"),
-                        longValue(projectValue, "downloads"), optionalUri(projectValue, "sourceUrl"));
+                RepositoryProject project = decodeProject(projectValue);
                 entries.add(new CatalogEntry(integer(value, "rank"), project,
-                        artifact(repository, projectId, object(value, "artifact"))));
+                        decodeArtifact(project.repository(), project.projectId(),
+                                object(value, "artifact"))));
             }
             return new CatalogSnapshot(schemaVersion, string(root, "snapshotId"),
                     Instant.parse(string(root, "frozenAt")), string(root, "minecraftVersion"),
@@ -106,19 +103,29 @@ public final class CatalogSnapshotCodec {
     private static JsonObject entry(CatalogEntry entry) {
         JsonObject value = new JsonObject();
         value.addProperty("rank", entry.rank());
-        JsonObject project = new JsonObject();
-        project.addProperty("repository", entry.project().repository().value());
-        project.addProperty("projectId", entry.project().projectId());
-        project.addProperty("slug", entry.project().slug());
-        project.addProperty("title", entry.project().title());
-        project.addProperty("downloads", entry.project().downloads());
-        entry.project().sourceUrl().ifPresent(uri -> project.addProperty("sourceUrl", uri.toString()));
-        value.add("project", project);
-        value.add("artifact", artifact(entry.artifact()));
+        value.add("project", encodeProject(entry.project()));
+        value.add("artifact", encodeArtifact(entry.artifact()));
         return value;
     }
 
-    private static JsonObject artifact(RepositoryArtifact artifact) {
+    static JsonObject encodeProject(RepositoryProject source) {
+        JsonObject project = new JsonObject();
+        project.addProperty("repository", source.repository().value());
+        project.addProperty("projectId", source.projectId());
+        project.addProperty("slug", source.slug());
+        project.addProperty("title", source.title());
+        project.addProperty("downloads", source.downloads());
+        source.sourceUrl().ifPresent(uri -> project.addProperty("sourceUrl", uri.toString()));
+        return project;
+    }
+
+    static RepositoryProject decodeProject(JsonObject value) {
+        return new RepositoryProject(new RepositoryId(string(value, "repository")),
+                string(value, "projectId"), string(value, "slug"), string(value, "title"),
+                longValue(value, "downloads"), optionalUri(value, "sourceUrl"));
+    }
+
+    static JsonObject encodeArtifact(RepositoryArtifact artifact) {
         JsonObject value = new JsonObject();
         value.addProperty("versionId", artifact.versionId());
         value.addProperty("versionNumber", artifact.versionNumber());
@@ -154,7 +161,7 @@ public final class CatalogSnapshotCodec {
         return value;
     }
 
-    private static RepositoryArtifact artifact(RepositoryId repository, String projectId,
+    static RepositoryArtifact decodeArtifact(RepositoryId repository, String projectId,
             JsonObject value) {
         EnumMap<HashAlgorithm, String> hashes = new EnumMap<>(HashAlgorithm.class);
         object(value, "hashes").entrySet().forEach(entry -> hashes.put(

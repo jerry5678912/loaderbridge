@@ -35,6 +35,24 @@ class LoaderBridgeCliTest {
     }
 
     @Test
+    void rejectsCatalogCaptureThatWouldOverwriteAnotherOutput() {
+        int exitCode = new CommandLine(new LoaderBridgeCli()).execute("catalog", "freeze",
+                "--snapshot-id", "2026-08", "--frozen-at", "2026-08-01T00:00:00Z",
+                "--output", "snapshot.json", "--capture-output", "snapshot.json");
+
+        assertThat(exitCode).isEqualTo(LoaderBridgeCli.INVALID_INPUT);
+    }
+
+    @Test
+    void exposesOfflineCatalogReproductionWithStableFailureCode() {
+        int exitCode = new CommandLine(new LoaderBridgeCli()).execute("catalog", "reproduce",
+                "--capture", temporaryDirectory.resolve("missing-inputs.json").toString(),
+                "--output", temporaryDirectory.resolve("snapshot.json").toString());
+
+        assertThat(exitCode).isEqualTo(LoaderBridgeCli.UNSUPPORTED);
+    }
+
+    @Test
     void rejectsUnqualifiedRepositoryProjectIds() {
         int exitCode = new CommandLine(new LoaderBridgeCli()).execute("resolve",
                 "--project", "missing-prefix", "--output", "resolved");

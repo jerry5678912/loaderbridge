@@ -7,7 +7,7 @@ The engine is split so a future GUI can call the same Java API as the CLI.
 | `bridge-api` | Stable launcher-neutral adapter records and diagnostics |
 | `repository-modrinth` | Modrinth v2 search, version metadata, dependencies, and verified artifact caching |
 | `repository-curseforge` | Authenticated CurseForge search, paginated file/dependency resolution, and verified artifact caching |
-| `compatibility-catalog` | Deterministic ranking, cross-site deduplication, immutable snapshots, and canonical serialization |
+| `compatibility-catalog` | Deterministic ranking, cross-site deduplication, immutable snapshots, recursive locks, normalized input capture, and fail-closed offline replay |
 | `scenario-api` | Versioned behavioral scenarios, bounded steps, plugins, results, and failure classification |
 | `scenario-yaml` | Safe YAML 1.2 parsing into scenario contracts without arbitrary object construction |
 | `fabric-metadata` | Safe archive inspection and local dependency planning |

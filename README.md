@@ -17,8 +17,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   metadata timeouts, and deterministic four-worker page resolution. A live
   probe froze 1,000 unique installable Fabric 1.21.1 projects on 2026-08-06.
   Its companion lock contains 1,126 checksum-pinned artifacts and 1,444
-  explicit declared-to-resolved required edges. Captured upstream ranking
-  inputs and scheduled publication remain open before M0 can be claimed.
+  explicit declared-to-resolved required edges. A 29.3 MB normalized input
+  capture reproduced both the snapshot and dependency lock byte-for-byte
+  without credentials or live repository access, satisfying the M0
+  reproducibility gate. Scheduled public snapshot publication remains separate.
 - ASM reference inventory for Loader API, Fabric API, Minecraft, reflection-like
   strings, and native libraries.
 - Checksum-verified Mojang 1.21.1 client artifacts plus bundled Fabric
@@ -784,6 +786,10 @@ CURSEFORGE_API_KEY=... cli/build/install/cli/bin/cli catalog lock \
   --snapshot catalog-2026-08.json \
   --output catalog-2026-08.dependencies.lock.json
 
+cli/build/install/cli/bin/cli catalog reproduce \
+  --capture catalog-2026-08.inputs.json \
+  --output reproduced-catalog-2026-08.json
+
 cli/build/install/cli/bin/cli resolve \
   --project modrinth:AABBCCDD \
   --output path/to/resolved-instance
@@ -805,6 +811,11 @@ frozen snapshot without re-querying rankings. Catalog roots exclude alpha
 releases; required dependencies may use compatible alpha builds or exact
 Fabric pins, and a cross-loader pin falls back only to a Fabric build from the
 same repository project. Every substitution is explicit in `resolvedEdges`.
+The freeze also writes a deterministic `.inputs.json` capture containing the
+normalized public results of every ranking, version-list, and pinned-version
+lookup. It never stores request headers or credentials. `catalog reproduce`
+uses only that bounded capture through fail-closed replay providers and cannot
+download artifacts or fall back to the network.
 `resolve` installs the selected release and its recursively required
 dependencies under `mods/`, retaining verified downloads in `.cache/` and
 writing `bridge.repository.lock.json`.

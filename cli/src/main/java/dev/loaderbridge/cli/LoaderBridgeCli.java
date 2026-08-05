@@ -11,7 +11,10 @@ import dev.loaderbridge.api.LoaderId;
 import dev.loaderbridge.api.repository.RepositoryProvider;
 import dev.loaderbridge.catalog.CatalogCollector;
 import dev.loaderbridge.catalog.CatalogDependencyLockCodec;
+import dev.loaderbridge.catalog.CatalogInputCaptureCodec;
 import dev.loaderbridge.catalog.CatalogSnapshotCodec;
+import dev.loaderbridge.catalog.CapturingRepositoryProvider;
+import dev.loaderbridge.catalog.ReplayRepositoryProvider;
 import dev.loaderbridge.catalog.RepositoryDependencyResolver;
 import dev.loaderbridge.catalog.RepositoryResolutionLockCodec;
 import dev.loaderbridge.integration.ForgeServerVerifier;
@@ -224,7 +227,7 @@ public final class LoaderBridgeCli implements Runnable {
     }
 
     @Command(name = "catalog", description = "Manage measured compatibility catalogs.",
-            subcommands = {Catalog.Freeze.class, Catalog.Lock.class})
+            subcommands = {Catalog.Freeze.class, Catalog.Lock.class, Catalog.Reproduce.class})
     static final class Catalog implements Runnable {
         @Override
         public void run() {
@@ -247,6 +250,10 @@ public final class LoaderBridgeCli implements Runnable {
                     description = "Companion recursive dependency lock destination.")
             Path lockOutput;
 
+            @Option(names = "--capture-output",
+                    description = "Normalized immutable repository input capture destination.")
+            Path captureOutput;
+
             @Option(names = "--target", defaultValue = "1000")
             int target;
 
@@ -267,13 +274,16 @@ public final class LoaderBridgeCli implements Runnable {
                     return INVALID_INPUT;
                 }
                 Path dependencyLock = lockOutput == null ? defaultCatalogLock(output) : lockOutput;
-                if (output.toAbsolutePath().normalize().equals(
-                        dependencyLock.toAbsolutePath().normalize())) {
-                    System.err.println("Catalog snapshot and dependency lock must use different paths");
+                Path inputCapture = captureOutput == null ? defaultCatalogCapture(output) : captureOutput;
+                if (!distinctPaths(output, dependencyLock, inputCapture)) {
+                    System.err.println("Catalog snapshot, dependency lock, and input capture must use different paths");
                     return INVALID_INPUT;
                 }
-                List<RepositoryProvider> providers = ServiceLoader.load(RepositoryProvider.class).stream()
-                        .map(ServiceLoader.Provider::get).toList();
+                List<CapturingRepositoryProvider> captures = ServiceLoader
+                        .load(RepositoryProvider.class).stream()
+                        .map(ServiceLoader.Provider::get)
+                        .map(CapturingRepositoryProvider::new).toList();
+                List<RepositoryProvider> providers = new ArrayList<>(captures);
                 if (providers.isEmpty()) {
                     System.err.println("No repository providers are installed");
                     return UNSUPPORTED;
@@ -283,11 +293,15 @@ public final class LoaderBridgeCli implements Runnable {
                             perRepository, snapshotId, timestamp);
                     var roots = snapshot.entries().stream().map(entry -> entry.artifact()).toList();
                     var graph = new RepositoryDependencyResolver(providers).resolveRequired(roots);
+                    var capturedInputs = CapturingRepositoryProvider.capture(captures, target,
+                            perRepository, snapshotId, timestamp);
                     new CatalogSnapshotCodec().write(snapshot, output);
                     new CatalogDependencyLockCodec().write(snapshot, graph, dependencyLock);
+                    new CatalogInputCaptureCodec().write(capturedInputs, inputCapture);
                     System.out.println("Frozen " + snapshot.entries().size() + " projects to " + output);
                     System.out.println("Locked " + graph.installationOrder().size()
                             + " root/dependency artifacts to " + dependencyLock);
+                    System.out.println("Captured repository inputs to " + inputCapture);
                     return 0;
                 } catch (IOException exception) {
                     System.err.println("Catalog freeze failed: " + exception.getMessage());
@@ -296,12 +310,11 @@ public final class LoaderBridgeCli implements Runnable {
             }
 
             private static Path defaultCatalogLock(Path snapshot) {
-                Path fileName = snapshot.getFileName();
-                String name = fileName == null ? "catalog" : fileName.toString();
-                String base = name.endsWith(".json") ? name.substring(0, name.length() - 5) : name;
-                Path parent = snapshot.getParent();
-                Path lockName = Path.of(base + ".dependencies.lock.json");
-                return parent == null ? lockName : parent.resolve(lockName);
+                return companion(snapshot, ".dependencies.lock.json");
+            }
+
+            private static Path defaultCatalogCapture(Path snapshot) {
+                return companion(snapshot, ".inputs.json");
             }
         }
 
@@ -334,6 +347,61 @@ public final class LoaderBridgeCli implements Runnable {
                     return UNSUPPORTED;
                 }
             }
+        }
+
+        @Command(name = "reproduce",
+                description = "Rebuild a snapshot and dependency lock from captured inputs offline.")
+        static final class Reproduce implements Callable<Integer> {
+            @Option(names = "--capture", required = true)
+            Path captureFile;
+
+            @Option(names = "--output", required = true)
+            Path output;
+
+            @Option(names = "--lock-output")
+            Path lockOutput;
+
+            @Override
+            public Integer call() {
+                Path dependencyLock = lockOutput == null ? companion(output,
+                        ".dependencies.lock.json") : lockOutput;
+                if (!distinctPaths(captureFile, output, dependencyLock)) {
+                    System.err.println("Catalog input capture, snapshot, and dependency lock must use different paths");
+                    return INVALID_INPUT;
+                }
+                try {
+                    var capture = new CatalogInputCaptureCodec().read(captureFile);
+                    List<RepositoryProvider> providers = ReplayRepositoryProvider.from(capture);
+                    var snapshot = new CatalogCollector(providers).collectAndFreeze(
+                            capture.targetSize(), capture.repositoryQuota(), capture.snapshotId(),
+                            capture.frozenAt());
+                    var roots = snapshot.entries().stream().map(entry -> entry.artifact()).toList();
+                    var graph = new RepositoryDependencyResolver(providers).resolveRequired(roots);
+                    new CatalogSnapshotCodec().write(snapshot, output);
+                    new CatalogDependencyLockCodec().write(snapshot, graph, dependencyLock);
+                    System.out.println("Reproduced " + snapshot.entries().size()
+                            + " projects from captured inputs to " + output);
+                    System.out.println("Reproduced dependency lock to " + dependencyLock);
+                    return 0;
+                } catch (IOException | IllegalArgumentException exception) {
+                    System.err.println("Catalog reproduction failed: " + exception.getMessage());
+                    return UNSUPPORTED;
+                }
+            }
+        }
+
+        private static Path companion(Path snapshot, String suffix) {
+            Path fileName = snapshot.getFileName();
+            String name = fileName == null ? "catalog" : fileName.toString();
+            String base = name.endsWith(".json") ? name.substring(0, name.length() - 5) : name;
+            Path parent = snapshot.getParent();
+            Path companion = Path.of(base + suffix);
+            return parent == null ? companion : parent.resolve(companion);
+        }
+
+        private static boolean distinctPaths(Path... paths) {
+            return java.util.Arrays.stream(paths).map(path -> path.toAbsolutePath().normalize())
+                    .distinct().count() == paths.length;
         }
     }
 
