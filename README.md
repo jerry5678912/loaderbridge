@@ -94,7 +94,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - A separately versioned Resource Loader v0 bridge matching
   `fabric-resource-loader-v0:1.3.1+5b5275af19`. Server-data listeners and
   registry-aware factories preserve Fabric IDs and dependency order through
-  initial load, datapack reload, save, and process restart.
+  initial load, datapack reload, save, and process restart. Revision 2 also
+  exposes Fabric built-in resource packs and data packs through Forge's native
+  repository, preserves all three activation policies, synthesizes missing
+  pack metadata, and rejects path and symbolic-link escapes.
 - A separately versioned Resource Conditions API v1 bridge matching
   `fabric-resource-conditions-api-v1:4.3.0+8dc279b119`. It implements Fabric's
   public condition registry and custom codecs plus `true`, logical, loaded-mod,
@@ -286,6 +289,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   and process reload on Forge 52.1.16.
   The same fixture automatically selects Resource Loader v0 and proves its
   listener on initial server resources, `/reload`, and the restarted process.
+  It also registers a Fabric `DEFAULT_ENABLED` built-in data pack, observes
+  Forge discovering and selecting it automatically, reads its marker from the
+  live server resource manager, and repeats the assertion after a complete
+  process/world reload and in both graphical integrated-world sessions.
   It also registers a Fabric custom game rule, changes it through the native
   command, saves it, and verifies the value after a full JVM restart.
   In the graphical Forge 52.1.0 lab it additionally completes a real

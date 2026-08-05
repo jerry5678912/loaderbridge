@@ -25,7 +25,9 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
+import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -963,6 +965,14 @@ public final class FabricLifecycleFixture implements ModInitializer {
                                 + RESOURCE_RELOADS.incrementAndGet());
                     }
                 });
+        boolean builtinPackRegistered = ResourceManagerHelper.registerBuiltinResourcePack(
+                ResourceLocation.fromNamespaceAndPath("loaderbridge", "builtin_fixture"),
+                FabricLoader.getInstance().getModContainer(
+                        "loaderbridge_fabric_lifecycle_fixture").orElseThrow(),
+                ResourcePackActivationType.DEFAULT_ENABLED);
+        if (!builtinPackRegistered) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_BUILTIN_PACK_REGISTRATION_FAILED");
+        }
         ServerChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
             if (isTestChunk(chunk) && CHUNK_LOADED.compareAndSet(false, true)) {
                 System.out.println("LOADERBRIDGE_FABRIC_CHUNK_LOADED");
@@ -1022,6 +1032,11 @@ public final class FabricLifecycleFixture implements ModInitializer {
         });
         ServerLifecycleEvents.SERVER_STARTING.register(server -> SERVER_STATE.compareAndSet(0, 1));
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            if (server.getResourceManager().getResource(ResourceLocation.fromNamespaceAndPath(
+                    "loaderbridge_builtin", "loaderbridge_marker.txt")).isEmpty()) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_BUILTIN_PACK_LOAD_FAILED");
+            }
+            System.out.println("LOADERBRIDGE_FABRIC_BUILTIN_PACK_READY default_enabled=true");
             String dynamicValue = server.registryAccess().registryOrThrow(DYNAMIC_REGISTRY_KEY)
                     .get(ResourceLocation.fromNamespaceAndPath("loaderbridge", "value"));
             if (!"dynamic-value".equals(dynamicValue)

@@ -18,7 +18,7 @@ The engine is split so a future GUI can call the same Java API as the CLI.
 | `fabric-item-group-api-v1-bridge` | Fabric custom creative tabs and ordered item-entry callbacks mapped to Forge tab-content builds |
 | `fabric-command-api-v2-bridge` | Fabric server command registration mapped to Forge's live dispatcher and build context |
 | `fabric-lifecycle-events-bridge` | Complete Fabric lifecycle-events-v1 server/world/entity/block-entity/chunk/tick/tag surface mapped to Forge plus exact Mixin hooks |
-| `fabric-resource-loader-v0-bridge` | Fabric resource listener contracts and ordered server-data reload registration |
+| `fabric-resource-loader-v0-bridge` | Fabric resource listeners plus safe built-in pack discovery and Forge repository exposure |
 | `fabric-game-rule-api-v1-bridge` | Fabric custom game-rule registration, types, visitors, callbacks, and persistence |
 | `forge-runtime` | Forge language provider and custom mod-container boundary |
 | `forge-transform-service` | Early ModLauncher transformation-service boundary |

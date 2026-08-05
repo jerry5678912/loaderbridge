@@ -455,7 +455,7 @@ class FabricToForgeAdapterTest {
                 .contains(
                         "fabric-loot-api-v3-bridge-1.0.3_3f89f5a519-loaderbridge.1.jar",
                         "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
-                        "fabric-resource-loader-v0-bridge-1.3.1_5b5275af19-loaderbridge.1.jar");
+                        "fabric-resource-loader-v0-bridge-1.3.1_5b5275af19-loaderbridge.2.jar");
     }
 
     @Test
@@ -1031,7 +1031,7 @@ class FabricToForgeAdapterTest {
                 .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
                 .contains("fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
-                        "fabric-resource-loader-v0-bridge-1.3.1_5b5275af19-loaderbridge.1.jar");
+                        "fabric-resource-loader-v0-bridge-1.3.1_5b5275af19-loaderbridge.2.jar");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
                 .contains("fabric-api-base-bridge", "fabric-resource-loader-v0-bridge");
     }

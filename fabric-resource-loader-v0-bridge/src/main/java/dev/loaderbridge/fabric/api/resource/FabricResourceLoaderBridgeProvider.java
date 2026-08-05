@@ -13,7 +13,7 @@ import java.util.Set;
 public final class FabricResourceLoaderBridgeProvider implements RuntimeBridgeModuleProvider {
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-resource-loader-v0-bridge", "fabric-resource-loader-v0:1.3.1",
-            "1.3.1+5b5275af19-loaderbridge.1", BridgeCapability.FABRIC_API,
+            "1.3.1+5b5275af19-loaderbridge.2", BridgeCapability.FABRIC_API,
             Set.of("net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener",
                     "net.fabricmc.fabric.api.resource.ModResourcePack",
                     "net.fabricmc.fabric.api.resource.ResourceManagerHelper",

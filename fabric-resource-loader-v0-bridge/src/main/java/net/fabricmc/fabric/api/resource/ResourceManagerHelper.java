@@ -26,7 +26,8 @@ public interface ResourceManagerHelper {
     static boolean registerBuiltinResourcePack(ResourceLocation id, ModContainer container,
             ResourcePackActivationType activationType) {
         return ResourceManagerHelperImpl.registerBuiltinResourcePack(id,
-                "resourcepacks/" + id.getPath(), container, Component.literal(id.toString()), activationType);
+                "resourcepacks/" + id.getPath(), container,
+                Component.literal(id.getNamespace() + "/" + id.getPath()), activationType);
     }
 
     static boolean registerBuiltinResourcePack(ResourceLocation id, ModContainer container,
@@ -45,7 +46,7 @@ public interface ResourceManagerHelper {
     static boolean registerBuiltinResourcePack(ResourceLocation id, String subPath,
             ModContainer container, boolean enabledByDefault) {
         return ResourceManagerHelperImpl.registerBuiltinResourcePack(id, subPath, container,
-                Component.literal(id.toString()), enabledByDefault
+                Component.literal(id.getNamespace() + "/" + id.getPath()), enabledByDefault
                         ? ResourcePackActivationType.DEFAULT_ENABLED : ResourcePackActivationType.NORMAL);
     }
 }
