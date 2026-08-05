@@ -16,6 +16,13 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added Fabric's `FabricBrewingRecipeRegistryBuilder` contract and routes its
+  build event through Forge's native brewing builder. Item and potion recipes,
+  feature gating, and bulk water/awkward registrations use native Forge 52
+  recipe entries. A translated Fabric content item brewed water into awkward
+  potions in a real brewing stand, retained its Fabric-defined gold-nugget
+  remainder, and passed graphical plus two-process dedicated-server
+  save/reload gates.
 - Added stack-aware Fabric recipe remainders to Forge's crafting and furnace
   pipelines. The bridge delegates Forge's stack hooks to `FabricItem` and
   carries one identity-bound result between Forge's separate predicate and

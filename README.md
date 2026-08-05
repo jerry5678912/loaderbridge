@@ -564,6 +564,18 @@ dedicated-server processes, and deterministic preparation passed. A direct
 custom brewing scenario, enchanting, and client Item API hooks remain open, so
 the complete module and M5 gates remain unclaimed.
 
+Fabric Content Registries revision 2 and Item API behavioral revision 17
+passed on 2026-08-05. The bridge now exposes the exact
+`FabricBrewingRecipeRegistryBuilder` contract and invokes its build event with
+Forge's native `PotionBrewing.Builder`. Its injected builder methods add item
+and potion mixes with Fabric's feature gating and bulk water/awkward semantics.
+The translated Fabric-only content item served as a real brewing ingredient:
+three water potions became awkward potions and the ingredient slot retained
+the Fabric-defined gold nugget. The result repeated across a fresh graphical
+world, same-process save/reload, and two dedicated-server processes. Repeated
+preparation remained byte-identical. Enchanting and client Item API hooks
+remain open, so the complete module and M5 gates remain unclaimed.
+
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,
 tilde ranges, caret ranges, trailing-zero equality, and the special

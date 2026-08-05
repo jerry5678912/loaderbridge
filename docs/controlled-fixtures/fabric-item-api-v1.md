@@ -30,6 +30,13 @@ also registers the Fabric item as fuel through `FuelRegistry`, places a real
 furnace block entity in the world, cooks cobblestone for 200 ticks, and requires
 stone output plus the gold-nugget remainder.
 
+Behavioral revision 17 adds the Content Registries revision 2 brewing bridge.
+The fixture registers a Fabric potion recipe that uses its content item to turn
+water into awkward potions. It places a real brewing stand with three water
+potions, the Fabric ingredient, and blaze powder, advances the native block
+entity, and requires all three awkward outputs. The ingredient slot retains a
+gold nugget and the same callback counter proves the remainder method runs once.
+
 The fixture is also a content-mod gate. It registers
 `loaderbridge_item_api_fixture:fabric_tool` and packages a valid inventory
 model using a vanilla gold-ingot texture plus an English translation. The final
@@ -39,7 +46,7 @@ item.
 The Forge 52.1.16 graphical scenario used a clean world and reached:
 
 - `LOADERBRIDGE_FABRIC_ITEM_CONTENT_READY` before the title screen;
-- `LOADERBRIDGE_FABRIC_ITEM_API_READY damage=2,slot=head,glint=true,remainder=gold_nugget,furnace=stone` on both integrated
+- `LOADERBRIDGE_FABRIC_ITEM_API_READY damage=2,slot=head,glint=true,remainder=gold_nugget,furnace=stone,brewing=awkward` on both integrated
   server starts;
 - title screen and integrated-world ready;
 - world save, clean disconnect, and same-process world reload;
@@ -55,16 +62,14 @@ Repeated preparation was byte-identical:
 - API Base bridge SHA-256:
   `338872b4c7690bc9c784275502f0b13b094db29a46fc0f881d141c79d01b2e32`
 - Content Registries bridge SHA-256:
-  `6bf6c9497b292a180051d1f3455565b65a2a0395148b817b43d389aab874f650`
+  `4ed6126734be46dae847446281e47776671675e8b1aba57b5748e43416fc2b19`
 - Item API bridge revision 16 SHA-256:
   `eb178a964f12784b093a1d8dff3efd9c3db26cc620c95c89518f8d674380aa52`
 - Lifecycle bridge SHA-256:
   `4c60518155e5402b78a764c2804ea8fe01e530c0a05ba6e6357c00a97ae472fa`
-- transformed fixture revision 16 SHA-256:
-  `efe4d47cca7c1fd9149b2b6c6510d8995fe1731bb2d37ecf17095df55f4ca05d`
+- transformed fixture behavioral revision 17 SHA-256:
+  `1d67ea5386477b374e5fe12b09b0aeb4b383191e2c7d1e67b1a561b098eb74b1`
 
-This closes the crafting and furnace remainder increment. Forge's brewing path
-uses the same generic stack hook, but a direct custom Fabric brewing scenario
-still awaits the corresponding brewing-registry bridge. Full enchanting and
-client tooltip/animation behavior also remain open, so this does not close the
-entire module, M5, or the 60% catalog gate.
+This closes the crafting, furnace, and direct custom-brewing remainder
+increment. Full enchanting and client tooltip/animation behavior remain open,
+so this does not close the entire module, M5, or the 60% catalog gate.

@@ -14,12 +14,14 @@ public final class FabricContentRegistriesBridgeProvider implements RuntimeBridg
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-content-registries-v0-bridge",
             "fabric-content-registries-v0:8.0.19",
-            "8.0.19+b559734419-loaderbridge.1",
+            "8.0.19+b559734419-loaderbridge.2",
             BridgeCapability.FABRIC_API,
             Set.of(
                     "net.fabricmc.fabric.api.util.Item2ObjectMap",
                     "net.fabricmc.fabric.api.util.Block2ObjectMap",
                     "net.fabricmc.fabric.api.registry.FuelRegistry",
+                    "net.fabricmc.fabric.api.registry.FabricBrewingRecipeRegistryBuilder",
+                    "net.fabricmc.fabric.api.registry.FabricBrewingRecipeRegistryBuilder$BuildCallback",
                     "net.fabricmc.fabric.api.registry.CompostingChanceRegistry",
                     "net.fabricmc.fabric.api.registry.FlammableBlockRegistry",
                     "net.fabricmc.fabric.api.registry.FlammableBlockRegistry$Entry",

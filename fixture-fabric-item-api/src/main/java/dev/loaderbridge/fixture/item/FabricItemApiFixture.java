@@ -8,6 +8,7 @@ import net.fabricmc.fabric.api.item.v1.DefaultItemComponentEvents;
 import net.fabricmc.fabric.api.item.v1.FabricItem;
 import net.fabricmc.fabric.api.item.v1.FabricItemStack;
 import net.fabricmc.fabric.api.item.v1.FabricTooltipType;
+import net.fabricmc.fabric.api.registry.FabricBrewingRecipeRegistryBuilder;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -24,13 +25,17 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
+import net.minecraft.world.level.block.entity.BrewingStandBlockEntity;
 import net.minecraft.world.level.block.entity.FurnaceBlockEntity;
 
 public final class FabricItemApiFixture implements ModInitializer {
@@ -48,6 +53,10 @@ public final class FabricItemApiFixture implements ModInitializer {
                         "loaderbridge_item_api_fixture", "fabric_tool"),
                 new FabricTool(properties));
         FuelRegistry.INSTANCE.add(fabricTool, 200);
+        FabricBrewingRecipeRegistryBuilder.BUILD.register(builder ->
+                ((FabricBrewingRecipeRegistryBuilder) (Object) builder)
+                        .registerPotionRecipe(Potions.WATER,
+                                Ingredient.of(fabricTool), Potions.AWKWARD));
         DefaultItemComponentEvents.MODIFY.register(context -> context.modify(
                 fabricTool, builder -> builder.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true)));
 
@@ -108,8 +117,36 @@ public final class FabricItemApiFixture implements ModInitializer {
                     || remainderCalls != callsAfterRecipe + 1) {
                 throw new IllegalStateException("Fabric furnace remainder pipeline failed");
             }
+            int callsAfterFurnace = remainderCalls;
+            BlockPos brewingPos = server.overworld().getSharedSpawnPos().offset(6, 0, 0);
+            server.overworld().setBlock(brewingPos,
+                    Blocks.BREWING_STAND.defaultBlockState(), 3);
+            BrewingStandBlockEntity brewingStand = (BrewingStandBlockEntity)
+                    server.overworld().getBlockEntity(brewingPos);
+            for (int slot = 0; slot < 3; slot++) {
+                brewingStand.setItem(slot,
+                        PotionContents.createItemStack(Items.POTION, Potions.WATER));
+            }
+            brewingStand.setItem(3, new ItemStack(fabricTool));
+            brewingStand.setItem(4, new ItemStack(Items.BLAZE_POWDER));
+            for (int tick = 0; tick < 420; tick++) {
+                BrewingStandBlockEntity.serverTick(server.overworld(), brewingPos,
+                        server.overworld().getBlockState(brewingPos), brewingStand);
+            }
+            for (int slot = 0; slot < 3; slot++) {
+                if (!brewingStand.getItem(slot).getOrDefault(
+                        DataComponents.POTION_CONTENTS, PotionContents.EMPTY)
+                        .is(Potions.AWKWARD)) {
+                    throw new IllegalStateException("Fabric brewing output pipeline failed");
+                }
+            }
+            if (!brewingStand.getItem(3).is(Items.GOLD_NUGGET)
+                    || remainderCalls != callsAfterFurnace + 1) {
+                throw new IllegalStateException("Fabric brewing remainder pipeline failed");
+            }
             System.out.println("LOADERBRIDGE_FABRIC_ITEM_API_READY "
-                    + "damage=2,slot=head,glint=true,remainder=gold_nugget,furnace=stone");
+                    + "damage=2,slot=head,glint=true,remainder=gold_nugget,"
+                    + "furnace=stone,brewing=awkward");
         });
     }
 
