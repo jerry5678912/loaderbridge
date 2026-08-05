@@ -1,7 +1,7 @@
 # Fabric Data Attachment API v1 controlled fixture
 
 This fixture tests the pinned `fabric-data-attachment-api-v1:1.4.7+5b36e0f719`
-contract through LoaderBridge revision 6 on Minecraft 1.21.1 and Forge 52.1.16.
+contract through LoaderBridge revision 7 on Minecraft 1.21.1 and Forge 52.1.16.
 
 The source fixture is compiled as a Fabric mod and transformed by the ordinary
 `prepare` command. Content inspection automatically selected Data Attachment
@@ -39,6 +39,8 @@ wave:
   value `59` from mutation synchronization in the fresh session;
 - after save and world reopen, a new client player observed `53/59` again as
   synchronization session 2;
+- before each play session, a configuration task negotiated exactly the two
+  syncable fixture attachment IDs and blocked until the response arrived;
 - the integrated server simultaneously restored persistent values `41/43` and
   the graphical process stopped cleanly.
 
@@ -56,18 +58,23 @@ The runtime marker was:
 
 Prepared artifact evidence:
 
-- bridge SHA-256: `ce17b6dff509125df1ac606a76fa88c40669e63eb64821374236395bcf1bd0d1`
-- fixture SHA-256: `9f49a97d1fd491d8d3153469f7a90c47464911d50224d9d332e6e622f4cede30`
-- lock SHA-256: `4d9df4f302a4f0fadcb7ee5a47fdacc43be8f960d7628c51a9442137ca2fad68`
+- bridge SHA-256: `b2e75249f783ea93200cd1374bd21c65b28fb01ed2b6f60307be1f45569ee6bc`
+- fixture SHA-256: `56be8e0fb7370692e0d6df018b2021e3ed7dbbd590927129a7e7fbbb225fa06b`
+- lock SHA-256: `785298ab9de1241620ea4b8a33d019f2ca2f67a13870ddcbdbe328d5339b766b`
 
 Unit contracts additionally prove persistent-only serialization, registry
 lookup, built-in synchronization predicates, null/error semantics, and
-copy-on-death filtering. Runtime callbacks transfer attachments on respawn,
+copy-on-death filtering. Negotiation contracts encode/decode the client set,
+intersect it with server-registered syncable IDs, and reject an unknown
+client-only ID. Runtime callbacks transfer attachments on respawn,
 entity world replacement, and mob conversion using the completed Entity Events
 bridge.
 
-This evidence does not yet prove explicit negotiation of the exact synchronized
-attachment type set with a client whose registered types differ, nor a
-generated ProtoChunk-to-LevelChunk transfer. Those are explicit open gates
-before Data Attachment API v1 is called complete. It also does not complete M5
-or establish the roadmap's 60% catalog gate.
+The graphical run proves equal-set negotiation but not a remote client and
+server with different mod lists; mismatched-set intersection is currently a
+unit contract. This evidence also does not yet prove correctly ordered initial
+wire delivery and application for entity, block-entity, and chunk targets,
+packet partitioning/limits, unknown-target policy, or a generated
+ProtoChunk-to-LevelChunk transfer. Those remain open before Data Attachment API
+v1 is called complete. It also does not complete M5 or establish the roadmap's
+60% catalog gate.

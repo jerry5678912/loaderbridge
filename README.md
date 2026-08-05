@@ -136,8 +136,11 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   addressing, codec-backed initial and mutation synchronization, tracking and
   chunk-watch delivery, predicate filtering, and client application; a
   graphical save/reload scenario proved the wire path in two client sessions.
-  Explicit per-attachment capability negotiation and the full proto-chunk
-  generation path are still open, so the module is not yet declared complete.
+  Revision 7 adds a configuration-phase request/response task that intersects
+  the client and server attachment-type sets before any play packets are sent.
+  Target-specific entity/block-entity/chunk ordering, packet partitioning and
+  limits, unknown-target handling, and the full proto-chunk generation path are
+  still open, so the module is not yet declared complete.
 - A separately versioned Game Rule API v1 bridge matching
   `fabric-game-rule-api-v1:1.0.53+6ced4dd919`. Boolean, bounded integer,
   double, enum, visitor, callback, custom-category, command, serialization,
@@ -150,6 +153,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   connection events, exact player lookup collections, bidirectional
   configuration receivers/sending, and entity start/stop tracking callbacks over
   Forge's payload channel without replacing Fabric payload objects in mod code.
+  Forge currently rejects one logical payload ID registered in opposite
+  directions on the shared bridge channel; internal protocols use distinct wire
+  IDs, while generic same-ID bidirectional mod payloads remain an open
+  Networking API compatibility gate.
 - A separately versioned Object Builder API v1 bridge matching
   `fabric-object-builder-api-v1:15.2.1+40875a9319`. It currently implements
   `FabricBlockEntityTypeBuilder`, `FabricDefaultAttributeRegistry`, and the
@@ -417,8 +424,11 @@ Revision 6 then passed a graphical Forge 52.1.16 run: the client observed
 server-level value `53` from join-time initial synchronization and player value
 `59` from live mutation synchronization, both before and after saving and
 reopening the world. A dedicated-server regression restored `41/43` and stopped
-cleanly. Per-attachment client capability negotiation and the generated
-ProtoChunk path remain open.
+cleanly. Revision 7 added a blocking configuration task and negotiated both
+fixture attachment types in each of the two graphical connection sessions;
+unit coverage also removes an unknown client-only ID from the accepted set.
+Entity/block-entity/chunk wire ordering and the generated ProtoChunk path remain
+open.
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,

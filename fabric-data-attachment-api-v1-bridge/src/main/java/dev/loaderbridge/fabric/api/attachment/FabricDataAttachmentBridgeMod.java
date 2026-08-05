@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
 import net.fabricmc.fabric.impl.attachment.AttachmentTargetImpl;
 import net.fabricmc.fabric.impl.attachment.sync.AttachmentSyncRuntime;
+import net.fabricmc.fabric.impl.attachment.sync.AttachmentNegotiation;
 import net.fabricmc.fabric.impl.attachment.sync.s2c.AttachmentSyncPayloadS2C;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -21,6 +22,7 @@ import net.minecraftforge.fml.loading.FMLEnvironment;
 @Mod("loaderbridge_fabric_data_attachment_api_v1")
 public final class FabricDataAttachmentBridgeMod {
     public FabricDataAttachmentBridgeMod() {
+        AttachmentNegotiation.initialize();
         PayloadTypeRegistry.playS2C().register(
                 AttachmentSyncPayloadS2C.ID, AttachmentSyncPayloadS2C.CODEC);
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
@@ -31,6 +33,7 @@ public final class FabricDataAttachmentBridgeMod {
         EntityTrackingEvents.START_TRACKING.register((entity, player) ->
                 AttachmentSyncRuntime.syncInitial((AttachmentTarget) (Object) entity, player));
         MinecraftForge.EVENT_BUS.addListener(this::onChunkWatch);
+        MinecraftForge.EVENT_BUS.addListener(AttachmentNegotiation::gatherLoginTask);
         if (FMLEnvironment.dist == Dist.CLIENT) FabricDataAttachmentClientHooks.register();
         ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) ->
                 AttachmentTargetImpl.transfer((AttachmentTarget) (Object) oldPlayer,

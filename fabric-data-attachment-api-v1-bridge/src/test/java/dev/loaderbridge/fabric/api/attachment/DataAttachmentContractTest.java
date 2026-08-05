@@ -35,7 +35,7 @@ class DataAttachmentContractTest {
         assertThat(descriptor.contractVersion())
                 .isEqualTo("fabric-data-attachment-api-v1:1.4.7");
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("1.4.7+5b36e0f719-loaderbridge.6");
+                .isEqualTo("1.4.7+5b36e0f719-loaderbridge.7");
         assertThat(descriptor.providedClasses()).contains(
                 "net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry",
                 "net.fabricmc.fabric.api.attachment.v1.AttachmentSyncPredicate",
@@ -45,7 +45,7 @@ class DataAttachmentContractTest {
                 "/loaderbridge.fabric-data-attachment-api-v1.mixins.json")) {
             assertThat(stream).isNotNull();
             assertThat(new String(stream.readAllBytes(), StandardCharsets.UTF_8))
-                    .contains("AttachmentTargetsMixin");
+                    .contains("AttachmentTargetsMixin", "ConnectionMixin");
         }
     }
 

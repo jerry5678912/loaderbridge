@@ -48,6 +48,7 @@ public final class AttachmentSyncRuntime {
             ServerPlayer player) {
         if (!type.isSynced() || !ServerPlayNetworking.canSend(player,
                 AttachmentSyncPayloadS2C.ID)) return false;
+        if (!AttachmentNegotiation.supports(player, type)) return false;
         return ((AttachmentTypeImpl<?>) type).syncPredicate().test(target, player);
     }
 
