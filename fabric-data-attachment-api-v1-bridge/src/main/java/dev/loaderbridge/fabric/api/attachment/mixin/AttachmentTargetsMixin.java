@@ -3,6 +3,8 @@ package dev.loaderbridge.fabric.api.attachment.mixin;
 import java.util.IdentityHashMap;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.fabricmc.fabric.impl.attachment.AttachmentTargetImpl;
+import net.fabricmc.fabric.impl.attachment.AttachmentPersistentState;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -50,5 +52,6 @@ abstract class AttachmentTargetsMixin implements AttachmentTargetImpl {
         Object target = this;
         if (target instanceof BlockEntity blockEntity) blockEntity.setChanged();
         if (target instanceof ChunkAccess chunk) chunk.setUnsaved(true);
+        if (target instanceof ServerLevel level) AttachmentPersistentState.getOrCreate(level).setDirty();
     }
 }

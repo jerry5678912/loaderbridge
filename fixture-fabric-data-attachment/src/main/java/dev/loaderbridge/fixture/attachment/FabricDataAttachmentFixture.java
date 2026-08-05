@@ -64,6 +64,19 @@ public final class FabricDataAttachmentFixture implements ModInitializer {
                 || !chunk.isUnsaved()) {
             throw new IllegalStateException("Data attachment chunk target failed");
         }
+        Integer savedLevel = levelTarget.getAttached(PERSISTENT);
+        Integer savedChunk = chunkTarget.getAttached(PERSISTENT);
+        if (savedLevel == null && savedChunk == null) {
+            levelTarget.setAttached(PERSISTENT, 41);
+            chunkTarget.setAttached(PERSISTENT, 43);
+            System.out.println("LOADERBRIDGE_DATA_ATTACHMENT_PERSIST_INIT level=41 chunk=43");
+        } else if (!Integer.valueOf(41).equals(savedLevel)
+                || !Integer.valueOf(43).equals(savedChunk)) {
+            throw new IllegalStateException("Data attachment process persistence failed: level="
+                    + savedLevel + " chunk=" + savedChunk);
+        } else {
+            System.out.println("LOADERBRIDGE_DATA_ATTACHMENT_PERSIST_RELOAD level=41 chunk=43");
+        }
         System.out.println("LOADERBRIDGE_DATA_ATTACHMENT_BASE_READY entity=19 block=23 "
                 + "level=8 chunk=31");
     }

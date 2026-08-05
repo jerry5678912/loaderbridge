@@ -131,8 +131,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   codec-backed entity and block-entity persistence; dirty-state propagation;
   and Fabric copy rules for respawn, world changes, and mob conversion.
   Inspection selects its Entity Events, Object Builder, Networking, and API
-  Base dependencies automatically. World/chunk persistence and wire sync are
-  still open and the module is not yet declared complete.
+  Base dependencies automatically. Server-level SavedData and chunk serializer
+  persistence now survive process restarts. Wire synchronization and the full
+  proto-chunk generation path are still open, so the module is not yet declared
+  complete.
 - A separately versioned Game Rule API v1 bridge matching
   `fabric-game-rule-api-v1:1.0.53+6ced4dd919`. Boolean, bounded integer,
   double, enum, visitor, callback, custom-category, command, serialization,
@@ -404,6 +406,10 @@ entity and block-entity codec/NBT round trips, chunk dirtying, automatic bridge
 dependency selection, world flush, and clean dedicated-server shutdown. This
 is a base increment rather than the full module gate; see
 [the controlled evidence](docs/controlled-fixtures/fabric-data-attachment-api-v1.md).
+The follow-up persistence wave used a fresh world and two separate Forge server
+processes to prove level value `41` and chunk value `43` survive disk save and
+reload through SavedData, chunk serialization, and the ImposterProtoChunk
+wrapper path.
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,

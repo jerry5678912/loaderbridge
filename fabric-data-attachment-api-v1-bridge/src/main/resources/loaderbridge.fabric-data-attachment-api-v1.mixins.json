@@ -6,7 +6,11 @@
   "mixins": [
     "AttachmentTargetsMixin",
     "BlockEntityPersistenceMixin",
-    "EntityPersistenceMixin"
+    "ChunkSerializerMixin",
+    "EntityPersistenceMixin",
+    "ImposterProtoChunkMixin",
+    "LevelChunkTransferMixin",
+    "ServerLevelPersistenceMixin"
   ],
   "injectors": {"defaultRequire": 1}
 }

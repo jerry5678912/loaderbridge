@@ -28,7 +28,7 @@ class DataAttachmentContractTest {
         assertThat(descriptor.contractVersion())
                 .isEqualTo("fabric-data-attachment-api-v1:1.4.7");
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("1.4.7+5b36e0f719-loaderbridge.2");
+                .isEqualTo("1.4.7+5b36e0f719-loaderbridge.5");
         assertThat(descriptor.providedClasses()).contains(
                 "net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry",
                 "net.fabricmc.fabric.api.attachment.v1.AttachmentSyncPredicate",
