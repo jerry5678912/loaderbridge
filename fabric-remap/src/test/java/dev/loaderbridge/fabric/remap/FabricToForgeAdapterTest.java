@@ -523,6 +523,38 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsDataAttachmentBridgeAndItsRuntimeDependencies() throws Exception {
+        Path source = referencedMod("data_attachment_api", "fabric-data-attachment-api-v1",
+                writer -> {
+                    var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "attachment",
+                            "(Lnet/fabricmc/fabric/api/attachment/v1/AttachmentType;)V",
+                            null, null);
+                    method.visitInsn(Opcodes.RETURN);
+                    method.visitMaxs(0, 2);
+                    method.visitEnd();
+                });
+        BridgeRequest request = requestFor(source, "data-attachment-api");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-FAPI-002", "LB-MODULE-003");
+        assertThat(plan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-FAPI-100");
+            assertThat(diagnostic.message()).contains("fabric-data-attachment-api-v1-bridge");
+        });
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains(
+                        "fabric-data-attachment-api-v1-bridge-1.4.7_5b36e0f719-loaderbridge.1.jar",
+                        "fabric-entity-events-v1-bridge-1.8.0_2b27e0a419-loaderbridge.2.jar",
+                        "fabric-object-builder-api-v1-bridge-15.2.1_40875a9319-loaderbridge.6.jar",
+                        "fabric-networking-api-v1-bridge-4.3.1_d30f6a7919-loaderbridge.4.jar");
+    }
+
+    @Test
     void rejectsConditionalPackOverlaysUntilTheirPackSelectionHookExists() throws Exception {
         Path source = temporaryDirectory.resolve("conditional_overlay.jar");
         Files.write(source, jarBytesWithResource(
