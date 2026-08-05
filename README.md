@@ -141,9 +141,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   Revision 8 proves correctly ordered level, player, entity, block-entity, and
   chunk delivery, including a persistent entity already loaded before the
   second client login. Revision 9 adds bounded deterministic packet partitioning,
-  a 1 MiB payload ceiling, stable oversized-value diagnostics, and Fabric's
-  warn-or-strict unknown-target policy. The full proto-chunk generation path is
-  still open, so the module is not yet declared complete.
+  a 1 MiB payload ceiling, stable oversized-value diagnostics, Fabric's
+  warn-or-strict unknown-target policy, and a generated-ProtoChunk transfer
+  proof through the real world-generation conversion path. This completes the
+  pinned Data Attachment API v1 module gate.
 - A separately versioned Game Rule API v1 bridge matching
   `fabric-game-rule-api-v1:1.0.53+6ced4dd919`. Boolean, bounded integer,
   double, enum, visitor, callback, custom-category, command, serialization,
@@ -438,8 +439,11 @@ Only session 1 spawned the persistent entity, proving that the already-loaded
 entity was synchronized on session 2 after save/reload. Revision 9 partitions
 batches within the 1 MiB clientbound limit, rejects oversized single values as
 `LB-ATTACH-005`, and reports missing client targets as `LB-ATTACH-006` under
-Fabric's default-warning or strict-failure policy. The generated ProtoChunk path
-remains open.
+Fabric's default-warning or strict-failure policy. A controlled world-generation
+Mixin seeded value `79` on the genuine pre-conversion `ProtoChunk`; Fabric's
+`CHUNK_GENERATE` callback then observed `79` on the resulting `LevelChunk`.
+That closes the pinned Data Attachment API v1 module gate, but does not complete
+M5 or establish its 60% catalog acceptance gate.
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,

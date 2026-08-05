@@ -1,11 +1,13 @@
 package dev.loaderbridge.fixture.attachment;
 
 import com.mojang.serialization.Codec;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -40,10 +42,24 @@ public final class FabricDataAttachmentFixture implements ModInitializer {
     static final AttachmentType<Integer> SYNCED_CHUNK = AttachmentRegistry.create(
             id("synced_chunk"), builder -> builder.syncWith(
                     ByteBufCodecs.VAR_INT, (target, player) -> true));
+    public static final AttachmentType<Integer> GENERATED_PROTO_CHUNK =
+            AttachmentRegistry.create(id("generated_proto_chunk"));
     private static final AtomicInteger JOIN_SESSIONS = new AtomicInteger();
+    private static final AtomicBoolean PROTO_CHUNK_REPORTED = new AtomicBoolean();
 
     @Override public void onInitialize() {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> verify(server.overworld()));
+        ServerChunkEvents.CHUNK_GENERATE.register((level, chunk) -> {
+            Integer value = ((AttachmentTarget) chunk).getAttached(GENERATED_PROTO_CHUNK);
+            if (!Integer.valueOf(79).equals(value)) {
+                throw new IllegalStateException(
+                        "Generated ProtoChunk attachment did not transfer: " + value);
+            }
+            if (PROTO_CHUNK_REPORTED.compareAndSet(false, true)) {
+                System.out.println(
+                        "LOADERBRIDGE_DATA_ATTACHMENT_PROTO_CHUNK_TRANSFER_READY value=79");
+            }
+        });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ((AttachmentTarget) handler.player).setAttached(SYNCED_PLAYER, 59);
             if (JOIN_SESSIONS.incrementAndGet() == 1) {

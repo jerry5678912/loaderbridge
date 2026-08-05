@@ -57,11 +57,19 @@ The runtime marker was:
 
 `LOADERBRIDGE_DATA_ATTACHMENT_TARGET_SYNC_READY level=53 player=59 entity=67 block=71 chunk=73 session=2`
 
+`LOADERBRIDGE_DATA_ATTACHMENT_PROTO_CHUNK_TRANSFER_READY value=79`
+
+The generated-chunk scenario seeds value `79` on the genuine pre-conversion
+`ChunkAccess` at `ChunkStatusTasks.lambda$full$2`. The public
+`ServerChunkEvents.CHUNK_GENERATE` callback observes the same value on the
+resulting `LevelChunk`, proving that attachment transfer is not limited to the
+loaded-chunk wrapper path.
+
 Prepared artifact evidence:
 
 - bridge SHA-256: `4729842ba12bd8a196364804832844de185757338d8da93666a33a050dbd7f39`
-- fixture SHA-256: `b3287947adecacd6c3e8301bdb4c94e6bcb0912d89ada207d6206b94c5ef5253`
-- lock SHA-256: `fb1d8d49f660c5c722505f32fab73c7c3e5016925f33418848dcd1e6b5826457`
+- fixture SHA-256: `d482b34b006113ccffe0a797bbff731039d7b1286b78c9f74efdaf1fb6d4f812`
+- lock SHA-256: `01bc8b1f198717d043131b25cc125c6942ef4914b79c3f1df779fcddc929e63a`
 
 Unit contracts additionally prove persistent-only serialization, registry
 lookup, built-in synchronization predicates, null/error semantics, and
@@ -79,7 +87,6 @@ The two-session graphical scenario passed unchanged with this bounded sender.
 
 The graphical run proves equal-set negotiation but not a remote client and
 server with different mod lists; mismatched-set intersection is currently a
-unit contract. This evidence does not yet prove a generated
-ProtoChunk-to-LevelChunk transfer. That remains open before Data Attachment API
-v1 is called complete. It also does not complete M5 or establish the roadmap's
-60% catalog gate.
+unit contract. With the generated ProtoChunk-to-LevelChunk transfer now proven,
+the pinned Data Attachment API v1 module gate is complete. This does not
+complete M5 or establish the roadmap's 60% catalog gate.
