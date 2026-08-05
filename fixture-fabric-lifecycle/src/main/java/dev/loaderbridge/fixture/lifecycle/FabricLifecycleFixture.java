@@ -35,6 +35,7 @@ import net.minecraft.data.worldgen.Carvers;
 import net.minecraft.data.worldgen.features.VegetationFeatures;
 import net.minecraft.data.worldgen.placement.VegetationPlacements;
 import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.structure.BuiltinStructures;
@@ -68,6 +69,7 @@ import net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback;
 import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
 import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
 import net.fabricmc.fabric.api.biome.v1.ModificationPhase;
+import net.fabricmc.fabric.api.biome.v1.NetherBiomes;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
@@ -707,6 +709,8 @@ public final class FabricLifecycleFixture implements ModInitializer {
         Registry.register(BuiltInRegistries.ENTITY_TYPE,
                 ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_mob_builder_entity"),
                 mobBuilderFixtureType);
+        NetherBiomes.addNetherBiome(Biomes.PLAINS,
+                Climate.parameters(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F));
         BiomeModifications.addCarver(BiomeSelectors.includeByKey(Biomes.PLAINS),
                 GenerationStep.Carving.AIR, Carvers.NETHER_CAVE);
         BiomeModifications.addSpawn(BiomeSelectors.includeByKey(Biomes.PLAINS),
@@ -770,7 +774,8 @@ public final class FabricLifecycleFixture implements ModInitializer {
                                         "LOADERBRIDGE_FABRIC_BIOME_STRUCTURE_SELECTION_FAILED");
                             }
                             if (!selection.canGenerateIn(LevelStem.OVERWORLD)
-                                    || selection.canGenerateIn(LevelStem.NETHER)) {
+                                    || !selection.canGenerateIn(LevelStem.NETHER)
+                                    || selection.canGenerateIn(LevelStem.END)) {
                                 throw new IllegalStateException(
                                         "LOADERBRIDGE_FABRIC_BIOME_DIMENSION_SELECTION_FAILED");
                             }
@@ -1053,6 +1058,14 @@ public final class FabricLifecycleFixture implements ModInitializer {
                     + "weather=0.42,fog=123456,cave_removed=true,cost=true");
             System.out.println("LOADERBRIDGE_FABRIC_BIOME_CLEARING_READY "
                     + "effect=true,cost=true,current_state=0.31");
+            var netherSource = server.registryAccess().registryOrThrow(Registries.LEVEL_STEM)
+                    .getOrThrow(LevelStem.NETHER).generator().getBiomeSource();
+            if (!NetherBiomes.canGenerateInNether(Biomes.PLAINS)
+                    || netherSource.possibleBiomes().stream()
+                            .noneMatch(biome -> biome.is(Biomes.PLAINS))) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_NETHER_BIOME_SOURCE_FAILED");
+            }
+            System.out.println("LOADERBRIDGE_FABRIC_NETHER_BIOME_SOURCE_READY biome=plains");
             var world = server.overworld();
             BlockPos lookupPos = new BlockPos(world.getSharedSpawnPos().getX(),
                     world.getMinBuildHeight() + 1, world.getSharedSpawnPos().getZ());

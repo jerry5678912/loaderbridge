@@ -934,7 +934,7 @@ class FabricToForgeAdapterTest {
         assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
                 .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
-                .contains("fabric-biome-api-v1-bridge-13.0.31_d527f9fd19-loaderbridge.5.jar");
+                .contains("fabric-biome-api-v1-bridge-13.0.31_d527f9fd19-loaderbridge.6.jar");
     }
 
     @Test

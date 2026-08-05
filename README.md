@@ -565,6 +565,17 @@ preparation produced byte-identical revision-5 artifacts. Specialized
 Nether/End source mutation helpers remain open, so the complete Biome module,
 M5, and the 60% catalog gate remain unclaimed.
 
+Fabric Biome API v1 revision 6 passed on 2026-08-05. The bridge now exposes
+both pinned `NetherBiomes.addNetherBiome` overloads and
+`canGenerateInNether`, retains deterministic registration order, and injects
+the additions into Minecraft's native Nether multi-noise preset before biome
+sources are constructed. The controlled Fabric fixture registered Plains at a
+real climate parameter point and observed it through the live Nether level-
+stem source during graphical create/save/reload and two independent dedicated-
+server processes. Repeated preparation produced byte-identical revision-6
+artifacts. `TheEndBiomes` remains open, so the complete Biome module, M5, and
+the 60% catalog gate remain unclaimed.
+
 Fabric Block API v1 revision 11 passed on 2026-08-05. The bridge matches pinned
 `1.1.0+0bc3503219`, injects the exact Fabric interfaces into vanilla `Block`
 and `BlockState`, delegates custom appearance through the block-state contract,

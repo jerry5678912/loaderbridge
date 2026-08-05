@@ -10,11 +10,14 @@ import net.minecraft.core.Registry;
 import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
 import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
 import net.fabricmc.fabric.api.biome.v1.ModificationPhase;
+import net.fabricmc.fabric.api.biome.v1.NetherBiomes;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.worldgen.Carvers;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.levelgen.GenerationStep;
+import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +25,7 @@ class FabricBiomeContractTest {
     @Test
     void advertisesOnlyImplementedBiomeContracts() {
         var descriptor = new FabricBiomeBridgeProvider().descriptor();
-        assertThat(descriptor.implementationVersion()).isEqualTo("13.0.31+d527f9fd19-loaderbridge.5");
+        assertThat(descriptor.implementationVersion()).isEqualTo("13.0.31+d527f9fd19-loaderbridge.6");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrderElementsOf(Set.of(
                 "net.fabricmc.fabric.api.biome.v1.BiomeSelectionContext",
                 "net.fabricmc.fabric.api.biome.v1.BiomeSelectors",
@@ -33,7 +36,8 @@ class FabricBiomeContractTest {
                 "net.fabricmc.fabric.api.biome.v1.BiomeModificationContext$EffectsContext",
                 "net.fabricmc.fabric.api.biome.v1.BiomeModificationContext$GenerationSettingsContext",
                 "net.fabricmc.fabric.api.biome.v1.BiomeModificationContext$SpawnSettingsContext",
-                "net.fabricmc.fabric.api.biome.v1.ModificationPhase"));
+                "net.fabricmc.fabric.api.biome.v1.ModificationPhase",
+                "net.fabricmc.fabric.api.biome.v1.NetherBiomes"));
     }
 
     @Test
@@ -80,5 +84,12 @@ class FabricBiomeContractTest {
         var keys = BridgeBiomeRules.registryKeys(registry.asLookup());
         assertThat(keys.get(registered)).isEqualTo(valueKey);
         assertThat(keys.get(new String("value"))).isNull();
+    }
+
+    @Test
+    void netherBiomeRegistrationAcceptsFabricParameterPoints() {
+        NetherBiomes.addNetherBiome(Biomes.PLAINS,
+                Climate.parameters(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F));
+        assertThat(NetherBiomes.canGenerateInNether(Biomes.PLAINS)).isTrue();
     }
 }

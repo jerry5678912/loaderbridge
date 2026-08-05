@@ -6,7 +6,8 @@
   "mixins": [
     "BiomeInvoker",
     "BiomeSpecialEffectsBuilderAccessor",
-    "MobSpawnSettingsBuilderAccessor"
+    "MobSpawnSettingsBuilderAccessor",
+    "NetherBiomePresetMixin"
   ],
   "injectors": {"defaultRequire": 1}
 }

@@ -16,6 +16,12 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added the pinned Fabric `NetherBiomes` contract and early Mixin integration
+  with Minecraft's native Nether multi-noise preset. Registered biome/noise
+  points now participate in actual Nether biome-source construction and
+  `canGenerateInNether` queries. A translated fixture added Plains, observed it
+  in the live Nether source, and passed graphical plus two-process dedicated-
+  server save/reload and deterministic preparation gates.
 - Completed Fabric Biome selection's registry-backed queries for configured and
   placed features, structure validity/key lookup, and dimension biome-source
   membership. Dimension resolution is deferred until Forge applies modifiers,

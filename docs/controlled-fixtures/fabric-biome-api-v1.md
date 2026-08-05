@@ -1,6 +1,6 @@
 # Fabric Biome API v1 controlled fixture
 
-This fixture tests LoaderBridge revisions 2 through 5 of pinned
+This fixture tests LoaderBridge revisions 2 through 6 of pinned
 `fabric-biome-api-v1:13.0.31+d527f9fd19` on Minecraft 1.21.1 and Forge
 52.1.16. The ordinary `prepare` command inspects bytecode and automatically
 selects the Biome bridge and its dependencies without relying on artifact
@@ -88,11 +88,26 @@ artifacts:
 - bridge SHA-256: `0b0917d2c0018e81c8006e1b58a61840a2fe50540cc7206f0cd0c3e219fb5cdc`
 - transformed fixture SHA-256: `b69d7d75038585ea3ec3bbd6800e6c92be6074f131cfa273eb6df81baa8ee2bf`
 
+Revision 6 implements the pinned `NetherBiomes` contract. The fixture adds
+Plains at a zero-valued Nether climate parameter point before biome-source
+construction, then verifies both `canGenerateInNether(Biomes.PLAINS)` and the
+actual Nether level stem's possible-biome set. It emits:
+
+`LOADERBRIDGE_FABRIC_NETHER_BIOME_SOURCE_READY biome=plains`
+
+The marker passed both graphical sessions and fresh plus saved-world dedicated-
+server processes. Every process saved Overworld, Nether, and End and stopped
+cleanly. Two fresh preparations automatically selected revision 6 and produced
+byte-identical JARs:
+
+- bridge SHA-256: `33a6f2951dd29b378ac350f146949bd5f23f17f6938516ff0fa98fe6f4a62255`
+- transformed fixture SHA-256: `7701a1ea6d04866870fbd03d96c37d46aba1f144a4828fdee6029199377e5d79`
+
 The bridge emits `LB-BIOME-003` when a configured-carver target cannot be
 resolved. Revision 4 covers general ordered phases, current-state biome reads,
 weather and effects mutation including clears, generation additions/removals,
 and spawn additions/removals/probability/cost installation and clearing.
 `getBiomeRegistryEntry().value()` still refers to the registry's original
-biome while a rule is executing. Specialized Nether/End source mutation
-helpers also remain open. This does not complete the Biome API module, M5, or
-the roadmap's 60% catalog gate.
+biome while a rule is executing. Specialized End source mutation remains open.
+This does not complete the Biome API module, M5, or the roadmap's 60% catalog
+gate.
