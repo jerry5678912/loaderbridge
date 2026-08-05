@@ -12,6 +12,11 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - Schema-v1 metadata, entrypoint, environment, dependency, alias, conflict,
   mixin, access-widener, nested-JAR, and language-adapter inspection.
 - Local Fabric-style dependency diagnostics and common extended-semver ranges.
+- Authenticated CurseForge and public Modrinth catalog providers with
+  author-disabled artifact filtering, typed transient-network retries, bounded
+  metadata timeouts, and deterministic four-worker page resolution. A live
+  probe froze 1,000 unique Fabric 1.21.1 projects on 2026-08-06; recursive
+  catalog-wide dependency locking remains open before M0 can be claimed.
 - ASM reference inventory for Loader API, Fabric API, Minecraft, reflection-like
   strings, and native libraries.
 - Checksum-verified Mojang 1.21.1 client artifacts plus bundled Fabric

@@ -173,6 +173,11 @@ public final class CurseForgeRepositoryProvider implements RepositoryProvider {
             try {
                 downloadUrl = string(object(read(endpoint("mods/" + modId + "/files/" + fileId
                         + "/download-url"))), "data");
+            } catch (CurseForgeHttpException exception) {
+                if (exception.statusCode() == 403 || exception.statusCode() == 404) {
+                    return Optional.empty();
+                }
+                throw exception;
             } catch (RuntimeException exception) {
                 throw malformed("download URL response", exception);
             }

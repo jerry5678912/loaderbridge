@@ -6,6 +6,7 @@ import dev.loaderbridge.api.repository.RepositoryProject;
 import dev.loaderbridge.api.repository.RepositoryProvider;
 import dev.loaderbridge.api.repository.RepositoryQuery;
 import dev.loaderbridge.api.repository.RepositorySort;
+import dev.loaderbridge.api.repository.RetryableRepositoryException;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -13,9 +14,14 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public final class CatalogCollector {
     private static final int PAGE_SIZE = 50;
+    private static final int RESOLUTION_WORKERS = 4;
     private static final int MAXIMUM_SEARCH_OFFSET = 10_000;
     private final List<RepositoryProvider> providers;
 
@@ -42,25 +48,12 @@ public final class CatalogCollector {
                 if (offset >= total || offset >= MAXIMUM_SEARCH_OFFSET) {
                     continue;
                 }
-                RepositoryPage page = provider.search(new RepositoryQuery("1.21.1", "fabric", offset,
-                        PAGE_SIZE, RepositorySort.DOWNLOADS));
+                RepositoryPage page = retryTransportFailures(provider, "search at offset " + offset,
+                        () -> provider.search(new RepositoryQuery("1.21.1", "fabric", offset,
+                                PAGE_SIZE, RepositorySort.DOWNLOADS)));
                 totals.put(id, page.total());
                 offsets.put(id, Math.min(MAXIMUM_SEARCH_OFFSET, offset + PAGE_SIZE));
-                for (RepositoryProject project : page.projects()) {
-                    var fabricArtifact = provider.versions(project.projectId(), "1.21.1", "fabric").stream()
-                            .filter(RepositoryArtifact::isEligibleFabric1211)
-                            .max(Comparator.comparing(RepositoryArtifact::publishedAt)
-                                    .thenComparing(RepositoryArtifact::versionId));
-                    if (fabricArtifact.isEmpty()) {
-                        continue;
-                    }
-                    boolean hasNativeForgeRelease = provider
-                            .versions(project.projectId(), "1.21.1", "forge").stream()
-                            .anyMatch(artifact -> artifact.isEligibleFor("1.21.1", "forge"));
-                    if (!hasNativeForgeRelease) {
-                        candidates.add(new CatalogCandidate(project, fabricArtifact.orElseThrow()));
-                    }
-                }
+                candidates.addAll(resolvePage(provider, page.projects()));
                 fetched = true;
             }
             if (candidates.size() >= targetSize) {
@@ -78,5 +71,67 @@ public final class CatalogCollector {
                         + " eligible projects; " + targetSize + " are required");
             }
         }
+    }
+
+    private static List<CatalogCandidate> resolvePage(RepositoryProvider provider,
+            List<RepositoryProject> projects) throws IOException {
+        try (var executor = Executors.newFixedThreadPool(RESOLUTION_WORKERS)) {
+            List<Future<Optional<CatalogCandidate>>> futures = projects.stream()
+                    .map(project -> executor.submit(() -> resolveProject(provider, project))).toList();
+            List<CatalogCandidate> resolved = new ArrayList<>();
+            for (Future<Optional<CatalogCandidate>> future : futures) {
+                try {
+                    future.get().ifPresent(resolved::add);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("Interrupted while resolving repository catalog page", exception);
+                } catch (ExecutionException exception) {
+                    if (exception.getCause() instanceof IOException ioException) {
+                        throw ioException;
+                    }
+                    throw new IOException("Unexpected repository catalog resolution failure",
+                            exception.getCause());
+                }
+            }
+            return resolved;
+        }
+    }
+
+    private static Optional<CatalogCandidate> resolveProject(RepositoryProvider provider,
+            RepositoryProject project) throws IOException {
+        var fabricArtifact = retryTransportFailures(provider,
+                "Fabric versions for " + project.projectId(),
+                () -> provider.versions(project.projectId(), "1.21.1", "fabric")).stream()
+                .filter(RepositoryArtifact::isEligibleFabric1211)
+                .max(Comparator.comparing(RepositoryArtifact::publishedAt)
+                        .thenComparing(RepositoryArtifact::versionId));
+        if (fabricArtifact.isEmpty()) {
+            return Optional.empty();
+        }
+        boolean hasNativeForgeRelease = retryTransportFailures(provider,
+                "Forge versions for " + project.projectId(),
+                () -> provider.versions(project.projectId(), "1.21.1", "forge")).stream()
+                .anyMatch(artifact -> artifact.isEligibleFor("1.21.1", "forge"));
+        return hasNativeForgeRelease ? Optional.empty()
+                : Optional.of(new CatalogCandidate(project, fabricArtifact.orElseThrow()));
+    }
+
+    private static <T> T retryTransportFailures(RepositoryProvider provider, String operation,
+            IoSupplier<T> request) throws IOException {
+        RetryableRepositoryException lastFailure = null;
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            try {
+                return request.get();
+            } catch (RetryableRepositoryException exception) {
+                lastFailure = exception;
+            }
+        }
+        throw new IOException(provider.id().value() + " " + operation
+                + " failed after 3 transport attempts", lastFailure);
+    }
+
+    @FunctionalInterface
+    private interface IoSupplier<T> {
+        T get() throws IOException;
     }
 }

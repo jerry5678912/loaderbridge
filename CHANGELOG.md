@@ -16,6 +16,11 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Hardened real catalog collection across Modrinth and CurseForge: author-
+  disabled CurseForge downloads are skipped and topped up, transient request
+  and response failures are typed and retried exactly three times, metadata
+  requests have a 30-second bound, and four-worker page resolution preserves
+  repository rank order. A live run froze 1,000 unique Fabric 1.21.1 projects.
 - Added the complete pinned Fabric Screen Handler API v1 contract with typed
   extended opening data, client screen construction, replacement-menu close
   semantics, simple-factory unwrapping, mismatch validation, and Fabric-style

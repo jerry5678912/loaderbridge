@@ -1,5 +1,6 @@
 package dev.loaderbridge.repository.curseforge;
 
+import dev.loaderbridge.api.repository.RetryableRepositoryException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -36,21 +37,29 @@ final class HttpCurseForgeTransport implements CurseForgeTransport {
         if (key == null || key.isBlank()) {
             throw new IOException("CURSEFORGE_API_KEY is required for CurseForge metadata requests");
         }
-        HttpRequest request = HttpRequest.newBuilder(uri).timeout(Duration.ofMinutes(2))
+        HttpRequest request = HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(30))
                 .header("Accept", "application/json").header("User-Agent", USER_AGENT)
                 .header("x-api-key", key.strip()).GET().build();
-        HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        HttpResponse<InputStream> response;
+        try {
+            response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        } catch (IOException exception) {
+            throw transientFailure("metadata request", uri, exception);
+        }
         if (response.statusCode() != 200) {
             response.body().close();
-            throw new IOException("CurseForge API returned HTTP " + response.statusCode());
+            throw new CurseForgeHttpException("API", response.statusCode(), uri);
         }
+        byte[] bytes;
         try (InputStream input = response.body()) {
-            byte[] bytes = input.readNBytes(Math.toIntExact(maximumBytes + 1));
-            if (bytes.length > maximumBytes) {
-                throw new IOException("CurseForge response exceeded metadata limit");
-            }
-            return bytes;
+            bytes = input.readNBytes(Math.toIntExact(maximumBytes + 1));
+        } catch (IOException exception) {
+            throw transientFailure("metadata response", uri, exception);
         }
+        if (bytes.length > maximumBytes) {
+            throw new IOException("CurseForge response exceeded metadata limit");
+        }
+        return bytes;
     }
 
     @Override
@@ -58,10 +67,15 @@ final class HttpCurseForgeTransport implements CurseForgeTransport {
             throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder(uri).timeout(Duration.ofMinutes(5))
                 .header("User-Agent", USER_AGENT).GET().build();
-        HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        HttpResponse<InputStream> response;
+        try {
+            response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        } catch (IOException exception) {
+            throw transientFailure("download request", uri, exception);
+        }
         if (response.statusCode() != 200) {
             response.body().close();
-            throw new IOException("CurseForge download returned HTTP " + response.statusCode());
+            throw new CurseForgeHttpException("download", response.statusCode(), uri);
         }
         try (InputStream input = response.body(); var output = java.nio.file.Files.newOutputStream(destination)) {
             byte[] buffer = new byte[8192];
@@ -75,5 +89,11 @@ final class HttpCurseForgeTransport implements CurseForgeTransport {
                 output.write(buffer, 0, count);
             }
         }
+    }
+
+    private static RetryableRepositoryException transientFailure(String operation, URI uri,
+            IOException cause) {
+        return new RetryableRepositoryException("CurseForge " + operation + " failed for "
+                + uri.getPath(), cause);
     }
 }

@@ -1,6 +1,7 @@
 package dev.loaderbridge.catalog;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.loaderbridge.api.repository.HashAlgorithm;
 import dev.loaderbridge.api.repository.ReleaseChannel;
@@ -10,11 +11,13 @@ import dev.loaderbridge.api.repository.RepositoryPage;
 import dev.loaderbridge.api.repository.RepositoryProject;
 import dev.loaderbridge.api.repository.RepositoryProvider;
 import dev.loaderbridge.api.repository.RepositoryQuery;
+import dev.loaderbridge.api.repository.RetryableRepositoryException;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,12 +53,39 @@ class CatalogCollectorTest {
         assertThat(curseforge.requestedLoaders).contains("fabric", "forge");
     }
 
+    @Test
+    void retriesRepositoryTimeoutsThreeTimesWithoutRetryingSuccessfulMetadata() throws Exception {
+        FakeProvider provider = new FakeProvider("modrinth", 1);
+        provider.timeoutsRemaining = 2;
+
+        CatalogSnapshot snapshot = new CatalogCollector(List.of(provider))
+                .collectAndFreeze(1, 1, "2026-08", Instant.parse("2026-08-01T00:00:00Z"));
+
+        assertThat(snapshot.entries()).hasSize(1);
+        assertThat(provider.searchAttempts).isEqualTo(3);
+        assertThat(provider.requestedLoaders).containsExactly("fabric", "forge");
+    }
+
+    @Test
+    void reportsThreeExhaustedTransportAttemptsWithRepositoryContext() {
+        FakeProvider provider = new FakeProvider("modrinth", 1);
+        provider.timeoutsRemaining = 3;
+
+        assertThatThrownBy(() -> new CatalogCollector(List.of(provider))
+                .collectAndFreeze(1, 1, "2026-08", Instant.parse("2026-08-01T00:00:00Z")))
+                .isInstanceOf(IOException.class)
+                .hasMessageContaining("modrinth", "search at offset 0", "3 transport attempts");
+        assertThat(provider.searchAttempts).isEqualTo(3);
+    }
+
     private static final class FakeProvider implements RepositoryProvider {
         private final RepositoryId id;
         private final int count;
         private final boolean exposesNativeForge;
         private final List<Integer> offsets = new ArrayList<>();
-        private final List<String> requestedLoaders = new ArrayList<>();
+        private final List<String> requestedLoaders = Collections.synchronizedList(new ArrayList<>());
+        private int timeoutsRemaining;
+        private int searchAttempts;
 
         private FakeProvider(String id, int count) {
             this(id, count, false);
@@ -73,7 +103,12 @@ class CatalogCollectorTest {
         }
 
         @Override
-        public RepositoryPage search(RepositoryQuery query) {
+        public RepositoryPage search(RepositoryQuery query) throws IOException {
+            searchAttempts++;
+            if (timeoutsRemaining-- > 0) {
+                throw new RetryableRepositoryException("fixture timeout",
+                        new IOException("connection reset"));
+            }
             offsets.add(query.offset());
             List<RepositoryProject> projects = new ArrayList<>();
             for (int index = query.offset(); index < Math.min(count, query.offset() + query.limit()); index++) {

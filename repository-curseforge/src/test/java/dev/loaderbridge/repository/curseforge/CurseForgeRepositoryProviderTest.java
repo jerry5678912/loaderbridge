@@ -50,6 +50,36 @@ class CurseForgeRepositoryProviderTest {
     }
 
     @Test
+    void skipsFilesWhoseAuthorsDisableThirdPartyDownloads() throws Exception {
+        FakeTransport transport = new FakeTransport();
+        transport.filesJson = """
+                {"data":[{"id":8287094,"displayName":"Unavailable","fileName":"mod.jar",
+                "fileDate":"2026-01-01T00:00:00Z","fileLength":10,"releaseType":1,
+                "isAvailable":true,"downloadUrl":null,"gameVersions":["1.21.1","Fabric"],
+                "hashes":[{"algo":1,"value":"0123456789012345678901234567890123456789"}],
+                "dependencies":[]}],"pagination":{"resultCount":1,"totalCount":1}}
+                """;
+        transport.downloadUrlFailure = new CurseForgeHttpException("API", 403,
+                URI.create("https://api.curseforge.com/v1/mods/448233/files/8287094/download-url"));
+        var provider = new CurseForgeRepositoryProvider(transport);
+
+        assertThat(provider.versions("448233", "1.21.1", "fabric")).isEmpty();
+    }
+
+    @Test
+    void doesNotHideServerFailuresFromTheDownloadUrlEndpoint() {
+        FakeTransport transport = new FakeTransport();
+        transport.filesJson = filesJson(7, SHA1, null, "[]");
+        transport.downloadUrlFailure = new CurseForgeHttpException("API", 500,
+                URI.create("https://api.curseforge.com/v1/mods/238222/files/12345/download-url"));
+        var provider = new CurseForgeRepositoryProvider(transport);
+
+        assertThatThrownBy(() -> provider.versions("238222", "1.21.1", "fabric"))
+                .isInstanceOf(CurseForgeHttpException.class)
+                .hasMessageContaining("HTTP 500", "/v1/mods/238222/files/12345/download-url");
+    }
+
+    @Test
     void reportsMissingApiKeyWithoutMakingARequest() {
         HttpCurseForgeTransport transport = new HttpCurseForgeTransport(name -> null,
                 "CURSEFORGE_API_KEY");
@@ -196,12 +226,16 @@ class CurseForgeRepositoryProviderTest {
         private String searchJson;
         private String filesJson;
         private String downloadUrlJson;
+        private IOException downloadUrlFailure;
         private byte[] downloadBytes = new byte[0];
         private int downloadCount;
 
         @Override
-        public byte[] read(URI uri, long maximumBytes) {
+        public byte[] read(URI uri, long maximumBytes) throws IOException {
             requested.add(uri);
+            if (uri.getPath().endsWith("/download-url") && downloadUrlFailure != null) {
+                throw downloadUrlFailure;
+            }
             String response = uri.getPath().endsWith("/search") ? searchJson
                     : uri.getPath().endsWith("/download-url") ? downloadUrlJson : filesJson;
             return response.getBytes(StandardCharsets.UTF_8);
