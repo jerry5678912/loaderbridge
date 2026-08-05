@@ -1,8 +1,8 @@
 package dev.loaderbridge.fabric.api.attachment.mixin;
 
 import java.util.IdentityHashMap;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
+import net.fabricmc.fabric.impl.attachment.AttachmentTargetImpl;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 
 @Mixin({BlockEntity.class, Entity.class, Level.class, ChunkAccess.class})
-abstract class AttachmentTargetsMixin implements AttachmentTarget {
+abstract class AttachmentTargetsMixin implements AttachmentTargetImpl {
     @Unique private IdentityHashMap<AttachmentType<?>, Object> loaderbridge$attachments;
 
     @Override @SuppressWarnings("unchecked")
@@ -33,6 +33,16 @@ abstract class AttachmentTargetsMixin implements AttachmentTarget {
 
     @Override public boolean hasAttached(AttachmentType<?> type) {
         return loaderbridge$attachments != null && loaderbridge$attachments.containsKey(type);
+    }
+
+    @Override public IdentityHashMap<AttachmentType<?>, Object> fabric_getAttachments() {
+        return loaderbridge$attachments;
+    }
+
+    @Override public void fabric_setAttachments(
+            IdentityHashMap<AttachmentType<?>, Object> attachments) {
+        loaderbridge$attachments = attachments == null || attachments.isEmpty()
+                ? null : attachments;
     }
 
     @Unique

@@ -1,0 +1,79 @@
+package dev.loaderbridge.fixture.attachment;
+
+import com.mojang.serialization.Codec;
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
+import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
+import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.chunk.ChunkAccess;
+
+public final class FabricDataAttachmentFixture implements ModInitializer {
+    private static final AttachmentType<Integer> PERSISTENT =
+            AttachmentRegistry.createPersistent(id("persistent"), Codec.INT);
+    private static final AttachmentType<Integer> DEFAULTED =
+            AttachmentRegistry.createDefaulted(id("defaulted"), () -> 7);
+
+    @Override public void onInitialize() {
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> verify(server.overworld()));
+    }
+
+    private static void verify(ServerLevel level) {
+        AttachmentTarget levelTarget = (AttachmentTarget) level;
+        if (levelTarget.getAttachedOrCreate(DEFAULTED) != 7
+                || levelTarget.modifyAttached(DEFAULTED, value -> value + 1) != 7
+                || levelTarget.getAttachedOrThrow(DEFAULTED) != 8) {
+            throw new IllegalStateException("Data attachment level target failed");
+        }
+
+        Mob entity = require(EntityType.ZOMBIE.create(level), "entity");
+        AttachmentTarget entityTarget = (AttachmentTarget) entity;
+        entityTarget.setAttached(PERSISTENT, 19);
+        CompoundTag entityTag = entity.saveWithoutId(new CompoundTag());
+        Mob restoredEntity = require(EntityType.ZOMBIE.create(level), "restored entity");
+        restoredEntity.load(entityTag);
+        if (((AttachmentTarget) restoredEntity).getAttachedOrThrow(PERSISTENT) != 19) {
+            throw new IllegalStateException("Data attachment entity persistence failed");
+        }
+
+        BlockPos pos = level.getSharedSpawnPos();
+        BlockEntity blockEntity = require(BlockEntityType.CHEST.create(
+                pos, Blocks.CHEST.defaultBlockState()), "block entity");
+        ((AttachmentTarget) blockEntity).setAttached(PERSISTENT, 23);
+        CompoundTag blockEntityTag = blockEntity.saveWithFullMetadata(level.registryAccess());
+        BlockEntity restoredBlockEntity = require(BlockEntityType.CHEST.create(
+                pos, Blocks.CHEST.defaultBlockState()), "restored block entity");
+        restoredBlockEntity.loadWithComponents(blockEntityTag, level.registryAccess());
+        if (((AttachmentTarget) restoredBlockEntity).getAttachedOrThrow(PERSISTENT) != 23) {
+            throw new IllegalStateException("Data attachment block-entity persistence failed");
+        }
+
+        ChunkAccess chunk = level.getChunk(pos);
+        AttachmentTarget chunkTarget = (AttachmentTarget) chunk;
+        chunkTarget.setAttached(DEFAULTED, 31);
+        if (!chunkTarget.hasAttached(DEFAULTED) || chunkTarget.getAttached(DEFAULTED) != 31
+                || !chunk.isUnsaved()) {
+            throw new IllegalStateException("Data attachment chunk target failed");
+        }
+        System.out.println("LOADERBRIDGE_DATA_ATTACHMENT_BASE_READY entity=19 block=23 "
+                + "level=8 chunk=31");
+    }
+
+    private static ResourceLocation id(String path) {
+        return ResourceLocation.fromNamespaceAndPath("loaderbridge_fixture", path);
+    }
+
+    private static <T> T require(T value, String label) {
+        if (value == null) throw new IllegalStateException("Could not create " + label);
+        return value;
+    }
+}

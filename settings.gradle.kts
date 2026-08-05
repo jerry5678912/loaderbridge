@@ -65,5 +65,6 @@ include(
     "fixture-fabric-loot",
     "fixture-fabric-recipe",
     "fixture-fabric-entity-events",
+    "fixture-fabric-data-attachment",
     "fixture-fabric-nested-child",
 )

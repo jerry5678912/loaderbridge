@@ -14,7 +14,7 @@ public final class FabricDataAttachmentBridgeProvider implements RuntimeBridgeMo
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-data-attachment-api-v1-bridge",
             "fabric-data-attachment-api-v1:1.4.7",
-            "1.4.7+5b36e0f719-loaderbridge.1",
+            "1.4.7+5b36e0f719-loaderbridge.2",
             BridgeCapability.FABRIC_API,
             Set.of(
                     "net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry",

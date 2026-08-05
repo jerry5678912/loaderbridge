@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "loaderbridge_data_attachment_fixture",
+  "version": "1.0.0",
+  "environment": "*",
+  "entrypoints": {"main": ["dev.loaderbridge.fixture.attachment.FabricDataAttachmentFixture"]},
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "1.21.1",
+    "fabric-data-attachment-api-v1": "*",
+    "fabric-lifecycle-events-v1": "*"
+  }
+}

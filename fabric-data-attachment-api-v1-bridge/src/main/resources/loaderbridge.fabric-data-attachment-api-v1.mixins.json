@@ -3,6 +3,10 @@
   "minVersion": "0.8",
   "package": "dev.loaderbridge.fabric.api.attachment.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": ["AttachmentTargetsMixin"],
+  "mixins": [
+    "AttachmentTargetsMixin",
+    "BlockEntityPersistenceMixin",
+    "EntityPersistenceMixin"
+  ],
   "injectors": {"defaultRequire": 1}
 }

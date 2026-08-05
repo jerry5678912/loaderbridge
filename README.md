@@ -124,6 +124,15 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   descriptors. Forge events cover matching host semantics while early Mixins
   preserve Fabric timing for damage/death, combat kills, conversions, sleep,
   bed validity and occupation, wake positions, and elytra hooks.
+- A separately versioned Data Attachment API v1 bridge matching
+  `fabric-data-attachment-api-v1:1.4.7+5b36e0f719`. Its first M5 increment
+  implements the public registry, type, predicate, and target contracts;
+  identity-keyed storage on entities, block entities, levels, and chunks;
+  codec-backed entity and block-entity persistence; dirty-state propagation;
+  and Fabric copy rules for respawn, world changes, and mob conversion.
+  Inspection selects its Entity Events, Object Builder, Networking, and API
+  Base dependencies automatically. World/chunk persistence and wire sync are
+  still open and the module is not yet declared complete.
 - A separately versioned Game Rule API v1 bridge matching
   `fabric-game-rule-api-v1:1.0.53+6ced4dd919`. Boolean, bounded integer,
   double, enum, visitor, callback, custom-category, command, serialization,
@@ -387,6 +396,14 @@ and an actual alive respawn with matching copy/after-respawn values. Every
 counter doubled after reopening the saved world; player leave fired on the
 final disconnect and the process stopped cleanly. See
 [the controlled evidence](docs/controlled-fixtures/fabric-entity-events-v1.md).
+
+The Data Attachment API v1 M5 base increment passed on 2026-08-05. A translated
+controlled Fabric fixture used actual Forge-transformed Minecraft entities,
+block entities, levels, and chunks; proved default initialization and mutation,
+entity and block-entity codec/NBT round trips, chunk dirtying, automatic bridge
+dependency selection, world flush, and clean dedicated-server shutdown. This
+is a base increment rather than the full module gate; see
+[the controlled evidence](docs/controlled-fixtures/fabric-data-attachment-api-v1.md).
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,
