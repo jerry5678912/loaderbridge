@@ -62,6 +62,10 @@ import net.fabricmc.fabric.api.transfer.v1.item.InventoryStorage;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
 import net.fabricmc.fabric.api.transfer.v1.item.PlayerInventoryStorage;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.fluid.base.SingleFluidStorage;
 import net.fabricmc.fabric.api.transfer.v1.context.ContainerItemContext;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedSlottedStorage;
@@ -105,6 +109,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.level.material.Fluids;
 
 /** Verifies Forge-to-Fabric server and world tick ordering at runtime. */
 public final class FabricLifecycleFixture implements ModInitializer {
@@ -319,6 +324,86 @@ public final class FabricLifecycleFixture implements ModInitializer {
                     "LOADERBRIDGE_FABRIC_ITEM_PROVIDED_STORAGE_FAILED");
         }
         System.out.println("LOADERBRIDGE_FABRIC_ITEM_PROVIDED_STORAGE_READY amount=500");
+        if (FluidConstants.fromBucketFraction(1, 3) != FluidConstants.BOTTLE
+                || FluidVariant.of(Fluids.FLOWING_WATER).getFluid() != Fluids.WATER) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_CONSTANTS_FAILED");
+        }
+        AtomicInteger fluidCommits = new AtomicInteger();
+        SingleFluidStorage fluidTank = SingleFluidStorage.withFixedCapacity(
+                2 * FluidConstants.BUCKET, fluidCommits::incrementAndGet);
+        FluidVariant water = FluidVariant.of(Fluids.WATER);
+        try (Transaction aborted = Transaction.openOuter()) {
+            if (fluidTank.insert(water, FluidConstants.BUCKET, aborted)
+                    != FluidConstants.BUCKET) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_ABORT_SETUP_FAILED");
+            }
+        }
+        try (Transaction committed = Transaction.openOuter()) {
+            if (fluidTank.insert(water, FluidConstants.BUCKET, committed)
+                    != FluidConstants.BUCKET) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_INSERT_FAILED");
+            }
+            committed.commit();
+        }
+        try (Transaction aborted = Transaction.openOuter()) {
+            if (fluidTank.extract(water, FluidConstants.BOTTLE, aborted)
+                    != FluidConstants.BOTTLE) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_ABORT_EXTRACT_FAILED");
+            }
+        }
+        try (Transaction committed = Transaction.openOuter()) {
+            if (fluidTank.extract(water, FluidConstants.BOTTLE, committed)
+                    != FluidConstants.BOTTLE) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_EXTRACT_FAILED");
+            }
+            committed.commit();
+        }
+        long expectedFluidAmount = FluidConstants.BUCKET - FluidConstants.BOTTLE;
+        if (!fluidTank.getResource().equals(water)
+                || fluidTank.getAmount() != expectedFluidAmount
+                || fluidTank.getCapacity() != 2 * FluidConstants.BUCKET
+                || fluidCommits.get() != 2) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_STORAGE_FAILED");
+        }
+        SimpleContainer bucketContainer = new SimpleContainer(new ItemStack(Items.BUCKET));
+        ContainerItemContext bucketContext = ContainerItemContext.ofSingleSlot(
+                InventoryStorage.of(bucketContainer, null).getSlot(0));
+        Storage<FluidVariant> bucketStorage = bucketContext.find(FluidStorage.ITEM);
+        if (bucketStorage == null) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_BUCKET_LOOKUP_FAILED");
+        }
+        try (Transaction aborted = Transaction.openOuter()) {
+            if (bucketStorage.insert(water, FluidConstants.BUCKET, aborted)
+                    != FluidConstants.BUCKET) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_BUCKET_ABORT_FAILED");
+            }
+        }
+        if (!bucketContainer.getItem(0).is(Items.BUCKET)) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_BUCKET_ROLLBACK_FAILED");
+        }
+        try (Transaction committed = Transaction.openOuter()) {
+            if (bucketStorage.insert(water, FluidConstants.BUCKET, committed)
+                    != FluidConstants.BUCKET) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_BUCKET_FILL_FAILED");
+            }
+            committed.commit();
+        }
+        Storage<FluidVariant> fullBucketStorage = bucketContext.find(FluidStorage.ITEM);
+        try (Transaction committed = Transaction.openOuter()) {
+            if (fullBucketStorage == null
+                    || fullBucketStorage.extract(water, FluidConstants.BUCKET, committed)
+                    != FluidConstants.BUCKET) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_BUCKET_DRAIN_FAILED");
+            }
+            committed.commit();
+        }
+        if (!bucketContainer.getItem(0).is(Items.BUCKET)) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_BUCKET_ROUNDTRIP_FAILED");
+        }
+        FluidStorage.SIDED.registerForBlocks(
+                (world, pos, state, blockEntity, direction) -> fluidTank, Blocks.STONE);
+        System.out.println("LOADERBRIDGE_FABRIC_FLUID_STORAGE_READY amount="
+                + expectedFluidAmount);
         Block flattenInput = Registry.register(BuiltInRegistries.BLOCK,
                 ResourceLocation.fromNamespaceAndPath("loaderbridge", "flatten_input"),
                 new Block(BlockBehaviour.Properties.of()));
@@ -703,6 +788,21 @@ public final class FabricLifecycleFixture implements ModInitializer {
             BlockPos lookupPos = new BlockPos(world.getSharedSpawnPos().getX(),
                     world.getMinBuildHeight() + 1, world.getSharedSpawnPos().getZ());
             world.setBlockAndUpdate(lookupPos, Blocks.STONE.defaultBlockState());
+            Storage<FluidVariant> discoveredFluid =
+                    FluidStorage.SIDED.find(world, lookupPos, Direction.UP);
+            if (discoveredFluid != fluidTank) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_SIDED_LOOKUP_FAILED");
+            }
+            CompoundTag fluidTag = new CompoundTag();
+            fluidTank.writeNbt(fluidTag, world.registryAccess());
+            SingleFluidStorage restoredFluid = SingleFluidStorage.withFixedCapacity(
+                    2 * FluidConstants.BUCKET, () -> { });
+            restoredFluid.readNbt(fluidTag, world.registryAccess());
+            if (!restoredFluid.getResource().equals(fluidTank.getResource())
+                    || restoredFluid.getAmount() != fluidTank.getAmount()) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_NBT_FAILED");
+            }
+            System.out.println("LOADERBRIDGE_FABRIC_FLUID_SIDED_NBT_READY");
             BlockApiCache<String, Void> lookupCache = BlockApiCache.create(
                     BLOCK_LOOKUP, world, lookupPos);
             if (!"direct".equals(BLOCK_LOOKUP.find(world, lookupPos, null))

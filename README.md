@@ -228,7 +228,11 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   Revision 8 adds Fabric's `SingleVariantItemStorage` and proves
   `ItemStorage.ITEM` provider registration with a component-backed portable
   storage, including rollback, commit, capacity, resource filtering, and
-  container-item replacement. See
+  container-item replacement. Revision 9 adds the first fluid-storage wave:
+  Fabric fluid units and variants, transactional `SingleFluidStorage`, NBT
+  persistence, sided block lookup, combined item providers, and vanilla bucket
+  fill/drain. Both a graphical client and a dedicated server passed fresh-world,
+  save, reload, and clean-stop gates on Forge 52.1.16. See
   [the controlled evidence](docs/controlled-fixtures/fabric-transfer-api-v1.md).
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
@@ -459,6 +463,17 @@ capacity. The same graphical Forge 52.1.16 process completed its bidirectional
 networking, world save, reopen, and clean-stop gates. This closes the generic
 item-provided single-variant storage increment, not the remaining fluid and
 built-in-provider Transfer API surfaces or M5.
+
+Transfer API v1 revision 9 passed later on 2026-08-05. The bridge normalizes a
+flowing-water variant to still water, rolls back and commits fluid insertions
+and extractions, reports the expected 54,000-droplet remainder, fills and drains
+a vanilla bucket transactionally, resolves the tank through `FluidStorage.SIDED`,
+and round-trips it through NBT. The Forge 52.1.16 graphical client proved this
+before and after save/reload in one process; two dedicated-server launches
+independently proved fresh-world and saved-world readiness plus clean shutdown.
+This closes the initial fluid-storage foundation, not the remaining built-in
+potion/cauldron, attribute/rendering, container-component, or bundle surfaces,
+the whole Transfer module, or M5.
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,

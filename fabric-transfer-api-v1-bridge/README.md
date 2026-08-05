@@ -1,7 +1,7 @@
 # Fabric Transfer API v1 bridge
 
 This module targets `fabric-transfer-api-v1` 5.4.4+7b3d111d19 for Minecraft
-1.21.1. Revision 8 implements the public transaction and snapshot-participant
+1.21.1. Revision 9 implements the public transaction and snapshot-participant
 contracts: nested atomic scopes, rollback, commit propagation, callback order,
 outer-close notifications, lifecycle inspection, and thread confinement. It
 also implements the generic `Storage` and `StorageView` contracts, including
@@ -25,7 +25,11 @@ contexts cover player, creative, cursor, single-slot, and immutable simulation
 contexts, including transactional item exchange and overflow routing.
 `SingleVariantItemStorage` and `ItemStorage.ITEM` now support registered,
 component-backed portable storage with transactional container replacement.
+The first fluid wave adds Fabric's standard units, component-aware still-fluid
+variants, snapshot-backed single-fluid storage with NBT persistence, block and
+item lookups, `SidedStorageBlockEntity`, and vanilla empty/full bucket exchange.
 
-Built-in container-component and bundle providers, fluid storage, and rendering
-surfaces remain gated until their behavioral fixtures pass. The provider only
-advertises classes implemented by this revision.
+Built-in potion/cauldron providers, fluid attributes/rendering, container
+component providers, and bundle providers remain gated until their behavioral
+fixtures pass. The provider only advertises classes implemented by this
+revision.

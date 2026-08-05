@@ -1,7 +1,7 @@
 # Fabric Transfer API v1 controlled fixture
 
-This fixture tests the item-provider increment of pinned
-`fabric-transfer-api-v1:5.4.4+7b3d111d19` through LoaderBridge revision 8 on
+This fixture tests the item-provider and first fluid-storage increments of pinned
+`fabric-transfer-api-v1:5.4.4+7b3d111d19` through LoaderBridge revision 9 on
 Minecraft 1.21.1 and Forge 52.1.16.
 
 The implementation follows Fabric's public `SingleVariantItemStorage`
@@ -26,19 +26,33 @@ The graphical Forge scenario proved:
   reported capacity of 1,000;
 - the process creates and saves a world, reopens it, repeats its networking and
   lifecycle gates, and stops cleanly.
+- flowing water is normalized to a still-water `FluidVariant`;
+- aborted fluid insertion/extraction rolls back and committed operations leave
+  54,000 droplets in a 162,000-droplet `SingleFluidStorage`;
+- an empty vanilla bucket fills with one bucket of water and drains back to an
+  empty bucket through transactional item lookup;
+- `FluidStorage.SIDED` discovers the registered world storage and its resource
+  and amount survive an NBT round-trip;
+- two dedicated-server launches independently pass fresh-world and saved-world
+  readiness, save, and clean shutdown.
 
 The runtime marker was:
 
 `LOADERBRIDGE_FABRIC_ITEM_PROVIDED_STORAGE_READY amount=500`
 
+`LOADERBRIDGE_FABRIC_FLUID_STORAGE_READY amount=54000`
+
+`LOADERBRIDGE_FABRIC_FLUID_SIDED_NBT_READY`
+
 Prepared artifact evidence:
 
-- bridge SHA-256: `f23e5a28bbb5cde1047cdae0124b45d50a04b620492afbfa83d8f6a620965bbc`
-- fixture SHA-256: `b1684d811058ab7a37bffbd68b6f1a4f8aeb96de2a32683c9a736b439d81dc2f`
-- lock SHA-256: `46be1e94aa2e0dea329e06445396226c855614fd03bc2b1a306bc2a6e581c968`
+- bridge SHA-256: `2ece431397b6a8d7a98a9ddbb9925c9c71d903d38a2d31a40ad5ddd66bdc2ead`
+- fixture SHA-256: `f83feb03ecc0480c9cbc0df6a9832c9826450d59ee018b36ed66f5c0d4aceda1`
+- lock SHA-256: `d762d71b5a6b0dd52ac56d6e85f97da8012997724c96735e4017bbd2ecf9d30d`
 
-The public-surface contract test requires the exact advertised class and the
-full repository build keeps unsupported FluidStorage references diagnostic-gated.
-Built-in bundle/container-component providers, fluid storage, and client fluid
-rendering remain open. This evidence is one Transfer API increment; it does not
-complete the module, M5, or the 60% catalog gate.
+The public-surface contract test requires the exact advertised classes and the
+full repository build keeps unsupported fluid-attribute references
+diagnostic-gated. Built-in potion/cauldron, bundle/container-component,
+fluid-attribute, and client fluid-rendering surfaces remain open. This evidence
+is one Transfer API increment; it does not complete the module, M5, or the 60%
+catalog gate.

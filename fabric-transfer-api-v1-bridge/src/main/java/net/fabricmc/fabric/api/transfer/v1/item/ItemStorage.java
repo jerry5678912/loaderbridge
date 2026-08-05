@@ -4,6 +4,7 @@ import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
 import net.fabricmc.fabric.api.lookup.v1.item.ItemApiLookup;
 import net.fabricmc.fabric.api.transfer.v1.context.ContainerItemContext;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.SidedStorageBlockEntity;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.Container;
@@ -19,6 +20,9 @@ public final class ItemStorage {
                     "fabric", "item_storage"), Storage.asClass(), ContainerItemContext.class);
 
     static {
+        SIDED.registerFallback((world, pos, state, blockEntity, direction) ->
+                blockEntity instanceof SidedStorageBlockEntity provider
+                        ? provider.getItemStorage(direction) : null);
         SIDED.registerFallback((world, pos, state, blockEntity, direction) ->
                 blockEntity instanceof Container inventory
                         ? InventoryStorage.of(inventory, direction) : null);
