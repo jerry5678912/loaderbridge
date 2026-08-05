@@ -4,11 +4,17 @@
   "package": "dev.loaderbridge.fabric.api.item.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "AnvilMenuMixin",
     "ComponentMapBuilderMixin",
+    "EnchantCommandMixin",
+    "EnchantRandomlyFunctionMixin",
+    "EnchantmentBuilderAccessor",
+    "EnchantmentHelperMixin",
     "ItemMixin",
     "ItemPropertiesMixin",
     "ItemStackMixin",
     "LivingEntityMixin",
+    "RegistryDataLoaderMixin",
     "TooltipFlagMixin"
   ],
   "injectors": {"defaultRequire": 1}

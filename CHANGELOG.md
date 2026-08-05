@@ -16,6 +16,14 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added the pinned Fabric Item API enchanting contracts. Ordered tri-state
+  decisions now cover enchanting-table, anvil, command, and compatible random
+  loot checks, while data-driven enchantments are rebuilt through Fabric's
+  modify event with their original definition, exclusivity, and effects
+  preserved. A translated content item received Sharpness through real table
+  filtering and `/enchant` paths, and a Fabric mutation changed Sharpness's
+  live XP-repair result from one to four across graphical and two-process
+  dedicated-server save/reload gates.
 - Added Fabric's `FabricBrewingRecipeRegistryBuilder` contract and routes its
   build event through Forge's native brewing builder. Item and potion recipes,
   feature gating, and bulk water/awkward registrations use native Forge 52

@@ -25,7 +25,7 @@ public interface FabricItem {
     default boolean canBeEnchantedWith(ItemStack stack, Holder<Enchantment> enchantment,
             EnchantingContext context) {
         return context == EnchantingContext.PRIMARY
-                ? enchantment.value().isPrimaryItem(stack)
+                ? ((Item) this).canApplyAtEnchantingTable(stack, enchantment.value())
                 : enchantment.value().isSupportedItem(stack);
     }
 

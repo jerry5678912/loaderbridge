@@ -576,6 +576,21 @@ world, same-process save/reload, and two dedicated-server processes. Repeated
 preparation remained byte-identical. Enchanting and client Item API hooks
 remain open, so the complete module and M5 gates remain unclaimed.
 
+Fabric Item API revision 18 passed on 2026-08-05. The bridge now advertises
+the exact `EnchantingContext`, `EnchantmentEvents`, nested callback, and
+`EnchantmentSource` contracts. Tri-state allow decisions run in table, anvil,
+command, and compatible random-loot checks; default table behavior still
+preserves Forge item overrides. The dynamic-registry hook rebuilds each
+enchantment through Fabric's modify event while preserving its definition,
+exclusive set, special effects, and list effects, and classifies vanilla, mod,
+and external-data-pack sources. The controlled Fabric item was accepted for
+Sharpness through both PRIMARY table filtering and ACCEPTABLE `/enchant`
+execution. Its callback added a real XP-repair effect to Sharpness, changing a
+one-point calculation to four. A fresh graphical world, same-process reload,
+two dedicated-server processes, clean saves, and deterministic preparation
+passed. Client tooltip/animation hooks and special creator namespaces remain,
+so the complete module and M5 gates remain unclaimed.
+
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,
 tilde ranges, caret ranges, trailing-zero equality, and the special

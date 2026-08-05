@@ -2,6 +2,9 @@ package dev.loaderbridge.fixture.item;
 
 import java.util.List;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.item.v1.EnchantingContext;
+import net.fabricmc.fabric.api.item.v1.EnchantmentEvents;
+import net.fabricmc.fabric.api.item.v1.EnchantmentSource;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.item.v1.FabricComponentMapBuilder;
 import net.fabricmc.fabric.api.item.v1.DefaultItemComponentEvents;
@@ -17,7 +20,13 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.item.enchantment.LevelBasedValue;
+import net.minecraft.world.item.enchantment.effects.AddValue;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.decoration.ArmorStand;
@@ -41,6 +50,10 @@ import net.minecraft.world.level.block.entity.FurnaceBlockEntity;
 public final class FabricItemApiFixture implements ModInitializer {
     private static Item fabricTool;
     private static int remainderCalls;
+    private static int primaryEnchantingCalls;
+    private static int acceptableEnchantingCalls;
+    private static int modifyEnchantingCalls;
+    private static EnchantmentSource sharpnessSource;
 
     @Override
     public void onInitialize() {
@@ -59,6 +72,21 @@ public final class FabricItemApiFixture implements ModInitializer {
                                 Ingredient.of(fabricTool), Potions.AWKWARD));
         DefaultItemComponentEvents.MODIFY.register(context -> context.modify(
                 fabricTool, builder -> builder.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true)));
+        EnchantmentEvents.ALLOW_ENCHANTING.register((enchantment, target, context) -> {
+            if (!target.is(fabricTool) || !enchantment.is(Enchantments.SHARPNESS)) {
+                return net.fabricmc.fabric.api.util.TriState.DEFAULT;
+            }
+            if (context == EnchantingContext.PRIMARY) primaryEnchantingCalls++;
+            if (context == EnchantingContext.ACCEPTABLE) acceptableEnchantingCalls++;
+            return net.fabricmc.fabric.api.util.TriState.TRUE;
+        });
+        EnchantmentEvents.MODIFY.register((key, builder, source) -> {
+            if (!key.equals(Enchantments.SHARPNESS)) return;
+            sharpnessSource = source;
+            modifyEnchantingCalls++;
+            builder.withEffect(EnchantmentEffectComponents.REPAIR_WITH_XP,
+                    new AddValue(LevelBasedValue.constant(3.0F)));
+        });
 
         ItemStack stack = new ItemStack(fabricTool);
         DataComponentMap.Builder componentBuilder = DataComponentMap.builder();
@@ -76,6 +104,8 @@ public final class FabricItemApiFixture implements ModInitializer {
         }
         System.out.println("LOADERBRIDGE_FABRIC_ITEM_CONTENT_READY");
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            int primaryCallsBefore = primaryEnchantingCalls;
+            int acceptableCallsBefore = acceptableEnchantingCalls;
             ArmorStand entity = EntityType.ARMOR_STAND.create(server.overworld());
             if (entity == null) throw new IllegalStateException("could not create item fixture entity");
             if (!new ItemStack(fabricTool).getOrDefault(
@@ -144,9 +174,51 @@ public final class FabricItemApiFixture implements ModInitializer {
                     || remainderCalls != callsAfterFurnace + 1) {
                 throw new IllegalStateException("Fabric brewing remainder pipeline failed");
             }
+            Registry<net.minecraft.world.item.enchantment.Enchantment> enchantments =
+                    server.registryAccess().registryOrThrow(Registries.ENCHANTMENT);
+            var sharpness = enchantments.getHolderOrThrow(Enchantments.SHARPNESS);
+            ItemStack enchantingTarget = new ItemStack(fabricTool);
+            var availableEnchantments = EnchantmentHelper.getAvailableEnchantmentResults(
+                    20, enchantingTarget, java.util.stream.Stream.of(sharpness));
+            if (availableEnchantments.isEmpty()
+                    || primaryEnchantingCalls != primaryCallsBefore + 1) {
+                throw new IllegalStateException("Fabric primary enchanting pipeline failed: "
+                        + "available=" + availableEnchantments.size()
+                        + ",before=" + primaryCallsBefore
+                        + ",after=" + primaryEnchantingCalls);
+            }
+            String targetTag = "loaderbridge_item_enchanting_"
+                    + entity.getUUID().toString().replace("-", "");
+            entity.addTag(targetTag);
+            entity.setItemSlot(EquipmentSlot.MAINHAND, enchantingTarget);
+            BlockPos spawn = server.overworld().getSharedSpawnPos();
+            entity.moveTo(spawn.getX() + 0.5, spawn.getY(), spawn.getZ() + 0.5,
+                    0.0F, 0.0F);
+            if (!server.overworld().addFreshEntity(entity)) {
+                throw new IllegalStateException("could not add item fixture entity");
+            }
+            server.getCommands().performPrefixedCommand(
+                    server.createCommandSourceStack().withPermission(4),
+                    "enchant @e[type=minecraft:armor_stand,"
+                            + "tag=" + targetTag + ",limit=1] "
+                            + "minecraft:sharpness 1");
+            int repairedXp = EnchantmentHelper.modifyDurabilityToRepairFromXp(
+                    server.overworld(), entity.getMainHandItem(), 1);
+            if (EnchantmentHelper.getItemEnchantmentLevel(
+                            sharpness, entity.getMainHandItem()) != 1
+                    || acceptableEnchantingCalls != acceptableCallsBefore + 1
+                    || modifyEnchantingCalls < 1
+                    || sharpnessSource != EnchantmentSource.VANILLA
+                    || repairedXp != 4) {
+                throw new IllegalStateException("Fabric enchanting events pipeline failed: "
+                        + "primary=" + primaryEnchantingCalls
+                        + ",acceptable=" + acceptableEnchantingCalls
+                        + ",modify=" + modifyEnchantingCalls
+                        + ",source=" + sharpnessSource + ",repair=" + repairedXp);
+            }
             System.out.println("LOADERBRIDGE_FABRIC_ITEM_API_READY "
                     + "damage=2,slot=head,glint=true,remainder=gold_nugget,"
-                    + "furnace=stone,brewing=awkward");
+                    + "furnace=stone,brewing=awkward,enchanting=sharpness");
         });
     }
 

@@ -37,6 +37,14 @@ potions, the Fabric ingredient, and blaze powder, advances the native block
 entity, and requires all three awkward outputs. The ingredient slot retains a
 gold nugget and the same callback counter proves the remainder method runs once.
 
+Revision 18 adds Fabric's enchanting events. An ordered tri-state callback
+allows Sharpness on the otherwise unsupported Fabric content item. A real
+`EnchantmentHelper.getAvailableEnchantmentResults` call proves the PRIMARY
+table path, and the server's `/enchant` command proves the ACCEPTABLE path by
+applying Sharpness I to a spawned armor stand's held item. The modify callback
+identifies Sharpness as a vanilla resource and adds an XP-repair effect; the
+live `modifyDurabilityToRepairFromXp` result changes from one to four.
+
 The fixture is also a content-mod gate. It registers
 `loaderbridge_item_api_fixture:fabric_tool` and packages a valid inventory
 model using a vanilla gold-ingot texture plus an English translation. The final
@@ -46,7 +54,7 @@ item.
 The Forge 52.1.16 graphical scenario used a clean world and reached:
 
 - `LOADERBRIDGE_FABRIC_ITEM_CONTENT_READY` before the title screen;
-- `LOADERBRIDGE_FABRIC_ITEM_API_READY damage=2,slot=head,glint=true,remainder=gold_nugget,furnace=stone,brewing=awkward` on both integrated
+- `LOADERBRIDGE_FABRIC_ITEM_API_READY damage=2,slot=head,glint=true,remainder=gold_nugget,furnace=stone,brewing=awkward,enchanting=sharpness` on both integrated
   server starts;
 - title screen and integrated-world ready;
 - world save, clean disconnect, and same-process world reload;
@@ -54,8 +62,8 @@ The Forge 52.1.16 graphical scenario used a clean world and reached:
 
 Dedicated-server processes used the same prepared artifacts and existing saved
 world. Two independent processes each emitted both markers, reached `Done`,
-executed the recipe and furnace assertions, and stopped through the server
-console with all dimensions saved.
+executed the recipe, furnace, brewing, table, command, and modified-enchantment
+assertions, and stopped through the server console with all dimensions saved.
 
 Repeated preparation was byte-identical:
 
@@ -63,13 +71,14 @@ Repeated preparation was byte-identical:
   `338872b4c7690bc9c784275502f0b13b094db29a46fc0f881d141c79d01b2e32`
 - Content Registries bridge SHA-256:
   `4ed6126734be46dae847446281e47776671675e8b1aba57b5748e43416fc2b19`
-- Item API bridge revision 16 SHA-256:
-  `eb178a964f12784b093a1d8dff3efd9c3db26cc620c95c89518f8d674380aa52`
+- Item API bridge revision 18 SHA-256:
+  `7959725221cba8bd911440d21379983ab4b66def077a6993af00d9aaf57b332d`
 - Lifecycle bridge SHA-256:
   `4c60518155e5402b78a764c2804ea8fe01e530c0a05ba6e6357c00a97ae472fa`
-- transformed fixture behavioral revision 17 SHA-256:
-  `1d67ea5386477b374e5fe12b09b0aeb4b383191e2c7d1e67b1a561b098eb74b1`
+- transformed fixture revision 18 SHA-256:
+  `5161ab28192d5bb8aa1d0992919c58b944b6759c8b2068daccc5b1f00536dcee`
 
-This closes the crafting, furnace, and direct custom-brewing remainder
-increment. Full enchanting and client tooltip/animation behavior remain open,
-so this does not close the entire module, M5, or the 60% catalog gate.
+This closes the common/server enchanting increment along with crafting,
+furnace, and direct custom-brewing remainders. Client tooltip/animation behavior
+and special creator namespaces remain open, so this does not close the entire
+module, M5, or the 60% catalog gate.

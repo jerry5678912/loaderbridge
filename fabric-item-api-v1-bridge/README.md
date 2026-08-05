@@ -7,6 +7,7 @@ controlled content fixture:
 - `FabricItem`, `FabricItem.Settings`, and `FabricItemStack`;
 - `DefaultItemComponentEvents`, including item, collection, and predicate
   mutation contexts;
+- `EnchantingContext`, `EnchantmentEvents`, and `EnchantmentSource`;
 - `CustomDamageHandler` and `EquipmentSlotProvider`;
 - `FabricComponentMapBuilder` and `FabricTooltipType`.
 
@@ -28,9 +29,16 @@ lifecycle ordering. Mutations update vanilla's backing component map and
 Forge's gathered-component cache together, preserving components contributed
 by either loader.
 
+Revision 4 routes ordered Fabric tri-state enchanting decisions through
+Forge's table filter and Minecraft's anvil, command, and compatible random-loot
+paths. Dynamic enchantment loading invokes Fabric's modify event after copying
+the original definition, exclusive set, special effects, and list effects into
+a mutable builder. Resource provenance is reported as vanilla, mod, or external
+data pack. The controlled fixture proved PRIMARY table filtering, ACCEPTABLE
+`/enchant` execution, and a modified Sharpness XP-repair effect in live worlds.
+
 This is deliberately not advertised as the complete pinned module yet.
-Vanilla enchanting event hooks, a direct custom-brewing behavioral gate, client
-tooltip and animation callbacks, and special creator namespaces remain
+Client tooltip and animation callbacks and special creator namespaces remain
 unimplemented and therefore are not listed as provided reference surfaces.
 
 The controlled fixture registers a real Fabric item with working model and
