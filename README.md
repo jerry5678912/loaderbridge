@@ -548,6 +548,23 @@ fixture JARs. Registry-entry current-state parity, configured-feature and
 structure lookup parity, and specialized Nether/End helpers remain open, so
 this still does not complete the Biome module, M5, or its 60% catalog gate.
 
+Fabric Biome API v1 revision 5 passed on 2026-08-05. Selection contexts now
+reverse-resolve registered configured features, placed features, and structures
+by object identity, validate structures against their biome holder sets, and
+query actual level-stem biome sources rather than approximating the three
+vanilla dimensions with tags. Forge decodes biome modifiers before its level-
+stem registry exists, so dimension access is intentionally deferred until
+`ServerLifecycleHooks` applies modifiers with a complete server registry. The
+same boundary also builds cached identity indexes after Forge has frozen and
+rebound dynamic-registry holders, retaining Fabric's identity semantics without
+rescanning entire registries for each selector call. The
+controlled Plains rule proved both feature keys, positive and negative
+structure validity, and Overworld-versus-Nether membership during graphical
+create/reload and two independent dedicated-server processes. Repeated
+preparation produced byte-identical revision-5 artifacts. Specialized
+Nether/End source mutation helpers remain open, so the complete Biome module,
+M5, and the 60% catalog gate remain unclaimed.
+
 Fabric Block API v1 revision 11 passed on 2026-08-05. The bridge matches pinned
 `1.1.0+0bc3503219`, injects the exact Fabric interfaces into vanilla `Block`
 and `BlockState`, delegates custom appearance through the block-state contract,

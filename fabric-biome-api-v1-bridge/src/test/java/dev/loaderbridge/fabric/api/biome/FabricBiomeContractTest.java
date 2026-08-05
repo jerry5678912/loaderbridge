@@ -2,7 +2,11 @@ package dev.loaderbridge.fabric.api.biome;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.mojang.serialization.Lifecycle;
 import java.util.Set;
+import net.minecraft.core.MappedRegistry;
+import net.minecraft.core.RegistrationInfo;
+import net.minecraft.core.Registry;
 import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
 import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
 import net.fabricmc.fabric.api.biome.v1.ModificationPhase;
@@ -18,7 +22,7 @@ class FabricBiomeContractTest {
     @Test
     void advertisesOnlyImplementedBiomeContracts() {
         var descriptor = new FabricBiomeBridgeProvider().descriptor();
-        assertThat(descriptor.implementationVersion()).isEqualTo("13.0.31+d527f9fd19-loaderbridge.4");
+        assertThat(descriptor.implementationVersion()).isEqualTo("13.0.31+d527f9fd19-loaderbridge.5");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrderElementsOf(Set.of(
                 "net.fabricmc.fabric.api.biome.v1.BiomeSelectionContext",
                 "net.fabricmc.fabric.api.biome.v1.BiomeSelectors",
@@ -61,5 +65,20 @@ class FabricBiomeContractTest {
                 (selection, context) -> context.getWeather().setTemperature(0.42F)))
                 .isSameAs(modification);
         assertThat(BridgeBiomeRules.genericRuleCount()).isEqualTo(before + 2);
+    }
+
+    @Test
+    void reverseRegistryLookupUsesRegisteredObjectIdentity() {
+        ResourceKey<Registry<String>> registryKey = ResourceKey.createRegistryKey(
+                ResourceLocation.fromNamespaceAndPath("fixture", "values"));
+        MappedRegistry<String> registry = new MappedRegistry<>(registryKey, Lifecycle.stable());
+        ResourceKey<String> valueKey = ResourceKey.create(registryKey,
+                ResourceLocation.fromNamespaceAndPath("fixture", "registered"));
+        String registered = new String("value");
+        registry.register(valueKey, registered, RegistrationInfo.BUILT_IN);
+
+        var keys = BridgeBiomeRules.registryKeys(registry.asLookup());
+        assertThat(keys.get(registered)).isEqualTo(valueKey);
+        assertThat(keys.get(new String("value"))).isNull();
     }
 }

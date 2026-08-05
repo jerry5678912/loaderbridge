@@ -1,6 +1,6 @@
 # Fabric Biome API v1 controlled fixture
 
-This fixture tests LoaderBridge revisions 2 through 4 of pinned
+This fixture tests LoaderBridge revisions 2 through 5 of pinned
 `fabric-biome-api-v1:13.0.31+d527f9fd19` on Minecraft 1.21.1 and Forge
 52.1.16. The ordinary `prepare` command inspects bytecode and automatically
 selects the Biome bridge and its dependencies without relying on artifact
@@ -64,11 +64,35 @@ produced byte-identical artifacts:
 - bridge SHA-256: `060d3ecba9fa1b652144d3a039a2c7b5a61f79f1c3403764d1f1b15c1269b545`
 - transformed fixture SHA-256: `2bdb6039dbdc9745e92026c54d2be240bda3be7d5a9b2e018aae5fba78bfb59f`
 
+Revision 5 replaces the remaining placeholder selection queries with dynamic
+registry behavior matching Fabric's pinned implementation. During Plains
+POST_PROCESSING the fixture reverse-resolves `PATCH_GRASS` and
+`PATCH_GRASS_PLAIN`, accepts the Plains village but rejects the Nether fortress,
+and confirms that Plains belongs to the Overworld source but not the Nether
+source. It emits:
+
+`LOADERBRIDGE_FABRIC_BIOME_REGISTRY_SELECTION_READY feature=true,placed=true,structure=true,dimension=true`
+
+Forge's biome-modifier codec is decoded before the level-stem registry exists;
+the first live attempt intentionally exposed that ordering mismatch as
+`LB-BIOME-001: dimension registry is unavailable`. The corrected bridge keeps
+feature and structure lookups from decode-time registry owners but defers
+dimension lookup until Forge applies modifiers through its active server.
+Because Forge also rebinds dynamic-registry holder values during freeze, the
+bridge builds its object-identity indexes lazily at that same post-freeze
+boundary. The
+marker then passed graphical create/save/reload and fresh plus saved-world
+dedicated-server processes. Repeated preparation produced byte-identical
+artifacts:
+
+- bridge SHA-256: `0b0917d2c0018e81c8006e1b58a61840a2fe50540cc7206f0cd0c3e219fb5cdc`
+- transformed fixture SHA-256: `b69d7d75038585ea3ec3bbd6800e6c92be6074f131cfa273eb6df81baa8ee2bf`
+
 The bridge emits `LB-BIOME-003` when a configured-carver target cannot be
 resolved. Revision 4 covers general ordered phases, current-state biome reads,
 weather and effects mutation including clears, generation additions/removals,
 and spawn additions/removals/probability/cost installation and clearing.
 `getBiomeRegistryEntry().value()` still refers to the registry's original
-biome while a rule is executing, and configured-feature lookup, structure
-lookup, and specialized Nether/End helpers remain open. This does not complete
-the Biome API module, M5, or the roadmap's 60% catalog gate.
+biome while a rule is executing. Specialized Nether/End source mutation
+helpers also remain open. This does not complete the Biome API module, M5, or
+the roadmap's 60% catalog gate.

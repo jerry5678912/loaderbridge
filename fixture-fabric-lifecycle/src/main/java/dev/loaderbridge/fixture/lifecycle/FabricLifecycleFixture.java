@@ -32,8 +32,12 @@ import net.fabricmc.fabric.api.gamerule.v1.GameRuleRegistry;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameType;
 import net.minecraft.data.worldgen.Carvers;
+import net.minecraft.data.worldgen.features.VegetationFeatures;
+import net.minecraft.data.worldgen.placement.VegetationPlacements;
 import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.GenerationStep;
+import net.minecraft.world.level.levelgen.structure.BuiltinStructures;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -735,6 +739,43 @@ public final class FabricLifecycleFixture implements ModInitializer {
                                 throw new IllegalStateException(
                                         "LOADERBRIDGE_FABRIC_BIOME_PHASED_CURRENT_STATE_FAILED");
                             }
+                            var grass = selection.getBiome().getGenerationSettings().features()
+                                    .stream().flatMap(features -> features.stream())
+                                    .filter(feature -> feature.is(VegetationPlacements.PATCH_GRASS_PLAIN))
+                                    .findFirst().orElseThrow(() -> new IllegalStateException(
+                                            "LOADERBRIDGE_FABRIC_BIOME_PLACED_FEATURE_MISSING"));
+                            if (!selection.hasPlacedFeature(VegetationPlacements.PATCH_GRASS_PLAIN)) {
+                                throw new IllegalStateException(
+                                        "LOADERBRIDGE_FABRIC_BIOME_HAS_PLACED_FEATURE_FAILED");
+                            }
+                            if (!selection.getPlacedFeatureKey(grass.value())
+                                    .filter(VegetationPlacements.PATCH_GRASS_PLAIN::equals)
+                                    .isPresent()) {
+                                throw new IllegalStateException(
+                                        "LOADERBRIDGE_FABRIC_BIOME_PLACED_FEATURE_KEY_FAILED");
+                            }
+                            if (!selection.hasFeature(VegetationFeatures.PATCH_GRASS)) {
+                                throw new IllegalStateException(
+                                        "LOADERBRIDGE_FABRIC_BIOME_HAS_FEATURE_FAILED");
+                            }
+                            if (!selection.getFeatureKey(grass.value().feature().value())
+                                    .filter(VegetationFeatures.PATCH_GRASS::equals)
+                                    .isPresent()) {
+                                throw new IllegalStateException(
+                                        "LOADERBRIDGE_FABRIC_BIOME_FEATURE_KEY_FAILED");
+                            }
+                            if (!selection.validForStructure(BuiltinStructures.VILLAGE_PLAINS)
+                                    || selection.validForStructure(BuiltinStructures.FORTRESS)) {
+                                throw new IllegalStateException(
+                                        "LOADERBRIDGE_FABRIC_BIOME_STRUCTURE_SELECTION_FAILED");
+                            }
+                            if (!selection.canGenerateIn(LevelStem.OVERWORLD)
+                                    || selection.canGenerateIn(LevelStem.NETHER)) {
+                                throw new IllegalStateException(
+                                        "LOADERBRIDGE_FABRIC_BIOME_DIMENSION_SELECTION_FAILED");
+                            }
+                            System.out.println("LOADERBRIDGE_FABRIC_BIOME_REGISTRY_SELECTION_READY "
+                                    + "feature=true,placed=true,structure=true,dimension=true");
                             context.getWeather().setPrecipitation(false);
                             context.getWeather().setTemperature(0.42F);
                             context.getWeather().setDownfall(0.21F);

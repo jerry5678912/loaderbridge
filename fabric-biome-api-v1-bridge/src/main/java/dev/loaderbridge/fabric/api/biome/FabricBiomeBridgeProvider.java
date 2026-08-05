@@ -13,7 +13,7 @@ import java.util.Set;
 public final class FabricBiomeBridgeProvider implements RuntimeBridgeModuleProvider {
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-biome-api-v1-bridge", "fabric-biome-api-v1:13.0.31",
-            "13.0.31+d527f9fd19-loaderbridge.4", BridgeCapability.FABRIC_API,
+            "13.0.31+d527f9fd19-loaderbridge.5", BridgeCapability.FABRIC_API,
             Set.of("net.fabricmc.fabric.api.biome.v1.BiomeSelectionContext",
                     "net.fabricmc.fabric.api.biome.v1.BiomeSelectors",
                     "net.fabricmc.fabric.api.biome.v1.BiomeModifications",

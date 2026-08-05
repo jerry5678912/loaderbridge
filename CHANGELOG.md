@@ -16,6 +16,13 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Completed Fabric Biome selection's registry-backed queries for configured and
+  placed features, structure validity/key lookup, and dimension biome-source
+  membership. Dimension resolution is deferred until Forge applies modifiers,
+  avoiding its earlier biome-modifier decode phase; reverse identity indexes
+  are likewise built after Forge freezes and rebinds dynamic-registry holders.
+  Exact Plains assertions passed graphical create/reload and two-process
+  dedicated-server gates.
 - Completed the mutable-context portion of Fabric Biome API's general
   modification contract. Bridge-owned Mixin accessors now support clearing all
   optional biome effects and spawn costs, while selection callbacks receive a
