@@ -235,7 +235,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   save, reload, and clean-stop gates on Forge 52.1.16. Revision 10 adds the
   remaining pinned server-safe public types: fluid attributes, player
   interaction utilities, transactional cauldrons, and vanilla water-potion
-  containers. See
+  containers. Revision 11 adds Fabric's built-in item providers for all
+  shulker-box variants and bundles, transactional composter storage, stable
+  vanilla inventory-provider lookup, and combined chest discovery. See
   [the controlled evidence](docs/controlled-fixtures/fabric-transfer-api-v1.md).
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
@@ -307,9 +309,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 ## Intentionally gated
 
 The adapter currently rejects Fabric API surfaces outside the implemented
-modules, including remaining Transfer API built-in item providers and fluid
-storage, biome, convention-tag, trade-helper, and rendering surfaces, unknown custom
-language adapters, Loader API calls outside the current
+modules, including client fluid rendering, remaining biome, convention-tag,
+trade-helper, and broader rendering surfaces, unknown custom language adapters,
+Loader API calls outside the current
 shim, and mods requiring unreviewed native-library behavior. Signed patch packs,
 broad semantic graphical assertions, and catalog-wide compatibility measurement
 are not yet implemented.
@@ -488,6 +490,19 @@ fresh-world cauldron mutation, saved-world restoration, and clean shutdown.
 Client-only fluid rendering and the remaining container-component/bundle
 providers are still open, so this does not close the entire Transfer module or
 M5.
+
+Transfer API v1 revision 11 passed on 2026-08-05. All seventeen shulker-box
+items now expose their 27-slot container component, bundles expose their native
+weight-limited contents, and both update the containing item transactionally.
+The fixture rolled back and committed shulker and bundle mutations, routed 70
+diamonds across shulker slots, retained 65 after extraction, and retained 15 in
+the bundle. `ItemStorage.SIDED` now also covers Fabric's transactional composter
+top/bottom providers, stable `WorldlyContainerHolder` inventories, and combined
+chests. Composter insert and bone-meal extraction each passed abort and commit
+paths on both graphical world sessions and two dedicated-server processes.
+Repeated preparation produced byte-identical bridge and transformed-fixture
+JARs. This closes the pinned common/server Transfer API surface; client fluid
+rendering remains an M6 concern, and M5's catalog gate remains open.
 
 Fabric Block API v1 revision 11 passed on 2026-08-05. The bridge matches pinned
 `1.1.0+0bc3503219`, injects the exact Fabric interfaces into vanilla `Block`

@@ -1,7 +1,7 @@
 # Fabric Transfer API v1 bridge
 
 This module targets `fabric-transfer-api-v1` 5.4.4+7b3d111d19 for Minecraft
-1.21.1. Revision 10 implements the public transaction and snapshot-participant
+1.21.1. Revision 11 implements the public transaction and snapshot-participant
 contracts: nested atomic scopes, rollback, commit propagation, callback order,
 outer-close notifications, lifecycle inspection, and thread confinement. It
 also implements the generic `Storage` and `StorageView` contracts, including
@@ -31,7 +31,11 @@ item lookups, `SidedStorageBlockEntity`, and vanilla empty/full bucket exchange.
 Revision 10 completes the pinned server-safe public surface with fluid
 attributes, player interaction utilities, transactional cauldrons, and vanilla
 water-potion containers.
+Revision 11 completes the built-in common/server providers: every shulker-box
+variant exposes its 27-slot container component, bundles expose their native
+weight-limited contents, and composters expose transactional top insertion and
+bottom bone-meal extraction. Vanilla `WorldlyContainerHolder` inventories and
+combined chests are also discovered through `ItemStorage.SIDED`.
 
-Client fluid rendering, container-component providers, and bundle providers
-remain gated until their behavioral fixtures pass. The provider only advertises
+Client fluid rendering remains gated for M6. The provider only advertises
 classes implemented by this revision.

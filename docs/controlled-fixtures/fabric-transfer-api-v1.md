@@ -1,7 +1,7 @@
 # Fabric Transfer API v1 controlled fixture
 
 This fixture tests the item-provider and server-safe fluid-storage surface of pinned
-`fabric-transfer-api-v1:5.4.4+7b3d111d19` through LoaderBridge revision 10 on
+`fabric-transfer-api-v1:5.4.4+7b3d111d19` through LoaderBridge revision 11 on
 Minecraft 1.21.1 and Forge 52.1.16.
 
 The implementation follows Fabric's public `SingleVariantItemStorage`
@@ -24,6 +24,12 @@ The graphical Forge scenario proved:
   resource is rejected;
 - the final item remains the original container with 500 units stored and a
   reported capacity of 1,000;
+- an aborted 70-diamond shulker insertion restores an empty component, while
+  committed insertion and extraction leave 59 and 6 diamonds in the first two
+  of 27 stable slots;
+- an aborted 20-diamond bundle insertion restores empty contents, while
+  committed insertion and extraction leave 15 diamonds under vanilla bundle
+  weight rules;
 - the process creates and saves a world, reopens it, repeats its networking and
   lifecycle gates, and stops cleanly.
 - flowing water is normalized to a still-water `FluidVariant`;
@@ -42,10 +48,17 @@ The graphical Forge scenario proved:
   graphical connection sessions;
 - an aborted cauldron mutation restores the empty block, committed insert and
   extraction leave water level 1, and that level is observed after reload.
+- composter lookup is vertical-side-only; top insertion and bottom bone-meal
+  extraction each roll back when aborted and mutate the real block when
+  committed in both graphical sessions and both dedicated-server processes.
 
 The runtime marker was:
 
 `LOADERBRIDGE_FABRIC_ITEM_PROVIDED_STORAGE_READY amount=500`
+
+`LOADERBRIDGE_FABRIC_ITEM_BUILTIN_STORAGE_READY shulker=65,bundle=15`
+
+`LOADERBRIDGE_FABRIC_COMPOSTER_STORAGE_READY insert=1,extract=1`
 
 `LOADERBRIDGE_FABRIC_FLUID_STORAGE_READY amount=54000`
 
@@ -61,12 +74,11 @@ The runtime marker was:
 
 Prepared artifact evidence:
 
-- bridge SHA-256: `68258b19cd902b8f7df135028921efa5b82694d3185edbee8d8093d256f3cb5d`
-- fixture SHA-256: `1fdee685abbdd6a767b9dfd3b7c65e8e9ed914085091d518307e2813cd09bab3`
-- lock SHA-256: `1806880fc8dbe712ed2c3b218c291756187ae98fa91ed9972be909e8ab4e768c`
+- bridge SHA-256: `a6cf86a65ef754660323a80ce950f915d9bcc2447de62a8931cd460fbb25d267`
+- fixture SHA-256: `fbd909693a787d4d3a0e782b6efdd107a175a81e608865b38383fb430d1e1c0a`
 
 The public-surface contract test requires the exact advertised classes and the
 full repository build keeps unsupported client fluid-rendering references
-diagnostic-gated. Bundle/container-component and client fluid-rendering surfaces
-remain open. This evidence is one Transfer API increment; it does not complete
-the module, M5, or the 60% catalog gate.
+diagnostic-gated. This closes the pinned common/server Transfer module surface;
+client fluid rendering remains for M6. It does not complete M5 or establish the
+60% catalog gate.

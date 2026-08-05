@@ -16,6 +16,12 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added Fabric Transfer API's built-in item providers for every shulker-box
+  variant and bundles, plus transactional composter insertion and bone-meal
+  extraction, stable `WorldlyContainerHolder` discovery, and combined chest
+  fallback. Aborted and committed component mutations, 27-slot routing, bundle
+  weight limits, composter side rules, graphical save/reload, and two dedicated
+  server processes now pass against Forge 52.1.16.
 - Added Fabric Item API creator attribution for normal items, potion and tipped
   arrow stacks, and enchanted books containing exactly one stored enchantment.
   Attribution follows registry holder namespaces rather than artifact names: a

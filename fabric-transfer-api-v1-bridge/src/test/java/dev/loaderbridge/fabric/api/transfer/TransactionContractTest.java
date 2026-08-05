@@ -30,7 +30,7 @@ class TransactionContractTest {
     void providerAdvertisesOnlyImplementedTransactionSurface() {
         var descriptor = new FabricTransferApiBridgeProvider().descriptor();
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("5.4.4+7b3d111d19-loaderbridge.10");
+                .isEqualTo("5.4.4+7b3d111d19-loaderbridge.11");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrderElementsOf(Set.of(
                 "net.fabricmc.fabric.api.transfer.v1.transaction.Transaction",
                 "net.fabricmc.fabric.api.transfer.v1.transaction.Transaction$Lifecycle",

@@ -16,6 +16,9 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.component.BundleContents;
+import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -59,6 +62,7 @@ import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageUtil;
+import net.fabricmc.fabric.api.transfer.v1.storage.SlottedStorage;
 import net.fabricmc.fabric.api.transfer.v1.item.InventoryStorage;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
@@ -103,6 +107,7 @@ import net.minecraft.world.item.HoneycombItem;
 import net.minecraft.world.item.ShovelItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.ComposterBlock;
 import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.WeatheringCopper;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -332,6 +337,82 @@ public final class FabricLifecycleFixture implements ModInitializer {
                     "LOADERBRIDGE_FABRIC_ITEM_PROVIDED_STORAGE_FAILED");
         }
         System.out.println("LOADERBRIDGE_FABRIC_ITEM_PROVIDED_STORAGE_READY amount=500");
+        SimpleContainer shulkerContainer = new SimpleContainer(new ItemStack(Items.SHULKER_BOX));
+        ContainerItemContext shulkerContext = ContainerItemContext.ofSingleSlot(
+                InventoryStorage.of(shulkerContainer, null).getSlot(0));
+        Storage<ItemVariant> shulkerStorage = shulkerContext.find(ItemStorage.ITEM);
+        if (!(shulkerStorage instanceof SlottedStorage<?> slotted)
+                || slotted.getSlotCount() != 27) {
+            throw new IllegalStateException(
+                    "LOADERBRIDGE_FABRIC_SHULKER_STORAGE_LOOKUP_FAILED");
+        }
+        try (Transaction aborted = Transaction.openOuter()) {
+            if (shulkerStorage.insert(diamonds, 70, aborted) != 70) {
+                throw new IllegalStateException(
+                        "LOADERBRIDGE_FABRIC_SHULKER_STORAGE_ABORT_SETUP_FAILED");
+            }
+        }
+        if (!shulkerContainer.getItem(0).getOrDefault(
+                DataComponents.CONTAINER, ItemContainerContents.EMPTY).stream().toList().isEmpty()) {
+            throw new IllegalStateException(
+                    "LOADERBRIDGE_FABRIC_SHULKER_STORAGE_ROLLBACK_FAILED");
+        }
+        try (Transaction committed = Transaction.openOuter()) {
+            if (shulkerStorage.insert(diamonds, 70, committed) != 70) {
+                throw new IllegalStateException(
+                        "LOADERBRIDGE_FABRIC_SHULKER_STORAGE_INSERT_FAILED");
+            }
+            committed.commit();
+        }
+        @SuppressWarnings("unchecked")
+        SlottedStorage<ItemVariant> shulkerSlots = (SlottedStorage<ItemVariant>) shulkerStorage;
+        try (Transaction committed = Transaction.openOuter()) {
+            if (shulkerSlots.getSlot(0).extract(diamonds, 5, committed) != 5) {
+                throw new IllegalStateException(
+                        "LOADERBRIDGE_FABRIC_SHULKER_STORAGE_EXTRACT_FAILED");
+            }
+            committed.commit();
+        }
+        java.util.List<ItemStack> shulkerStacks = shulkerContainer.getItem(0).getOrDefault(
+                DataComponents.CONTAINER, ItemContainerContents.EMPTY).stream().toList();
+        if (shulkerStacks.size() < 2 || shulkerStacks.get(0).getCount() != 59
+                || shulkerStacks.get(1).getCount() != 6) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_SHULKER_STORAGE_FAILED");
+        }
+        SimpleContainer bundleContainer = new SimpleContainer(new ItemStack(Items.BUNDLE));
+        ContainerItemContext bundleContext = ContainerItemContext.ofSingleSlot(
+                InventoryStorage.of(bundleContainer, null).getSlot(0));
+        Storage<ItemVariant> bundleStorage = bundleContext.find(ItemStorage.ITEM);
+        try (Transaction aborted = Transaction.openOuter()) {
+            if (bundleStorage == null || bundleStorage.insert(diamonds, 20, aborted) != 20) {
+                throw new IllegalStateException(
+                        "LOADERBRIDGE_FABRIC_BUNDLE_STORAGE_ABORT_SETUP_FAILED");
+            }
+        }
+        if (!bundleContainer.getItem(0).getOrDefault(
+                DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY).isEmpty()) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_BUNDLE_STORAGE_ROLLBACK_FAILED");
+        }
+        try (Transaction committed = Transaction.openOuter()) {
+            if (bundleStorage.insert(diamonds, 20, committed) != 20) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_BUNDLE_STORAGE_INSERT_FAILED");
+            }
+            committed.commit();
+        }
+        try (Transaction committed = Transaction.openOuter()) {
+            if (bundleStorage.extract(diamonds, 5, committed) != 5) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_BUNDLE_STORAGE_EXTRACT_FAILED");
+            }
+            committed.commit();
+        }
+        BundleContents bundleContents = bundleContainer.getItem(0).getOrDefault(
+                DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY);
+        if (bundleContents.size() != 1
+                || bundleContents.itemCopyStream().findFirst().orElseThrow().getCount() != 15) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_BUNDLE_STORAGE_FAILED");
+        }
+        System.out.println(
+                "LOADERBRIDGE_FABRIC_ITEM_BUILTIN_STORAGE_READY shulker=65,bundle=15");
         if (FluidConstants.fromBucketFraction(1, 3) != FluidConstants.BOTTLE
                 || FluidVariant.of(Fluids.FLOWING_WATER).getFluid() != Fluids.WATER) {
             throw new IllegalStateException("LOADERBRIDGE_FABRIC_FLUID_CONSTANTS_FAILED");
@@ -950,6 +1031,67 @@ public final class FabricLifecycleFixture implements ModInitializer {
                 throw new IllegalStateException("LOADERBRIDGE_FABRIC_ITEM_SIDED_STORAGE_FAILED");
             }
             System.out.println("LOADERBRIDGE_FABRIC_ITEM_SIDED_LOOKUP_READY");
+            BlockPos composterPos = chestPos.above();
+            world.setBlockAndUpdate(composterPos, Blocks.COMPOSTER.defaultBlockState());
+            Storage<ItemVariant> composterTop =
+                    ItemStorage.SIDED.find(world, composterPos, Direction.UP);
+            if (composterTop == null
+                    || ItemStorage.SIDED.find(world, composterPos, Direction.NORTH) != null) {
+                throw new IllegalStateException(
+                        "LOADERBRIDGE_FABRIC_COMPOSTER_LOOKUP_FAILED");
+            }
+            try (Transaction aborted = Transaction.openOuter()) {
+                if (composterTop.insert(ItemVariant.of(Items.CAKE), 1, aborted) != 1) {
+                    throw new IllegalStateException(
+                            "LOADERBRIDGE_FABRIC_COMPOSTER_ABORT_SETUP_FAILED");
+                }
+            }
+            if (world.getBlockState(composterPos).getValue(ComposterBlock.LEVEL) != 0) {
+                throw new IllegalStateException(
+                        "LOADERBRIDGE_FABRIC_COMPOSTER_ROLLBACK_FAILED");
+            }
+            try (Transaction committed = Transaction.openOuter()) {
+                if (composterTop.insert(ItemVariant.of(Items.CAKE), 1, committed) != 1) {
+                    throw new IllegalStateException(
+                            "LOADERBRIDGE_FABRIC_COMPOSTER_INSERT_FAILED");
+                }
+                committed.commit();
+            }
+            if (world.getBlockState(composterPos).getValue(ComposterBlock.LEVEL) != 1) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_COMPOSTER_LEVEL_FAILED");
+            }
+            world.setBlockAndUpdate(composterPos, Blocks.COMPOSTER.defaultBlockState()
+                    .setValue(ComposterBlock.LEVEL, ComposterBlock.READY));
+            Storage<ItemVariant> composterBottom =
+                    ItemStorage.SIDED.find(world, composterPos, Direction.DOWN);
+            if (composterBottom == null || composterBottom.iterator().next().getAmount() != 1) {
+                throw new IllegalStateException(
+                        "LOADERBRIDGE_FABRIC_COMPOSTER_BOTTOM_FAILED");
+            }
+            try (Transaction aborted = Transaction.openOuter()) {
+                if (composterBottom.extract(ItemVariant.of(Items.BONE_MEAL), 1, aborted) != 1) {
+                    throw new IllegalStateException(
+                            "LOADERBRIDGE_FABRIC_COMPOSTER_EXTRACT_ABORT_FAILED");
+                }
+            }
+            if (world.getBlockState(composterPos).getValue(ComposterBlock.LEVEL)
+                    != ComposterBlock.READY) {
+                throw new IllegalStateException(
+                        "LOADERBRIDGE_FABRIC_COMPOSTER_EXTRACT_ROLLBACK_FAILED");
+            }
+            try (Transaction committed = Transaction.openOuter()) {
+                if (composterBottom.extract(ItemVariant.of(Items.BONE_MEAL), 1, committed) != 1) {
+                    throw new IllegalStateException(
+                            "LOADERBRIDGE_FABRIC_COMPOSTER_EXTRACT_FAILED");
+                }
+                committed.commit();
+            }
+            if (world.getBlockState(composterPos).getValue(ComposterBlock.LEVEL) != 0) {
+                throw new IllegalStateException(
+                        "LOADERBRIDGE_FABRIC_COMPOSTER_EMPTY_FAILED");
+            }
+            System.out.println(
+                    "LOADERBRIDGE_FABRIC_COMPOSTER_STORAGE_READY insert=1,extract=1");
             Entity armorStand = EntityType.ARMOR_STAND.create(world);
             Entity zombie = EntityType.ZOMBIE.create(world);
             if (armorStand == null || zombie == null
