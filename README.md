@@ -501,6 +501,19 @@ stopped cleanly. Two dedicated-server processes independently proved fresh
 world creation, saved-world reload, and clean shutdown. This closes the pinned
 Block API v1 module gate, not M5 or the 60% catalog acceptance gate.
 
+Fabric Events Interaction v0 revision 12 passed on 2026-08-05 for the pinned
+server/shared surface of `0.7.14+ba9dae0619`. Inspection automatically selected
+the interaction, API-base, and lifecycle bridges from binary references. A
+translated Fabric fixture exercised Minecraft's real attack, use, and block
+destruction paths in a Forge 52.1.16 integrated world, proving ordered callback
+results, cancellation, successful destruction, and exact callback counts. The
+same client process saved and reopened its world; two dedicated-server
+processes created and reloaded another world and stopped cleanly. Client pick,
+client block-break, client pre-attack, fake-player, and pick-aware surfaces
+remain explicitly unsupported rather than falsely advertised, so this closes
+one server/shared increment, not the complete module, M5, or its 60% catalog
+gate.
+
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,
 tilde ranges, caret ranges, trailing-zero equality, and the special

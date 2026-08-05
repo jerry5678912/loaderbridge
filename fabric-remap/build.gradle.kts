@@ -36,6 +36,9 @@ dependencies {
     testRuntimeOnly(project(":fabric-entity-events-v1-bridge")) {
         isTransitive = false
     }
+    testRuntimeOnly(project(":fabric-events-interaction-v0-bridge")) {
+        isTransitive = false
+    }
     testRuntimeOnly(project(":fabric-data-attachment-api-v1-bridge")) {
         isTransitive = false
     }

@@ -41,6 +41,7 @@ include(
     "fabric-loot-api-v3-bridge",
     "fabric-recipe-api-v1-bridge",
     "fabric-entity-events-v1-bridge",
+    "fabric-events-interaction-v0-bridge",
     "fabric-data-attachment-api-v1-bridge",
     "fabric-game-rule-api-v1-bridge",
     "fabric-object-builder-api-v1-bridge",
@@ -68,5 +69,6 @@ include(
     "fixture-fabric-entity-events",
     "fixture-fabric-data-attachment",
     "fixture-fabric-block-api",
+    "fixture-fabric-interaction-events",
     "fixture-fabric-nested-child",
 )

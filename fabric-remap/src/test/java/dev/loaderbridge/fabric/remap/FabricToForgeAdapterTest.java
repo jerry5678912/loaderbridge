@@ -519,6 +519,34 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsServerInteractionEventsBridge() throws Exception {
+        Path source = referencedMod("interaction_events", "fabric-events-interaction-v0", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "callback",
+                    "(Lnet/fabricmc/fabric/api/event/player/UseBlockCallback;)V", null, null);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(0, 2);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "interaction-events");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-FAPI-002", "LB-MODULE-003");
+        assertThat(plan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-FAPI-100");
+            assertThat(diagnostic.message()).contains("fabric-events-interaction-v0-bridge");
+        });
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains(
+                        "fabric-events-interaction-v0-bridge-0.7.14_ba9dae0619-loaderbridge.1.jar",
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar");
+    }
+
+    @Test
     void automaticallySelectsEntityEventsBridgeForNestedCallbackReferences() throws Exception {
         Path source = referencedMod("entity_events_api", "fabric-entity-events-v1", writer -> {
             var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "callback",

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "loaderbridge_interaction_events_fixture",
+  "version": "1.0.0",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["dev.loaderbridge.fixture.interaction.FabricInteractionEventsFixture"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "1.21.1",
+    "fabric-api-base": "*",
+    "fabric-lifecycle-events-v1": "*",
+    "fabric-events-interaction-v0": "*"
+  }
+}

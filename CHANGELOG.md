@@ -16,6 +16,14 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added the server/shared Fabric Events Interaction v0 bridge matching
+  `0.7.14+ba9dae0619`. It translates ordered Fabric callbacks for block/entity
+  attack, block/entity/item use, and before/after/canceled block breaking onto
+  Forge and an early block-destruction Mixin. A controlled translated fixture
+  passed exact behavioral counts, cancellation, successful destruction,
+  integrated-world save/reload, and two-launch dedicated-server reload on Forge
+  52.1.16. Unimplemented client and fake-player surfaces remain detectable
+  preparation failures rather than advertised compatibility.
 - Added the Fabric Block API v1 bridge matching `1.1.0+0bc3503219`. It injects
   Fabric's exact block and block-state appearance contracts into every vanilla
   target, preserves custom appearance delegation, exposes the functionality
