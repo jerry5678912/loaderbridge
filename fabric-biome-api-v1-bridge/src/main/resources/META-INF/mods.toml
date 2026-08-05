@@ -3,7 +3,7 @@ loaderVersion="[52,)"
 license="Apache-2.0"
 [[mods]]
 modId="loaderbridge_fabric_biome_api_v1"
-version="13.0.31.1"
+version="13.0.31.2"
 displayName="LoaderBridge Fabric Biome API v1 Bridge"
 [[dependencies.loaderbridge_fabric_biome_api_v1]]
 modId="forge"

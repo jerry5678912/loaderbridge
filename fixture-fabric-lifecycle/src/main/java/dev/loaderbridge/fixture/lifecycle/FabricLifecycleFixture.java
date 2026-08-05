@@ -31,6 +31,9 @@ import net.fabricmc.fabric.api.gamerule.v1.GameRuleFactory;
 import net.fabricmc.fabric.api.gamerule.v1.GameRuleRegistry;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameType;
+import net.minecraft.data.worldgen.Carvers;
+import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.world.level.levelgen.GenerationStep;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -45,6 +48,7 @@ import net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType;
 import net.fabricmc.fabric.api.lookup.v1.block.BlockApiCache;
@@ -57,6 +61,8 @@ import net.fabricmc.fabric.api.event.registry.DynamicRegistrySetupCallback;
 import net.fabricmc.fabric.api.event.registry.RegistryAttribute;
 import net.fabricmc.fabric.api.event.registry.RegistryAttributeHolder;
 import net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback;
+import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
+import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
@@ -696,6 +702,10 @@ public final class FabricLifecycleFixture implements ModInitializer {
         Registry.register(BuiltInRegistries.ENTITY_TYPE,
                 ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_mob_builder_entity"),
                 mobBuilderFixtureType);
+        BiomeModifications.addCarver(BiomeSelectors.includeByKey(Biomes.PLAINS),
+                GenerationStep.Carving.AIR, Carvers.NETHER_CAVE);
+        BiomeModifications.addSpawn(BiomeSelectors.includeByKey(Biomes.PLAINS),
+                MobCategory.MONSTER, mobBuilderFixtureType, 3, 1, 2);
         if (!bridgedBlockEntityType.isValid(Blocks.STONE.defaultBlockState())
                 || !bridgedBlockEntityType.isValid(Blocks.DIRT.defaultBlockState())
                 || !bridgedBlockEntityType.isValid(Blocks.GRANITE.defaultBlockState())
@@ -931,6 +941,20 @@ public final class FabricLifecycleFixture implements ModInitializer {
                 throw new IllegalStateException("LOADERBRIDGE_FABRIC_DEFAULT_ATTRIBUTES_FAILED");
             }
             System.out.println("LOADERBRIDGE_FABRIC_DEFAULT_ATTRIBUTES_READY");
+            var plains = server.registryAccess().registryOrThrow(Registries.BIOME)
+                    .getHolderOrThrow(Biomes.PLAINS).value();
+            boolean customSpawn = plains.getMobSettings().getMobs(MobCategory.MONSTER)
+                    .unwrap().stream().anyMatch(spawn -> spawn.type == mobBuilderFixtureType
+                            && spawn.minCount == 1 && spawn.maxCount == 2);
+            boolean netherCarver = false;
+            for (var carver : plains.getGenerationSettings()
+                    .getCarvers(GenerationStep.Carving.AIR)) {
+                if (carver.is(Carvers.NETHER_CAVE)) netherCarver = true;
+            }
+            if (!customSpawn || !netherCarver) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_BIOME_ADDITIONS_FAILED");
+            }
+            System.out.println("LOADERBRIDGE_FABRIC_BIOME_ADDITIONS_READY spawn=1,carver=nether");
             var world = server.overworld();
             BlockPos lookupPos = new BlockPos(world.getSharedSpawnPos().getX(),
                     world.getMinBuildHeight() + 1, world.getSharedSpawnPos().getZ());

@@ -56,6 +56,9 @@ dependencies {
     compileOnly(project(':fabric-item-group-api-v1-bridge')) {
         transitive = false
     }
+    compileOnly(project(':fabric-biome-api-v1-bridge')) {
+        transitive = false
+    }
 }
 
 tasks.named('jar') {

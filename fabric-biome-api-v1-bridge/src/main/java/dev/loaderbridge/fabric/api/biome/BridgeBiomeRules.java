@@ -22,19 +22,29 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.GenerationStep;
+import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.minecraftforge.common.world.BiomeModifier;
 import net.minecraftforge.common.world.ModifiableBiomeInfo;
 
 public final class BridgeBiomeRules implements BiomeModifier {
     public static final MapCodec<BridgeBiomeRules> CODEC = new RulesCodec();
     private static final List<FeatureRule> FEATURE_RULES = new CopyOnWriteArrayList<>();
+    private static final List<CarverRule> CARVER_RULES = new CopyOnWriteArrayList<>();
+    private static final List<SpawnRule> SPAWN_RULES = new CopyOnWriteArrayList<>();
     private final List<ResolvedFeatureRule> features;
+    private final List<ResolvedCarverRule> carvers;
+    private final List<SpawnRule> spawns;
 
-    private BridgeBiomeRules(List<ResolvedFeatureRule> features) {
+    private BridgeBiomeRules(List<ResolvedFeatureRule> features,
+            List<ResolvedCarverRule> carvers, List<SpawnRule> spawns) {
         this.features = List.copyOf(features);
+        this.carvers = List.copyOf(carvers);
+        this.spawns = List.copyOf(spawns);
     }
 
     public static void addFeature(Predicate<BiomeSelectionContext> selector,
@@ -42,7 +52,20 @@ public final class BridgeBiomeRules implements BiomeModifier {
         FEATURE_RULES.add(new FeatureRule(selector, step, featureKey));
     }
 
+    public static void addCarver(Predicate<BiomeSelectionContext> selector,
+            GenerationStep.Carving step,
+            ResourceKey<ConfiguredWorldCarver<?>> configuredCarverKey) {
+        CARVER_RULES.add(new CarverRule(selector, step, configuredCarverKey));
+    }
+
+    public static void addSpawn(Predicate<BiomeSelectionContext> selector,
+            MobCategory category, MobSpawnSettings.SpawnerData spawn) {
+        SPAWN_RULES.add(new SpawnRule(selector, category, spawn));
+    }
+
     static int featureRuleCount() { return FEATURE_RULES.size(); }
+    static int carverRuleCount() { return CARVER_RULES.size(); }
+    static int spawnRuleCount() { return SPAWN_RULES.size(); }
 
     @Override
     public void modify(Holder<Biome> biome, Phase phase, ModifiableBiomeInfo.BiomeInfo.Builder builder) {
@@ -51,6 +74,16 @@ public final class BridgeBiomeRules implements BiomeModifier {
         for (ResolvedFeatureRule rule : features) {
             if (rule.selector().test(context)) {
                 builder.getGenerationSettings().addFeature(rule.step(), rule.feature());
+            }
+        }
+        for (ResolvedCarverRule rule : carvers) {
+            if (rule.selector().test(context)) {
+                builder.getGenerationSettings().addCarver(rule.step(), rule.carver());
+            }
+        }
+        for (SpawnRule rule : spawns) {
+            if (rule.selector().test(context)) {
+                builder.getMobSpawnSettings().addSpawn(rule.category(), rule.spawn());
             }
         }
     }
@@ -63,6 +96,15 @@ public final class BridgeBiomeRules implements BiomeModifier {
     private record ResolvedFeatureRule(Predicate<BiomeSelectionContext> selector,
                                        GenerationStep.Decoration step,
                                        Holder<PlacedFeature> feature) { }
+    private record CarverRule(Predicate<BiomeSelectionContext> selector,
+                              GenerationStep.Carving step,
+                              ResourceKey<ConfiguredWorldCarver<?>> carverKey) { }
+    private record ResolvedCarverRule(Predicate<BiomeSelectionContext> selector,
+                                      GenerationStep.Carving step,
+                                      Holder<ConfiguredWorldCarver<?>> carver) { }
+    private record SpawnRule(Predicate<BiomeSelectionContext> selector,
+                             MobCategory category,
+                             MobSpawnSettings.SpawnerData spawn) { }
 
     private static final class RulesCodec extends MapCodec<BridgeBiomeRules> {
         @Override
@@ -74,6 +116,12 @@ public final class BridgeBiomeRules implements BiomeModifier {
             if (getter.isEmpty()) {
                 return DataResult.error(() -> "LB-BIOME-001: placed-feature registry is unavailable");
             }
+            Optional<HolderGetter<ConfiguredWorldCarver<?>>> carverGetter =
+                    configuredCarverGetter(registryOps);
+            if (carverGetter.isEmpty()) {
+                return DataResult.error(() ->
+                        "LB-BIOME-001: configured-carver registry is unavailable");
+            }
             List<ResolvedFeatureRule> resolved = new ArrayList<>();
             for (FeatureRule rule : FEATURE_RULES) {
                 Optional<? extends Holder<PlacedFeature>> feature = getter.get().get(rule.featureKey());
@@ -83,12 +131,31 @@ public final class BridgeBiomeRules implements BiomeModifier {
                 }
                 resolved.add(new ResolvedFeatureRule(rule.selector(), rule.step(), feature.get()));
             }
-            return DataResult.success(new BridgeBiomeRules(resolved));
+            List<ResolvedCarverRule> resolvedCarvers = new ArrayList<>();
+            for (CarverRule rule : CARVER_RULES) {
+                Optional<? extends Holder<ConfiguredWorldCarver<?>>> carver =
+                        carverGetter.get().get(rule.carverKey());
+                if (carver.isEmpty()) {
+                    return DataResult.error(() -> "LB-BIOME-003: missing configured carver "
+                            + rule.carverKey().location());
+                }
+                resolvedCarvers.add(new ResolvedCarverRule(
+                        rule.selector(), rule.step(), carver.get()));
+            }
+            return DataResult.success(new BridgeBiomeRules(
+                    resolved, resolvedCarvers, SPAWN_RULES));
         }
 
         @SuppressWarnings("unchecked")
         private static Optional<HolderGetter<PlacedFeature>> placedFeatureGetter(RegistryOps<?> ops) {
             return (Optional<HolderGetter<PlacedFeature>>) (Optional<?>) ops.getter(Registries.PLACED_FEATURE);
+        }
+
+        @SuppressWarnings("unchecked")
+        private static Optional<HolderGetter<ConfiguredWorldCarver<?>>> configuredCarverGetter(
+                RegistryOps<?> ops) {
+            return (Optional<HolderGetter<ConfiguredWorldCarver<?>>>) (Optional<?>)
+                    ops.getter(Registries.CONFIGURED_CARVER);
         }
 
         @Override

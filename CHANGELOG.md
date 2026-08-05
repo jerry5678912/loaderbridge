@@ -16,6 +16,12 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Expanded Fabric Biome API v1 with the standard `addCarver` and `addSpawn`
+  convenience contracts. Configured carvers are resolved through Forge's
+  registry-aware biome-modifier codec with stable missing-target diagnostics,
+  while spawn entries retain Fabric's category, weight, and group bounds. A
+  translated fixture proved both live Plains mutations through graphical
+  world/save/reload and two dedicated-server processes on Forge 52.1.16.
 - Added Fabric Transfer API's built-in item providers for every shulker-box
   variant and bundles, plus transactional composter insertion and bone-meal
   extraction, stable `WorldlyContainerHolder` discovery, and combined chest

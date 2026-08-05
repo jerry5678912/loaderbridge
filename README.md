@@ -191,9 +191,9 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 - A Convention Tags v2 bridge matching
   `fabric-convention-tags-v2:2.12.0+c3656daa19`, with the standard `c:` biome
   tag keys used by Fabric 1.21.1 mods.
-- An initial Biome API v1 bridge matching
-  `fabric-biome-api-v1:13.0.31+d527f9fd19`. Fabric biome selectors and placed
-  feature additions are translated into a codec-backed Forge biome modifier.
+- A Biome API v1 bridge matching `fabric-biome-api-v1:13.0.31+d527f9fd19`.
+  Fabric biome selectors plus placed-feature, configured-carver, and mob-spawn
+  additions are translated into a registry-aware Forge biome modifier.
 - Initial Block Render Layer v1 and Rendering v1 bridges matching
   `fabric-blockrenderlayer-v1:1.1.52+0af3f5a719` and
   `fabric-rendering-v1:5.1.0+ab4c25a019`. They cover block render layers,
@@ -503,6 +503,18 @@ paths on both graphical world sessions and two dedicated-server processes.
 Repeated preparation produced byte-identical bridge and transformed-fixture
 JARs. This closes the pinned common/server Transfer API surface; client fluid
 rendering remains an M6 concern, and M5's catalog gate remains open.
+
+Fabric Biome API v1 revision 2 passed on 2026-08-05. In addition to placed
+features, `BiomeModifications.addCarver` now resolves configured carvers through
+the dynamic registry and `addSpawn` preserves Fabric's category, weight, and
+group-size semantics while rejecting invalid MISC and unregistered entity
+types. The translated lifecycle fixture added the Nether Cave carver and its
+custom monster spawn to Plains, then observed both in the live biome on a
+graphical world creation/reload cycle and two independent dedicated-server
+processes. Both deterministic preparations produced byte-identical bridge and
+fixture JARs. The general phased `BiomeModification` context, removals, climate,
+effects, and specialized Nether/End helpers remain open, so this is not the
+complete Biome module, M5, or the 60% catalog gate.
 
 Fabric Block API v1 revision 11 passed on 2026-08-05. The bridge matches pinned
 `1.1.0+0bc3503219`, injects the exact Fabric interfaces into vanilla `Block`
