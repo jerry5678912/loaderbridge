@@ -69,8 +69,7 @@ public final class ServerPlayNetworking {
 
     public static Set<ResourceLocation> getSendable(ServerGamePacketListenerImpl handler) {
         Objects.requireNonNull(handler, "Server play network handler cannot be null");
-        return NetworkBridgeRuntime.remoteChannels(handler.getConnection(),
-                NetworkBridgeRuntime.playS2CChannels());
+        return NetworkBridgeRuntime.remotePlayS2CChannels(handler.getConnection());
     }
 
     public static boolean canSend(ServerPlayer player, ResourceLocation channelName) {
@@ -94,7 +93,7 @@ public final class ServerPlayNetworking {
     public static <T extends CustomPacketPayload> Packet<ClientCommonPacketListener> createS2CPacket(T payload) {
         Objects.requireNonNull(payload, "Payload cannot be null");
         return NetworkProtocol.PLAY.buildPacket(PacketFlow.CLIENTBOUND,
-                NetworkBridgeRuntime.channel(), payload);
+                NetworkBridgeRuntime.channel(), NetworkBridgeRuntime.outboundPlayS2C(payload));
     }
 
     public static PacketSender getSender(ServerPlayer player) { return getSender(player.connection); }
@@ -107,7 +106,8 @@ public final class ServerPlayNetworking {
     public static void send(ServerPlayer player, CustomPacketPayload payload) {
         Objects.requireNonNull(player, "Server player entity cannot be null");
         Objects.requireNonNull(payload, "Payload cannot be null");
-        NetworkBridgeRuntime.channel().send(payload, player.connection.getConnection());
+        NetworkBridgeRuntime.channel().send(NetworkBridgeRuntime.outboundPlayS2C(payload),
+                player.connection.getConnection());
     }
 
     public static Context context(ServerPlayer player) {

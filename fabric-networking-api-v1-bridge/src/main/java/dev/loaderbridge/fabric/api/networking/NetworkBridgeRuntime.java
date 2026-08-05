@@ -24,10 +24,14 @@ import net.minecraftforge.network.payload.PayloadConnection;
 import net.minecraftforge.network.NetworkContext;
 
 public final class NetworkBridgeRuntime {
-    private static final Registry<FriendlyByteBuf> CONFIG_C2S = new Registry<>("configuration C2S");
-    private static final Registry<FriendlyByteBuf> CONFIG_S2C = new Registry<>("configuration S2C");
-    private static final Registry<RegistryFriendlyByteBuf> PLAY_C2S = new Registry<>("play C2S");
-    private static final Registry<RegistryFriendlyByteBuf> PLAY_S2C = new Registry<>("play S2C");
+    private static final Registry<FriendlyByteBuf> CONFIG_C2S =
+            new Registry<>("configuration C2S", "configuration/c2s");
+    private static final Registry<FriendlyByteBuf> CONFIG_S2C =
+            new Registry<>("configuration S2C", "configuration/s2c");
+    private static final Registry<RegistryFriendlyByteBuf> PLAY_C2S =
+            new Registry<>("play C2S", "play/c2s");
+    private static final Registry<RegistryFriendlyByteBuf> PLAY_S2C =
+            new Registry<>("play S2C", "play/s2c");
     private static final Map<ResourceLocation, ServerPlayNetworking.PlayPayloadHandler<?>> PLAY_GLOBAL =
             new ConcurrentHashMap<>();
     private static final Map<ResourceLocation, ServerConfigurationNetworking.ConfigurationPacketHandler<?>>
@@ -92,12 +96,29 @@ public final class NetworkBridgeRuntime {
     public static Set<ResourceLocation> configurationC2SChannels() { return CONFIG_C2S.ids(); }
     public static Set<ResourceLocation> configurationS2CChannels() { return CONFIG_S2C.ids(); }
 
-    public static Set<ResourceLocation> remoteChannels(
-            net.minecraft.network.Connection connection, Set<ResourceLocation> candidates) {
-        if (connection.isMemoryConnection()) return Set.copyOf(candidates);
-        Set<ResourceLocation> remote = NetworkContext.get(connection).getRemoteChannels();
-        return candidates.stream().filter(remote::contains)
-                .collect(Collectors.toUnmodifiableSet());
+    public static Set<ResourceLocation> remotePlayC2SChannels(
+            net.minecraft.network.Connection connection) { return PLAY_C2S.remoteIds(connection); }
+    public static Set<ResourceLocation> remotePlayS2CChannels(
+            net.minecraft.network.Connection connection) { return PLAY_S2C.remoteIds(connection); }
+    public static Set<ResourceLocation> remoteConfigurationC2SChannels(
+            net.minecraft.network.Connection connection) { return CONFIG_C2S.remoteIds(connection); }
+    public static Set<ResourceLocation> remoteConfigurationS2CChannels(
+            net.minecraft.network.Connection connection) { return CONFIG_S2C.remoteIds(connection); }
+
+    public static CustomPacketPayload outboundPlayC2S(CustomPacketPayload payload) {
+        return PLAY_C2S.wrap(payload);
+    }
+
+    public static CustomPacketPayload outboundPlayS2C(CustomPacketPayload payload) {
+        return PLAY_S2C.wrap(payload);
+    }
+
+    public static CustomPacketPayload outboundConfigurationC2S(CustomPacketPayload payload) {
+        return CONFIG_C2S.wrap(payload);
+    }
+
+    public static CustomPacketPayload outboundConfigurationS2C(CustomPacketPayload payload) {
+        return CONFIG_S2C.wrap(payload);
     }
 
     public static boolean registerServerConfigurationReceiver(CustomPacketPayload.Type<?> type,
@@ -179,6 +200,7 @@ public final class NetworkBridgeRuntime {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void dispatchPlay(CustomPacketPayload payload,
             net.minecraftforge.event.network.CustomPayloadEvent.Context forgeContext) {
+        payload = unwrap(payload);
         if (forgeContext.isClientSide()) {
             ClientPlayNetworking.dispatch(payload);
         } else {
@@ -190,6 +212,7 @@ public final class NetworkBridgeRuntime {
 
     private static void dispatchServerConfiguration(CustomPacketPayload payload,
             net.minecraftforge.event.network.CustomPayloadEvent.Context forgeContext) {
+        payload = unwrap(payload);
         var listener = forgeContext.getConnection().getPacketListener();
         if (!(listener instanceof net.minecraft.server.network.ServerConfigurationPacketListenerImpl handler)) {
             throw new IllegalStateException(
@@ -200,6 +223,7 @@ public final class NetworkBridgeRuntime {
 
     private static void dispatchClientConfiguration(CustomPacketPayload payload,
             net.minecraftforge.event.network.CustomPayloadEvent.Context forgeContext) {
+        payload = unwrap(payload);
         var listener = forgeContext.getConnection().getPacketListener();
         if (!(listener instanceof net.minecraft.client.multiplayer.ClientConfigurationPacketListenerImpl
                 handler)) {
@@ -215,13 +239,25 @@ public final class NetworkBridgeRuntime {
                 net.minecraftforge.event.network.CustomPayloadEvent.Context context);
     }
 
+    private static CustomPacketPayload unwrap(CustomPacketPayload payload) {
+        return payload instanceof BridgedPayload bridged ? bridged.original() : payload;
+    }
+
+    private record BridgedPayload(CustomPacketPayload original,
+            CustomPacketPayload.Type<BridgedPayload> type)
+            implements CustomPacketPayload { }
+
     private static final class Registry<B extends FriendlyByteBuf> implements PayloadTypeRegistry<B> {
         private final String phase;
+        private final String wirePrefix;
         private final Map<ResourceLocation, CustomPacketPayload.TypeAndCodec<? super B, ?>> entries =
                 new LinkedHashMap<>();
         private boolean frozen;
 
-        private Registry(String phase) { this.phase = phase; }
+        private Registry(String phase, String wirePrefix) {
+            this.phase = phase;
+            this.wirePrefix = wirePrefix;
+        }
 
         @Override @SuppressWarnings("unchecked") public synchronized <T extends CustomPacketPayload>
                 CustomPacketPayload.TypeAndCodec<? super B, T> register(
@@ -240,13 +276,41 @@ public final class NetworkBridgeRuntime {
         synchronized Set<ResourceLocation> ids() { return Set.copyOf(entries.keySet()); }
         synchronized void freeze() { frozen = true; }
 
+        synchronized CustomPacketPayload wrap(CustomPacketPayload payload) {
+            Objects.requireNonNull(payload, "Payload cannot be null");
+            ResourceLocation originalId = payload.type().id();
+            if (!entries.containsKey(originalId)) {
+                throw new IllegalArgumentException(
+                        "LB-NET-003: no " + phase + " codec registered for " + originalId);
+            }
+            return new BridgedPayload(payload, new CustomPacketPayload.Type<>(wireId(originalId)));
+        }
+
+        synchronized Set<ResourceLocation> remoteIds(net.minecraft.network.Connection connection) {
+            if (connection.isMemoryConnection()) return ids();
+            Set<ResourceLocation> remote = NetworkContext.get(connection).getRemoteChannels();
+            return entries.keySet().stream().filter(id -> remote.contains(wireId(id)))
+                    .collect(Collectors.toUnmodifiableSet());
+        }
+
+        ResourceLocation wireId(ResourceLocation originalId) {
+            return ResourceLocation.fromNamespaceAndPath("loaderbridge",
+                    "fabric/" + wirePrefix + "/" + originalId.getNamespace()
+                            + "/" + originalId.getPath());
+        }
+
         @SuppressWarnings("unchecked")
         synchronized void addTo(
                 net.minecraftforge.network.payload.PayloadFlow<B, CustomPacketPayload> flow,
                 boolean enqueue, PayloadDispatcher dispatcher) {
             for (var value : entries.values()) {
                 var entry = (CustomPacketPayload.TypeAndCodec<B, CustomPacketPayload>) value;
-                flow.add(entry.type(), entry.codec(), (payload, context) -> {
+                CustomPacketPayload.Type<BridgedPayload> wireType =
+                        new CustomPacketPayload.Type<>(wireId(entry.type().id()));
+                StreamCodec<B, BridgedPayload> wireCodec = StreamCodec.of(
+                        (buffer, payload) -> entry.codec().encode(buffer, payload.original()),
+                        buffer -> new BridgedPayload(entry.codec().decode(buffer), wireType));
+                flow.add(wireType, wireCodec, (payload, context) -> {
                     if (dispatcher != null) {
                         if (enqueue) context.enqueueWork(() -> dispatcher.dispatch(payload, context));
                         else dispatcher.dispatch(payload, context);

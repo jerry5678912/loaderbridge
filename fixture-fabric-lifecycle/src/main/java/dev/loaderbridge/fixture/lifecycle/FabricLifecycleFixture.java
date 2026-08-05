@@ -449,15 +449,15 @@ public final class FabricLifecycleFixture implements ModInitializer {
         }
         System.out.println("LOADERBRIDGE_FABRIC_ENTITY_BUILDER_READY");
         System.out.println("LOADERBRIDGE_FABRIC_MODERN_ENTITY_BUILDER_READY");
-        PayloadTypeRegistry.playC2S().register(FabricNetworkingPayload.PONG_TYPE,
-                FabricNetworkingPayload.PONG_CODEC);
-        PayloadTypeRegistry.playS2C().register(FabricNetworkingPayload.PING_TYPE,
-                FabricNetworkingPayload.PING_CODEC);
-        PayloadTypeRegistry.configurationC2S().register(FabricNetworkingPayload.CONFIG_PONG_TYPE,
-                FabricNetworkingPayload.CONFIG_PONG_CODEC);
-        PayloadTypeRegistry.configurationS2C().register(FabricNetworkingPayload.CONFIG_PING_TYPE,
-                FabricNetworkingPayload.CONFIG_PING_CODEC);
-        ServerPlayNetworking.registerGlobalReceiver(FabricNetworkingPayload.PONG_TYPE,
+        PayloadTypeRegistry.playC2S().register(FabricNetworkingPayload.PLAY_TYPE,
+                FabricNetworkingPayload.PLAY_CODEC);
+        PayloadTypeRegistry.playS2C().register(FabricNetworkingPayload.PLAY_TYPE,
+                FabricNetworkingPayload.PLAY_CODEC);
+        PayloadTypeRegistry.configurationC2S().register(FabricNetworkingPayload.CONFIG_TYPE,
+                FabricNetworkingPayload.CONFIG_CODEC);
+        PayloadTypeRegistry.configurationS2C().register(FabricNetworkingPayload.CONFIG_TYPE,
+                FabricNetworkingPayload.CONFIG_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(FabricNetworkingPayload.PLAY_TYPE,
                 (payload, context) -> {
                     if (payload.value().equals("pong")) {
                         System.out.println("LOADERBRIDGE_FABRIC_NETWORK_SERVER_ROUNDTRIP");
@@ -521,7 +521,7 @@ public final class FabricLifecycleFixture implements ModInitializer {
             player.containerMenu.setCarried(previousCarried);
             player.containerMenu.broadcastChanges();
             System.out.println("LOADERBRIDGE_FABRIC_PLAYER_ITEM_CONTEXT_READY");
-            sender.sendPacket(new FabricNetworkingPayload(FabricNetworkingPayload.PING_TYPE, "ping"));
+            sender.sendPacket(new FabricNetworkingPayload(FabricNetworkingPayload.PLAY_TYPE, "ping"));
             if (TRACKING_ENTITY_SPAWNED.compareAndSet(false, true)) {
                 var entity = EntityType.ARMOR_STAND.create(player.serverLevel());
                 if (entity == null) {
@@ -537,7 +537,7 @@ public final class FabricLifecycleFixture implements ModInitializer {
         ServerConfigurationConnectionEvents.BEFORE_CONFIGURE.register((handler, server) ->
                 System.out.println("LOADERBRIDGE_FABRIC_SERVER_BEFORE_CONFIGURE"));
         ServerConfigurationNetworking.registerGlobalReceiver(
-                FabricNetworkingPayload.CONFIG_PONG_TYPE, (payload, context) -> {
+                FabricNetworkingPayload.CONFIG_TYPE, (payload, context) -> {
                     if (payload.value().equals("config_pong")) {
                         System.out.println("LOADERBRIDGE_FABRIC_CONFIG_SERVER_ROUNDTRIP");
                     }
@@ -545,11 +545,11 @@ public final class FabricLifecycleFixture implements ModInitializer {
         ServerConfigurationConnectionEvents.CONFIGURE.register((handler, server) -> {
             System.out.println("LOADERBRIDGE_FABRIC_SERVER_CONFIGURE");
             if (!ServerConfigurationNetworking.canSend(
-                    handler, FabricNetworkingPayload.CONFIG_PING_TYPE)) {
+                    handler, FabricNetworkingPayload.CONFIG_TYPE)) {
                 throw new IllegalStateException("LOADERBRIDGE_FABRIC_CONFIG_SERVER_CANNOT_SEND");
             }
             ServerConfigurationNetworking.send(handler, new FabricNetworkingPayload(
-                    FabricNetworkingPayload.CONFIG_PING_TYPE, "config_ping"));
+                    FabricNetworkingPayload.CONFIG_TYPE, "config_ping"));
         });
         EntityTrackingEvents.START_TRACKING.register((entity, player) -> {
             if (entity.getTags().contains("loaderbridge_entity_fixture")) {

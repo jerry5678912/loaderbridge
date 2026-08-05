@@ -47,7 +47,7 @@ public final class FabricNetworkingBridgeProvider implements RuntimeBridgeModule
 
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-networking-api-v1-bridge", "fabric-networking-api-v1:4.3.1",
-            "4.3.1+d30f6a7919-loaderbridge.4", BridgeCapability.FABRIC_API,
+            "4.3.1+d30f6a7919-loaderbridge.5", BridgeCapability.FABRIC_API,
             PUBLIC_TYPES, Map.of("fabric-networking-api-v1", "4.3.1+d30f6a7919"),
             Set.of("fabric-api-base-bridge"));
 

@@ -488,7 +488,7 @@ class FabricToForgeAdapterTest {
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
                 .contains(
                         "fabric-recipe-api-v1-bridge-5.0.16_2475392c19-loaderbridge.1.jar",
-                        "fabric-networking-api-v1-bridge-4.3.1_d30f6a7919-loaderbridge.4.jar",
+                        "fabric-networking-api-v1-bridge-4.3.1_d30f6a7919-loaderbridge.5.jar",
                         "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar");
     }
 
@@ -551,7 +551,7 @@ class FabricToForgeAdapterTest {
                         "fabric-data-attachment-api-v1-bridge-1.4.7_5b36e0f719-loaderbridge.9.jar",
                         "fabric-entity-events-v1-bridge-1.8.0_2b27e0a419-loaderbridge.2.jar",
                         "fabric-object-builder-api-v1-bridge-15.2.1_40875a9319-loaderbridge.6.jar",
-                        "fabric-networking-api-v1-bridge-4.3.1_d30f6a7919-loaderbridge.4.jar");
+                        "fabric-networking-api-v1-bridge-4.3.1_d30f6a7919-loaderbridge.5.jar");
     }
 
     @Test

@@ -70,8 +70,7 @@ public final class ClientConfigurationNetworking {
 
     public static Set<ResourceLocation> getSendable() {
         ClientConfigurationPacketListenerImpl listener = requireConnection();
-        return NetworkBridgeRuntime.remoteChannels(connection(listener),
-                NetworkBridgeRuntime.configurationC2SChannels());
+        return NetworkBridgeRuntime.remoteConfigurationC2SChannels(connection(listener));
     }
 
     public static boolean canSend(ResourceLocation channelName) {
@@ -87,7 +86,8 @@ public final class ClientConfigurationNetworking {
     public static Packet<ServerCommonPacketListener> createC2SPacket(CustomPacketPayload payload) {
         Objects.requireNonNull(payload, "Payload cannot be null");
         return NetworkProtocol.CONFIGURATION.buildPacket(PacketFlow.SERVERBOUND,
-                NetworkBridgeRuntime.channel(), payload);
+                NetworkBridgeRuntime.channel(),
+                NetworkBridgeRuntime.outboundConfigurationC2S(payload));
     }
 
     public static PacketSender getSender() { return new ClientPacketSender(requireConnection()); }
@@ -95,7 +95,8 @@ public final class ClientConfigurationNetworking {
     public static void send(CustomPacketPayload payload) {
         Objects.requireNonNull(payload, "Payload cannot be null");
         ClientConfigurationPacketListenerImpl listener = requireConnection();
-        NetworkBridgeRuntime.channel().send(payload, connection(listener));
+        NetworkBridgeRuntime.channel().send(
+                NetworkBridgeRuntime.outboundConfigurationC2S(payload), connection(listener));
     }
 
     public static Context context(ClientConfigurationPacketListenerImpl listener) {

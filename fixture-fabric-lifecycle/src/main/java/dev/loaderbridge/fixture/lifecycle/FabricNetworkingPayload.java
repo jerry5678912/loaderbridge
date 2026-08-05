@@ -8,20 +8,14 @@ import net.minecraft.resources.ResourceLocation;
 
 record FabricNetworkingPayload(Type<FabricNetworkingPayload> packetType, String value)
         implements CustomPacketPayload {
-    static final Type<FabricNetworkingPayload> PING_TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath("loaderbridge", "ping"));
-    static final Type<FabricNetworkingPayload> PONG_TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath("loaderbridge", "pong"));
-    static final Type<FabricNetworkingPayload> CONFIG_PING_TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath("loaderbridge", "config_ping"));
-    static final Type<FabricNetworkingPayload> CONFIG_PONG_TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath("loaderbridge", "config_pong"));
-    static final StreamCodec<RegistryFriendlyByteBuf, FabricNetworkingPayload> PING_CODEC = codec(PING_TYPE);
-    static final StreamCodec<RegistryFriendlyByteBuf, FabricNetworkingPayload> PONG_CODEC = codec(PONG_TYPE);
-    static final StreamCodec<FriendlyByteBuf, FabricNetworkingPayload> CONFIG_PING_CODEC =
-            configurationCodec(CONFIG_PING_TYPE);
-    static final StreamCodec<FriendlyByteBuf, FabricNetworkingPayload> CONFIG_PONG_CODEC =
-            configurationCodec(CONFIG_PONG_TYPE);
+    static final Type<FabricNetworkingPayload> PLAY_TYPE = new Type<>(
+            ResourceLocation.fromNamespaceAndPath("loaderbridge", "bidirectional_play"));
+    static final Type<FabricNetworkingPayload> CONFIG_TYPE = new Type<>(
+            ResourceLocation.fromNamespaceAndPath("loaderbridge", "bidirectional_config"));
+    static final StreamCodec<RegistryFriendlyByteBuf, FabricNetworkingPayload> PLAY_CODEC =
+            codec(PLAY_TYPE);
+    static final StreamCodec<FriendlyByteBuf, FabricNetworkingPayload> CONFIG_CODEC =
+            configurationCodec(CONFIG_TYPE);
 
     private static StreamCodec<RegistryFriendlyByteBuf, FabricNetworkingPayload> codec(
             Type<FabricNetworkingPayload> type) {

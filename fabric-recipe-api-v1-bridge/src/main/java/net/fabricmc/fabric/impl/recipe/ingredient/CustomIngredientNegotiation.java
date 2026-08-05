@@ -52,9 +52,7 @@ public final class CustomIngredientNegotiation {
     public static void gatherLoginTask(GatherLoginConfigurationTasksEvent event) {
         Connection connection = event.getConnection();
         boolean supported = dev.loaderbridge.fabric.api.networking.NetworkBridgeRuntime
-                .remoteChannels(connection,
-                        dev.loaderbridge.fabric.api.networking.NetworkBridgeRuntime
-                                .configurationS2CChannels())
+                .remoteConfigurationS2CChannels(connection)
                 .contains(CHANNEL_S2C);
         if (!supported) {
             ((SupportedIngredientsConnection) connection)

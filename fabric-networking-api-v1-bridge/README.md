@@ -1,6 +1,6 @@
 # Fabric Networking API v1 bridge
 
-This module independently implements the implemented play-stage binary contract
+This module independently implements the advertised binary contract
 of `fabric-networking-api-v1:4.3.1+d30f6a7919` for Minecraft 1.21.1. Its public
 surface is based on Fabric API's Apache-2.0 interfaces. Payload codecs and
 handlers are hosted by Forge 52.1.x's payload channel.
@@ -18,12 +18,20 @@ Implemented in this release:
   senders, and configure/disconnect lifecycle events;
 - client configuration S2C receivers, C2S sending, channel queries, packet
   senders, and init/start/complete/disconnect lifecycle events;
+- transparent phase-and-direction-specific Forge wire IDs, allowing one
+  logical Fabric payload ID to be registered bidirectionally while preserving
+  original IDs and payload objects for Fabric handlers and channel queries;
 - content-based automatic module selection with stable duplicate, late, and
   missing-codec diagnostics.
 
 Login-stage contracts remain intentionally unadvertised until implemented.
 Referencing one of those types therefore fails planning with `LB-FAPI-001`
 instead of producing a partially compatible launch.
+
+The controlled Forge 52.1.16 graphical scenario registers the same logical ID
+in both directions for play and configuration. Both request/response exchanges
+pass before and after world save/reload; see
+[`fabric-networking-api-v1.md`](../docs/controlled-fixtures/fabric-networking-api-v1.md).
 
 Reference sources:
 

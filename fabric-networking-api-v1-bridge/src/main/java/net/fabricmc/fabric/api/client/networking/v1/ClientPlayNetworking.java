@@ -60,21 +60,20 @@ public final class ClientPlayNetworking {
 
     public static Set<ResourceLocation> getSendable() {
         ClientPacketListener listener = requireConnection();
-        return NetworkBridgeRuntime.remoteChannels(listener.getConnection(),
-                NetworkBridgeRuntime.playC2SChannels());
+        return NetworkBridgeRuntime.remotePlayC2SChannels(listener.getConnection());
     }
 
     public static boolean canSend(ResourceLocation channelName) {
         ClientPacketListener listener = Minecraft.getInstance().getConnection();
-        return listener != null && NetworkBridgeRuntime.remoteChannels(listener.getConnection(),
-                NetworkBridgeRuntime.playC2SChannels()).contains(channelName);
+        return listener != null && NetworkBridgeRuntime.remotePlayC2SChannels(
+                listener.getConnection()).contains(channelName);
     }
 
     public static boolean canSend(CustomPacketPayload.Type<?> type) { return canSend(type.id()); }
 
     public static <T extends CustomPacketPayload> Packet<ServerCommonPacketListener> createC2SPacket(T payload) {
         return NetworkProtocol.PLAY.buildPacket(PacketFlow.SERVERBOUND,
-                NetworkBridgeRuntime.channel(), payload);
+                NetworkBridgeRuntime.channel(), NetworkBridgeRuntime.outboundPlayC2S(payload));
     }
 
     public static PacketSender getSender() { return new ClientPacketSender(requireConnection()); }
@@ -82,7 +81,8 @@ public final class ClientPlayNetworking {
     public static void send(CustomPacketPayload payload) {
         Objects.requireNonNull(payload, "Payload cannot be null");
         ClientPacketListener listener = requireConnection();
-        NetworkBridgeRuntime.channel().send(payload, listener.getConnection());
+        NetworkBridgeRuntime.channel().send(NetworkBridgeRuntime.outboundPlayC2S(payload),
+                listener.getConnection());
     }
 
     public static Context context() {

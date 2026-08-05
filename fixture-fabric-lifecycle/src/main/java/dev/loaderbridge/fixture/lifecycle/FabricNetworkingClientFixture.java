@@ -12,7 +12,7 @@ public final class FabricNetworkingClientFixture implements ClientModInitializer
         ClientConfigurationConnectionEvents.INIT.register((handler, client) ->
                 System.out.println("LOADERBRIDGE_FABRIC_CLIENT_CONFIG_INIT"));
         ClientConfigurationConnectionEvents.START.register((handler, client) -> {
-            if (!ClientConfigurationNetworking.canSend(FabricNetworkingPayload.CONFIG_PONG_TYPE)) {
+            if (!ClientConfigurationNetworking.canSend(FabricNetworkingPayload.CONFIG_TYPE)) {
                 throw new IllegalStateException("LOADERBRIDGE_FABRIC_CONFIG_CLIENT_CANNOT_SEND");
             }
             System.out.println("LOADERBRIDGE_FABRIC_CLIENT_CONFIG_START");
@@ -20,14 +20,14 @@ public final class FabricNetworkingClientFixture implements ClientModInitializer
         ClientConfigurationConnectionEvents.COMPLETE.register((handler, client) ->
                 System.out.println("LOADERBRIDGE_FABRIC_CLIENT_CONFIG_COMPLETE"));
         ClientConfigurationNetworking.registerGlobalReceiver(
-                FabricNetworkingPayload.CONFIG_PING_TYPE, (payload, context) -> {
+                FabricNetworkingPayload.CONFIG_TYPE, (payload, context) -> {
                     if (payload.value().equals("config_ping")) {
                         System.out.println("LOADERBRIDGE_FABRIC_CONFIG_CLIENT_RECEIVED");
                         context.responseSender().sendPacket(new FabricNetworkingPayload(
-                                FabricNetworkingPayload.CONFIG_PONG_TYPE, "config_pong"));
+                                FabricNetworkingPayload.CONFIG_TYPE, "config_pong"));
                     }
                 });
-        ClientPlayNetworking.registerGlobalReceiver(FabricNetworkingPayload.PING_TYPE,
+        ClientPlayNetworking.registerGlobalReceiver(FabricNetworkingPayload.PLAY_TYPE,
                 (payload, context) -> {
                     if (payload.value().equals("ping")) {
                         CreativeModeTab tab = BuiltInRegistries.CREATIVE_MODE_TAB.get(
@@ -38,7 +38,7 @@ public final class FabricNetworkingClientFixture implements ClientModInitializer
                                 context.player().registryAccess()));
                         System.out.println("LOADERBRIDGE_FABRIC_NETWORK_CLIENT_RECEIVED");
                         ClientPlayNetworking.send(new FabricNetworkingPayload(
-                                FabricNetworkingPayload.PONG_TYPE, "pong"));
+                                FabricNetworkingPayload.PLAY_TYPE, "pong"));
                     }
                 });
     }

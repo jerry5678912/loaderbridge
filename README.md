@@ -157,10 +157,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   connection events, exact player lookup collections, bidirectional
   configuration receivers/sending, and entity start/stop tracking callbacks over
   Forge's payload channel without replacing Fabric payload objects in mod code.
-  Forge currently rejects one logical payload ID registered in opposite
-  directions on the shared bridge channel; internal protocols use distinct wire
-  IDs, while generic same-ID bidirectional mod payloads remain an open
-  Networking API compatibility gate.
+  Revision 5 transparently assigns phase-and-direction-specific Forge wire IDs,
+  so one logical Fabric payload ID can be registered in both directions for
+  play and configuration traffic. Remote channel queries translate those wire
+  IDs back to the original Fabric IDs.
 - A separately versioned Object Builder API v1 bridge matching
   `fabric-object-builder-api-v1:15.2.1+40875a9319`. It currently implements
   `FabricBlockEntityTypeBuilder`, `FabricDefaultAttributeRegistry`, and the

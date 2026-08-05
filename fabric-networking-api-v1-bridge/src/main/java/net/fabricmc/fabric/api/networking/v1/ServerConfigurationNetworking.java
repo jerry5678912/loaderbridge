@@ -71,8 +71,7 @@ public final class ServerConfigurationNetworking {
 
     public static Set<ResourceLocation> getSendable(ServerConfigurationPacketListenerImpl handler) {
         Objects.requireNonNull(handler, "Server configuration network handler cannot be null");
-        return NetworkBridgeRuntime.remoteChannels(handler.getConnection(),
-                NetworkBridgeRuntime.configurationS2CChannels());
+        return NetworkBridgeRuntime.remoteConfigurationS2CChannels(handler.getConnection());
     }
 
     public static boolean canSend(ServerConfigurationPacketListenerImpl handler,
@@ -90,7 +89,8 @@ public final class ServerConfigurationNetworking {
     public static Packet<ClientCommonPacketListener> createS2CPacket(CustomPacketPayload payload) {
         Objects.requireNonNull(payload, "Payload cannot be null");
         return NetworkProtocol.CONFIGURATION.buildPacket(PacketFlow.CLIENTBOUND,
-                NetworkBridgeRuntime.channel(), payload);
+                NetworkBridgeRuntime.channel(),
+                NetworkBridgeRuntime.outboundConfigurationS2C(payload));
     }
 
     public static PacketSender getSender(ServerConfigurationPacketListenerImpl handler) {
@@ -102,7 +102,8 @@ public final class ServerConfigurationNetworking {
             CustomPacketPayload payload) {
         Objects.requireNonNull(handler, "Server configuration handler cannot be null");
         Objects.requireNonNull(payload, "Payload cannot be null");
-        NetworkBridgeRuntime.channel().send(payload, handler.getConnection());
+        NetworkBridgeRuntime.channel().send(
+                NetworkBridgeRuntime.outboundConfigurationS2C(payload), handler.getConnection());
     }
 
     public static MinecraftServer getServer(ServerConfigurationPacketListenerImpl handler) {

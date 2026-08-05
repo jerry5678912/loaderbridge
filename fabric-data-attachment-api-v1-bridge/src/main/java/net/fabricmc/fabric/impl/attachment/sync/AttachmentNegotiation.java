@@ -48,8 +48,7 @@ public final class AttachmentNegotiation {
 
     public static void gatherLoginTask(GatherLoginConfigurationTasksEvent event) {
         Connection connection = event.getConnection();
-        boolean supported = NetworkBridgeRuntime.remoteChannels(connection,
-                NetworkBridgeRuntime.configurationS2CChannels())
+        boolean supported = NetworkBridgeRuntime.remoteConfigurationS2CChannels(connection)
                 .contains(RequestAcceptedAttachmentsPayloadS2C.PACKET_ID);
         if (supported) {
             event.addTask(new AttachmentSyncTask());

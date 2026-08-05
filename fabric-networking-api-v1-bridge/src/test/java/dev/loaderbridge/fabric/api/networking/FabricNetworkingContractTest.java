@@ -28,7 +28,7 @@ class FabricNetworkingContractTest {
         var descriptor = new FabricNetworkingBridgeProvider().descriptor();
         assertThat(descriptor.contractVersion()).isEqualTo("fabric-networking-api-v1:4.3.1");
         assertThat(descriptor.implementationVersion()).isEqualTo(
-                "4.3.1+d30f6a7919-loaderbridge.4");
+                "4.3.1+d30f6a7919-loaderbridge.5");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrder(
                 "net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents",
                 "net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents$StartTracking",
@@ -128,6 +128,42 @@ class FabricNetworkingContractTest {
     }
 
     @Test
+    void oneLogicalPayloadIdCanBeRegisteredInBothPlayDirections() {
+        ResourceLocation id = ResourceLocation.fromNamespaceAndPath(
+                "loaderbridge", "bidirectional_contract_"
+                        + Long.toUnsignedString(System.nanoTime()));
+        CustomPacketPayload.Type<TestPayload> type = new CustomPacketPayload.Type<>(id);
+
+        PayloadTypeRegistry.playC2S().register(type, CODEC);
+        PayloadTypeRegistry.playS2C().register(type, CODEC);
+
+        CustomPacketPayload serverbound = NetworkBridgeRuntime.outboundPlayC2S(
+                new TestPayload(type, "serverbound"));
+        CustomPacketPayload clientbound = NetworkBridgeRuntime.outboundPlayS2C(
+                new TestPayload(type, "clientbound"));
+        assertThat(serverbound.type().id()).isNotEqualTo(id);
+        assertThat(clientbound.type().id()).isNotEqualTo(id);
+        assertThat(serverbound.type().id()).isNotEqualTo(clientbound.type().id());
+        assertThat(serverbound.type().id().getPath()).contains("play/c2s");
+        assertThat(clientbound.type().id().getPath()).contains("play/s2c");
+
+        ResourceLocation configId = ResourceLocation.fromNamespaceAndPath(
+                "loaderbridge", "bidirectional_config_contract_"
+                        + Long.toUnsignedString(System.nanoTime()));
+        CustomPacketPayload.Type<TestPayload> configType =
+                new CustomPacketPayload.Type<>(configId);
+        PayloadTypeRegistry.configurationC2S().register(configType, CONFIG_CODEC);
+        PayloadTypeRegistry.configurationS2C().register(configType, CONFIG_CODEC);
+        CustomPacketPayload configServerbound = NetworkBridgeRuntime.outboundConfigurationC2S(
+                new TestPayload(configType, "serverbound"));
+        CustomPacketPayload configClientbound = NetworkBridgeRuntime.outboundConfigurationS2C(
+                new TestPayload(configType, "clientbound"));
+        assertThat(configServerbound.type().id()).isNotEqualTo(configClientbound.type().id());
+        assertThat(configServerbound.type().id().getPath()).contains("configuration/c2s");
+        assertThat(configClientbound.type().id().getPath()).contains("configuration/s2c");
+    }
+
+    @Test
     void packetByteBufHelpersPreserveFabricSemantics() {
         var buffer = PacketByteBufs.create();
         buffer.writeUtf("loaderbridge");
@@ -139,9 +175,11 @@ class FabricNetworkingContractTest {
                 .hasMessage("ByteBuf cannot be null");
     }
 
-    private record TestPayload(String value) implements CustomPacketPayload {
+    private record TestPayload(Type<TestPayload> packetType, String value)
+            implements CustomPacketPayload {
         private static final Type<TestPayload> TYPE = new Type<>(
                 ResourceLocation.fromNamespaceAndPath("loaderbridge", "test"));
-        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+        private TestPayload(String value) { this(TYPE, value); }
+        @Override public Type<? extends CustomPacketPayload> type() { return packetType; }
     }
 }
