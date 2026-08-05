@@ -225,6 +225,11 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   transactional hand/cursor mutation, overflow routing, and immutable
   simulation. The graphical client performs a hand exchange and cursor insert
   on both initial join and world reload.
+  Revision 8 adds Fabric's `SingleVariantItemStorage` and proves
+  `ItemStorage.ITEM` provider registration with a component-backed portable
+  storage, including rollback, commit, capacity, resource filtering, and
+  container-item replacement. See
+  [the controlled evidence](docs/controlled-fixtures/fabric-transfer-api-v1.md).
 - Side-aware scenario sessions using fixed server/client launch scripts, with
   bounded console commands, clean shutdown, reload, and artifact collection.
 - ServiceLoader-discovered Modrinth and authenticated CurseForge providers with
@@ -295,7 +300,7 @@ does not claim that arbitrary Fabric mods run on Forge yet.
 ## Intentionally gated
 
 The adapter currently rejects Fabric API surfaces outside the implemented
-modules, including Transfer API item-provided storage registration and fluid
+modules, including remaining Transfer API built-in item providers and fluid
 storage, biome, convention-tag, trade-helper, and rendering surfaces, unknown custom
 language adapters, Loader API calls outside the current
 shim, and mods requiring unreviewed native-library behavior. Signed patch packs,
@@ -444,6 +449,16 @@ Mixin seeded value `79` on the genuine pre-conversion `ProtoChunk`; Fabric's
 `CHUNK_GENERATE` callback then observed `79` on the resulting `LevelChunk`.
 That closes the pinned Data Attachment API v1 module gate, but does not complete
 M5 or establish its 60% catalog acceptance gate.
+
+The Transfer API v1 revision 8 item-provider increment passed on 2026-08-05.
+The translated lifecycle fixture registered a provider for a portable item,
+resolved it through `ContainerItemContext.find(ItemStorage.ITEM)`, rolled back
+an aborted component mutation, committed 700 units, extracted 200, rejected a
+different resource, and observed the final 500-unit value and 1,000-unit
+capacity. The same graphical Forge 52.1.16 process completed its bidirectional
+networking, world save, reopen, and clean-stop gates. This closes the generic
+item-provided single-variant storage increment, not the remaining fluid and
+built-in-provider Transfer API surfaces or M5.
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,

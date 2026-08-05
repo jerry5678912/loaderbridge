@@ -67,6 +67,7 @@ import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedSlottedStorage;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.FilteringStorage;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.SingleSlotStorage;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.SingleVariantItemStorage;
 import net.fabricmc.fabric.api.registry.CompostingChanceRegistry;
 import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
 import net.fabricmc.fabric.api.registry.FlattenableBlockRegistry;
@@ -101,6 +102,9 @@ import net.minecraft.world.level.block.state.properties.BlockSetType;
 import net.minecraft.world.level.block.state.properties.WoodType;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.network.chat.Component;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.component.CustomData;
 
 /** Verifies Forge-to-Fabric server and world tick ordering at runtime. */
 public final class FabricLifecycleFixture implements ModInitializer {
@@ -273,6 +277,48 @@ public final class FabricLifecycleFixture implements ModInitializer {
                     "LOADERBRIDGE_FABRIC_CONSTANT_ITEM_CONTEXT_FAILED");
         }
         System.out.println("LOADERBRIDGE_FABRIC_CONSTANT_ITEM_CONTEXT_READY");
+        ItemStorage.ITEM.registerForItems(
+                (stack, context) -> new FixturePortableItemStorage(context), Items.STICK);
+        SimpleContainer portableContainer = new SimpleContainer(new ItemStack(Items.STICK));
+        ContainerItemContext portableContext = ContainerItemContext.ofSingleSlot(
+                InventoryStorage.of(portableContainer, null).getSlot(0));
+        Storage<ItemVariant> portableStorage = portableContext.find(ItemStorage.ITEM);
+        if (portableStorage == null) {
+            throw new IllegalStateException(
+                    "LOADERBRIDGE_FABRIC_ITEM_PROVIDED_STORAGE_LOOKUP_FAILED");
+        }
+        @SuppressWarnings("unchecked")
+        SingleSlotStorage<ItemVariant> portableSlot =
+                (SingleSlotStorage<ItemVariant>) portableStorage;
+        try (Transaction aborted = Transaction.openOuter()) {
+            if (portableStorage.insert(diamonds, 250, aborted) != 250) {
+                throw new IllegalStateException(
+                        "LOADERBRIDGE_FABRIC_ITEM_PROVIDED_STORAGE_ABORT_SETUP_FAILED");
+            }
+        }
+        try (Transaction committed = Transaction.openOuter()) {
+            if (portableStorage.insert(diamonds, 700, committed) != 700) {
+                throw new IllegalStateException(
+                        "LOADERBRIDGE_FABRIC_ITEM_PROVIDED_STORAGE_INSERT_FAILED");
+            }
+            committed.commit();
+        }
+        try (Transaction committed = Transaction.openOuter()) {
+            if (portableStorage.extract(diamonds, 200, committed) != 200
+                    || portableStorage.insert(ItemVariant.of(Items.DIRT), 1, committed) != 0) {
+                throw new IllegalStateException(
+                        "LOADERBRIDGE_FABRIC_ITEM_PROVIDED_STORAGE_EXTRACT_FAILED");
+            }
+            committed.commit();
+        }
+        if (!portableContainer.getItem(0).is(Items.STICK)
+                || portableSlot.getAmount() != 500
+                || !portableSlot.getResource().equals(diamonds)
+                || portableSlot.getCapacity() != 1_000) {
+            throw new IllegalStateException(
+                    "LOADERBRIDGE_FABRIC_ITEM_PROVIDED_STORAGE_FAILED");
+        }
+        System.out.println("LOADERBRIDGE_FABRIC_ITEM_PROVIDED_STORAGE_READY amount=500");
         Block flattenInput = Registry.register(BuiltInRegistries.BLOCK,
                 ResourceLocation.fromNamespaceAndPath("loaderbridge", "flatten_input"),
                 new Block(BlockBehaviour.Properties.of()));
@@ -748,6 +794,41 @@ public final class FabricLifecycleFixture implements ModInitializer {
 
     private static boolean isTestChunk(net.minecraft.world.level.chunk.LevelChunk chunk) {
         return chunk.getPos().x == TEST_CHUNK && chunk.getPos().z == TEST_CHUNK;
+    }
+
+    private static final class FixturePortableItemStorage
+            extends SingleVariantItemStorage<ItemVariant> {
+        private static final String AMOUNT_KEY = "loaderbridge_amount";
+
+        private FixturePortableItemStorage(ContainerItemContext context) {
+            super(context);
+        }
+
+        @Override protected ItemVariant getBlankResource() { return ItemVariant.blank(); }
+
+        @Override protected ItemVariant getResource(ItemVariant currentVariant) {
+            return getAmount(currentVariant) == 0
+                    ? ItemVariant.blank() : ItemVariant.of(Items.DIAMOND);
+        }
+
+        @Override protected long getAmount(ItemVariant currentVariant) {
+            CustomData data = currentVariant.getComponentMap().get(DataComponents.CUSTOM_DATA);
+            return data == null ? 0 : data.copyTag().getLong(AMOUNT_KEY);
+        }
+
+        @Override protected long getCapacity(ItemVariant variant) { return 1_000; }
+
+        @Override protected ItemVariant getUpdatedVariant(ItemVariant currentVariant,
+                ItemVariant resource, long amount) {
+            ItemStack stack = currentVariant.toStack();
+            CustomData currentData = stack.get(DataComponents.CUSTOM_DATA);
+            CompoundTag tag = currentData == null ? new CompoundTag() : currentData.copyTag();
+            if (amount == 0) tag.remove(AMOUNT_KEY);
+            else tag.putLong(AMOUNT_KEY, amount);
+            if (tag.isEmpty()) stack.remove(DataComponents.CUSTOM_DATA);
+            else stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+            return ItemVariant.of(stack);
+        }
     }
 
     private static final class TransactionFixture extends SnapshotParticipant<Integer> {
