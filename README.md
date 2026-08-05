@@ -164,6 +164,13 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   so one logical Fabric payload ID can be registered in both directions for
   play and configuration traffic. Remote channel queries translate those wire
   IDs back to the original Fabric IDs.
+- A complete pinned Screen Handler API v1 bridge matching
+  `fabric-screen-handler-api-v1:1.3.91+b559734419`. Content inspection selects
+  it with Networking API and API Base automatically. Extended factories,
+  typed opening-data codecs, custom client menu construction, replacement-menu
+  close semantics, simple-factory unwrapping, and factory/type mismatch checks
+  run through Forge's existing menu and payload infrastructure. Unknown menu
+  IDs and missing client screens retain Fabric's warning-and-ignore behavior.
 - A separately versioned Object Builder API v1 bridge matching
   `fabric-object-builder-api-v1:15.2.1+40875a9319`. It currently implements
   `FabricBlockEntityTypeBuilder`, `FabricDefaultAttributeRegistry`, and the
@@ -712,6 +719,16 @@ of the graphical world save/reload cycle emitted `creator=potion+book`; the
 final five-JAR preparation was byte-identical. This largely closes the pinned
 common/server Item API surface. Client tooltip and animation hooks remain for
 M6, and M5's catalog gate remains open.
+
+Fabric Screen Handler API v1 passed its controlled M5 module gate on
+2026-08-06. A translated Fabric fixture registered an
+`ExtendedScreenHandlerType`, opened it from a real server-player join event,
+sent typed `RegistryFriendlyByteBuf` data, constructed the registered client
+screen, and verified `label=loaderbridge-screen,value=37`. The exact final JAR
+passed both halves of the graphical saved-world open/reopen cycle, clean saves,
+and a dedicated-server saved-world start/save/stop on Forge 52.1.16. Two
+independent preparations produced byte-identical artifact sets. This closes the
+pinned Screen Handler module gate, not M5 or its 60% catalog acceptance gate.
 
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,

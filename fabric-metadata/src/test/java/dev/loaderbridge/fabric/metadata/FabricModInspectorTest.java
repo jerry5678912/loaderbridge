@@ -64,6 +64,7 @@ final class FabricModInspectorTest {
 
         FabricModMetadata root = tree.root();
         assertThat(root.id()).isEqualTo("example_mod");
+        assertThat(root.entrypoints().keySet()).containsExactly("client", "main");
         assertThat(root.entrypoints().get("main"))
                 .extracting(FabricEntrypoint::value)
                 .containsExactly("example.Main", "example.Other");

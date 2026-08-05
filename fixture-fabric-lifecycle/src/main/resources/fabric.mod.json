@@ -6,7 +6,10 @@
   "environment": "*",
   "entrypoints": {
     "main": ["dev.loaderbridge.fixture.lifecycle.FabricLifecycleFixture"],
-    "client": ["dev.loaderbridge.fixture.lifecycle.FabricNetworkingClientFixture"]
+    "client": [
+      "dev.loaderbridge.fixture.lifecycle.FabricNetworkingClientFixture",
+      "dev.loaderbridge.fixture.lifecycle.FabricScreenHandlerClientFixture"
+    ]
   },
   "depends": {
     "fabricloader": ">=0.16.0",
@@ -16,6 +19,7 @@
     "fabric-game-rule-api-v1": ">=1.0.53",
     "fabric-object-builder-api-v1": ">=15.2.1",
     "fabric-networking-api-v1": ">=4.3.1",
+    "fabric-screen-handler-api-v1": ">=1.3.91",
     "fabric-convention-tags-v2": ">=2.12.0"
   }
 }

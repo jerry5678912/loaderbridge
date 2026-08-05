@@ -8,3 +8,4 @@ run/
 bridge-cache/
 bridge.lock.json
 compatibility-report.json
+.loaderbridge-secrets.env

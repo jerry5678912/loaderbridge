@@ -1,0 +1,23 @@
+modLoader="javafml"
+loaderVersion="[52,)"
+license="Apache-2.0"
+
+[[mods]]
+modId="loaderbridge_fabric_screen_handler"
+version="1.3.91.1"
+displayName="LoaderBridge Fabric Screen Handler API v1"
+description='''Binary-compatible Fabric Screen Handler API bridge.'''
+
+[[dependencies.loaderbridge_fabric_screen_handler]]
+modId="forge"
+mandatory=true
+versionRange="[52.1.0,53)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.loaderbridge_fabric_screen_handler]]
+modId="loaderbridge_fabric_networking"
+mandatory=true
+versionRange="[0,)"
+ordering="AFTER"
+side="BOTH"

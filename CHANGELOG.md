@@ -16,6 +16,13 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added the complete pinned Fabric Screen Handler API v1 contract with typed
+  extended opening data, client screen construction, replacement-menu close
+  semantics, simple-factory unwrapping, mismatch validation, and Fabric-style
+  warning behavior for unknown client menu types. Bytecode inspection installs
+  its Networking API and API Base dependencies automatically. A translated
+  fixture passed graphical open/save/reopen and dedicated-server save/reload
+  gates on Forge 52.1.16 with deterministic transformed artifacts.
 - Completed the pinned Fabric Convention Tags v2 public contract: all nine
   classes, 494 tag keys, `TagUtil`, and `FabricTagKey` translation/name methods
   injected into Minecraft's real `TagKey`. The module carries the exact

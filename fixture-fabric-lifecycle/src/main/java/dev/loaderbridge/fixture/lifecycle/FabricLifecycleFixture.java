@@ -208,6 +208,7 @@ public final class FabricLifecycleFixture implements ModInitializer {
     @Override
     @SuppressWarnings("deprecation")
     public void onInitialize() {
+        FabricScreenHandlerFixture.register();
         TransactionFixture transactionFixture = new TransactionFixture();
         try (Transaction outer = Transaction.openOuter()) {
             transactionFixture.set(1, outer);

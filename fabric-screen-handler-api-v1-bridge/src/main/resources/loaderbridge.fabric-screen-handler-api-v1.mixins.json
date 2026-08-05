@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8.7",
+  "package": "dev.loaderbridge.fabric.api.screenhandler.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "MenuProviderMixin",
+    "ServerPlayerMixin",
+    "SimpleMenuProviderAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

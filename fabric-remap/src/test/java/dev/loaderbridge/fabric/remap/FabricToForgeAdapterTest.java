@@ -913,6 +913,32 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsScreenHandlerBridgeAndNetworkingDependency() throws Exception {
+        Path source = referencedMod("screen_handler", "fabric-screen-handler-api-v1", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references",
+                    "(Lnet/fabricmc/fabric/api/screenhandler/v1/ExtendedScreenHandlerFactory;)V",
+                    null, null);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(0, 2);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "screen-handler");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-FAPI-002", "LB-MODULE-003");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains(
+                        "fabric-screen-handler-api-v1-bridge-1.3.91_b559734419-loaderbridge.1.jar",
+                        "fabric-networking-api-v1-bridge-4.3.1_d30f6a7919-loaderbridge.5.jar",
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar");
+    }
+
+    @Test
     void automaticallySelectsBiomeBridgeFromBytecode() throws Exception {
         Path source = referencedMod("biome_api", "fabric-biome-api-v1", writer -> {
             var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references", "()V", null, null);

@@ -30,6 +30,7 @@ The engine is split so a future GUI can call the same Java API as the CLI.
 | `fixture-fabric-command` | Controlled Fabric callback registration and real Brigadier command execution probe |
 | `fixture-fabric-lifecycle` | Controlled automatic lifecycle+base selection and ordered server tick probe |
 | `fabric-registry-sync-v0-bridge` | Static Fabric custom-registry builders, attributes, and registry-local events over Forge synchronization |
+| `fabric-screen-handler-api-v1-bridge` | Typed Fabric extended-menu opening data and client screen construction over Forge payloads and menus |
 | `fabric-convention-tags-v2-bridge` | Complete pinned Fabric common-tag ABI, TagKey extensions, and standardized `c:` data merged with Forge resources |
 
 Adapter discovery is exclusively through Java `ServiceLoader`. A future loader

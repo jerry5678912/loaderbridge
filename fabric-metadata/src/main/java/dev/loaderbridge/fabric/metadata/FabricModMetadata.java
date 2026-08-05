@@ -1,6 +1,7 @@
 package dev.loaderbridge.fabric.metadata;
 
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,8 +31,10 @@ public record FabricModMetadata(
         Objects.requireNonNull(version, "version");
         Objects.requireNonNull(name, "name");
         Objects.requireNonNull(environment, "environment");
-        entrypoints = entrypoints.entrySet().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(
-                Map.Entry::getKey, entry -> List.copyOf(entry.getValue())));
+        LinkedHashMap<String, List<FabricEntrypoint>> sortedEntrypoints = new LinkedHashMap<>();
+        entrypoints.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry ->
+                sortedEntrypoints.put(entry.getKey(), List.copyOf(entry.getValue())));
+        entrypoints = java.util.Collections.unmodifiableMap(sortedEntrypoints);
         Objects.requireNonNull(dependencies, "dependencies");
         provides = List.copyOf(provides);
         mixins = List.copyOf(mixins);
