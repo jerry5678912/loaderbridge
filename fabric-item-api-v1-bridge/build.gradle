@@ -1,0 +1,25 @@
+plugins { id 'net.minecraftforge.gradle' version '6.0.54' }
+
+minecraft { mappings channel: 'official', version: '1.21.1'; reobf = false }
+
+repositories {
+    exclusiveContent {
+        forRepository { maven { url = 'https://libraries.minecraft.net/' } }
+        filter { includeGroup 'org.lwjgl' }
+    }
+}
+
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.21.1-52.1.0'
+    implementation project(':bridge-api')
+    implementation(project(':fabric-api-base-bridge')) { transitive = false }
+}
+
+tasks.named('jar') {
+    manifest {
+        attributes('Automatic-Module-Name': 'dev.loaderbridge.fabric.item.api.v1',
+                'LICENSE': 'Apache-2.0',
+                'Implementation-Version': '11.3.0+467044f319-loaderbridge.1',
+                'MixinConfigs': 'loaderbridge.fabric-item-api-v1.mixins.json')
+    }
+}

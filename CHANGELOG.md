@@ -16,6 +16,14 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added the first common Fabric Item API v1 bridge slice matching
+  `11.3.0+467044f319`. It injects Fabric item, stack, settings, component-map,
+  tooltip, custom-damage, and equipment-slot contracts into Minecraft's real
+  classes and is selected from inspected references. A translated content
+  fixture registered a modeled item, proved custom durability and slot behavior
+  on both sides, passed graphical save/reload plus dedicated-server process
+  reload on Forge 52.1.16, and produced byte-identical repeated preparation.
+  Unimplemented Item API surfaces remain unadvertised.
 - Added the pinned Fabric Interaction Events `FakePlayer` surface with
   world/profile caching, default profile compatibility, a no-output untracked
   connection, gameplay-safe overrides, and advancement-owner protection. The

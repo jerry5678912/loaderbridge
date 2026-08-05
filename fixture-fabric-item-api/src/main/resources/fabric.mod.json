@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "loaderbridge_item_api_fixture",
+  "version": "1.0.0",
+  "name": "LoaderBridge Item API Fixture",
+  "environment": "*",
+  "entrypoints": {"main": ["dev.loaderbridge.fixture.item.FabricItemApiFixture"]},
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "1.21.1",
+    "fabric-api-base": "*",
+    "fabric-lifecycle-events-v1": "*",
+    "fabric-item-api-v1": "*"
+  }
+}

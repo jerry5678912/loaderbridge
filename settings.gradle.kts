@@ -54,6 +54,7 @@ include(
     "fabric-convention-tags-v2-bridge",
     "fabric-biome-api-v1-bridge",
     "fabric-block-api-v1-bridge",
+    "fabric-item-api-v1-bridge",
     "fabric-blockrenderlayer-v1-bridge",
     "fabric-rendering-v1-bridge",
     "forge-runtime",
@@ -70,5 +71,6 @@ include(
     "fixture-fabric-data-attachment",
     "fixture-fabric-block-api",
     "fixture-fabric-interaction-events",
+    "fixture-fabric-item-api",
     "fixture-fabric-nested-child",
 )

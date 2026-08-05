@@ -547,6 +547,28 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsItemApiBridgeFromInjectedInterfaceReference() throws Exception {
+        Path source = referencedMod("item_api", "fabric-item-api-v1", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "item",
+                    "(Lnet/fabricmc/fabric/api/item/v1/FabricItemStack;)V", null, null);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(0, 2);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "item-api");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-FAPI-002", "LB-MODULE-003");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains("fabric-item-api-v1-bridge-11.3.0_467044f319-loaderbridge.1.jar");
+    }
+
+    @Test
     void automaticallySelectsInteractionBridgeForFakePlayerReference() throws Exception {
         Path source = referencedMod("fake_player", "fabric-events-interaction-v0", writer -> {
             var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "player",

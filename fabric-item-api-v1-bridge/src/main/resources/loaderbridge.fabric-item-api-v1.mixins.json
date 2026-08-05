@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8.7",
+  "package": "dev.loaderbridge.fabric.api.item.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ComponentMapBuilderMixin",
+    "ItemMixin",
+    "ItemPropertiesMixin",
+    "ItemStackMixin",
+    "LivingEntityMixin",
+    "TooltipFlagMixin"
+  ],
+  "injectors": {"defaultRequire": 1}
+}

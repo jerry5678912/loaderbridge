@@ -524,6 +524,21 @@ during two fresh/reload dedicated-server processes. This closes the server
 FakePlayer increment; client interaction callbacks and pick-aware contracts
 remain for M6, and M5's catalog gate remains open.
 
+Fabric Item API v1 revision 14 passed later on 2026-08-05 for the first common
+slice of pinned `11.3.0+467044f319`. Inspection automatically selected the
+Item API, API Base, and Lifecycle bridges from binary references. A translated
+Fabric content fixture registered a modeled item and proved exact injected
+item, stack, settings, component-builder, and tooltip contracts; custom
+durability reduced five damage to two, equipment selection returned the head
+slot, and stack-aware remainder and creator-namespace overrides dispatched.
+The graphical Forge 52.1.16 run had no fixture model/texture warning, saved and
+reopened its world, and observed the behavior on both integrated-server starts.
+Dedicated-server processes loaded the same saved world and stopped with every
+dimension saved. Repeated preparation produced byte-identical artifacts. Full
+default-component, enchanting, recipe-pipeline, tooltip, and client-animation
+hooks remain open, so this is an Item API increment rather than the complete
+module or M5.
+
 The Loader API contract suite also covers Fabric Loader 0.16.14's extended
 semantic-version rules for prereleases, wildcard ranges, comparator chains,
 tilde ranges, caret ranges, trailing-zero equality, and the special
