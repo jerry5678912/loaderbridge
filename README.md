@@ -516,6 +516,24 @@ fixture JARs. The general phased `BiomeModification` context, removals, climate,
 effects, and specialized Nether/End helpers remain open, so this is not the
 complete Biome module, M5, or the 60% catalog gate.
 
+Fabric Biome API v1 revision 3 passed on 2026-08-05. The bridge now exposes the
+general `BiomeModification` and nested context contracts, sorts registrations
+by Fabric phase, identifier, and registration order, and maps those phases onto
+Forge's native ADD, REMOVE, MODIFY, and AFTER_EVERYTHING passes. Generation
+feature/carver additions and removals, spawn additions/removals/probability and
+costs, all weather setters, and non-clearing effects setters operate on Forge's
+live biome builders. The fixture removed Plains' vanilla Cave carver, changed
+temperature to 0.42 and fog to `0x123456`, and installed a custom spawn cost;
+the exact assertions passed during graphical create/reload and two dedicated
+server processes. Effect clearing and spawn-cost clearing currently fail with
+stable `LB-BIOME-004`/`005` diagnostics because Forge 52 exposes no safe public
+removal hook. Nether/End biome-source helpers also remain open, so the module
+and M5 catalog gates remain unclaimed. During context-sensitive rules,
+`BiomeSelectionContext.getBiome()` still exposes the stable pre-modification
+biome rather than a synthetic view of the in-progress Forge builder; selectors
+and key/tag/dimension queries are supported, while current-state reads remain a
+tracked parity gap.
+
 Fabric Block API v1 revision 11 passed on 2026-08-05. The bridge matches pinned
 `1.1.0+0bc3503219`, injects the exact Fabric interfaces into vanilla `Block`
 and `BlockState`, delegates custom appearance through the block-state contract,

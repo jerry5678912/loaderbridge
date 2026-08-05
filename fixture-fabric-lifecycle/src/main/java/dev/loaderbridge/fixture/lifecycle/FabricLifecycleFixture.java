@@ -63,6 +63,7 @@ import net.fabricmc.fabric.api.event.registry.RegistryAttributeHolder;
 import net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback;
 import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
 import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
+import net.fabricmc.fabric.api.biome.v1.ModificationPhase;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
@@ -706,6 +707,30 @@ public final class FabricLifecycleFixture implements ModInitializer {
                 GenerationStep.Carving.AIR, Carvers.NETHER_CAVE);
         BiomeModifications.addSpawn(BiomeSelectors.includeByKey(Biomes.PLAINS),
                 MobCategory.MONSTER, mobBuilderFixtureType, 3, 1, 2);
+        BiomeModifications.create(ResourceLocation.fromNamespaceAndPath(
+                        "loaderbridge", "fixture_phased_biome"))
+                .add(ModificationPhase.REMOVALS,
+                        BiomeSelectors.includeByKey(Biomes.PLAINS), context -> {
+                            if (!context.getGenerationSettings().removeCarver(
+                                    GenerationStep.Carving.AIR, Carvers.CAVE)) {
+                                throw new IllegalStateException(
+                                        "LOADERBRIDGE_FABRIC_BIOME_PHASED_CARVER_MISSING");
+                            }
+                        })
+                .add(ModificationPhase.POST_PROCESSING,
+                        BiomeSelectors.includeByKey(Biomes.PLAINS), (selection, context) -> {
+                            if (!selection.getBiomeKey().equals(Biomes.PLAINS)) {
+                                throw new IllegalStateException(
+                                        "LOADERBRIDGE_FABRIC_BIOME_PHASED_SELECTION_FAILED");
+                            }
+                            context.getWeather().setPrecipitation(false);
+                            context.getWeather().setTemperature(0.42F);
+                            context.getWeather().setDownfall(0.21F);
+                            context.getEffects().setFogColor(0x123456);
+                            context.getSpawnSettings().setCreatureSpawnProbability(0.123F);
+                            context.getSpawnSettings().setSpawnCost(
+                                    mobBuilderFixtureType, 1.5D, 2.5D);
+                        });
         if (!bridgedBlockEntityType.isValid(Blocks.STONE.defaultBlockState())
                 || !bridgedBlockEntityType.isValid(Blocks.DIRT.defaultBlockState())
                 || !bridgedBlockEntityType.isValid(Blocks.GRANITE.defaultBlockState())
@@ -955,6 +980,20 @@ public final class FabricLifecycleFixture implements ModInitializer {
                 throw new IllegalStateException("LOADERBRIDGE_FABRIC_BIOME_ADDITIONS_FAILED");
             }
             System.out.println("LOADERBRIDGE_FABRIC_BIOME_ADDITIONS_READY spawn=1,carver=nether");
+            boolean vanillaCave = false;
+            for (var carver : plains.getGenerationSettings()
+                    .getCarvers(GenerationStep.Carving.AIR)) {
+                if (carver.is(Carvers.CAVE)) vanillaCave = true;
+            }
+            if (vanillaCave || plains.hasPrecipitation()
+                    || Math.abs(plains.getBaseTemperature() - 0.42F) > 0.0001F
+                    || plains.getFogColor() != 0x123456
+                    || Math.abs(plains.getMobSettings().getCreatureProbability() - 0.123F) > 0.0001F
+                    || plains.getMobSettings().getMobSpawnCost(mobBuilderFixtureType) == null) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_BIOME_PHASED_FAILED");
+            }
+            System.out.println("LOADERBRIDGE_FABRIC_BIOME_PHASED_READY "
+                    + "weather=0.42,fog=123456,cave_removed=true,cost=true");
             var world = server.overworld();
             BlockPos lookupPos = new BlockPos(world.getSharedSpawnPos().getX(),
                     world.getMinBuildHeight() + 1, world.getSharedSpawnPos().getZ());

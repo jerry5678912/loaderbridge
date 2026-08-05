@@ -16,6 +16,12 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added Fabric Biome API's general `BiomeModification`, four ordered phases,
+  and weather, effects, generation, and spawn contexts. Fabric phase and
+  identifier ordering maps deterministically onto Forge's native biome
+  modifier lifecycle; a translated fixture removed a vanilla carver and
+  changed live climate, fog, spawn probability, and spawn cost across graphical
+  and two-process dedicated-server reload gates.
 - Expanded Fabric Biome API v1 with the standard `addCarver` and `addSpawn`
   convenience contracts. Configured carvers are resolved through Forge's
   registry-aware biome-modifier codec with stable missing-target diagnostics,
