@@ -6,6 +6,8 @@
   "mixins": [
     "EntityTypeBuilderNullIdMixin",
     "EntityTypeBuilderFabricMixin",
+    "BlockEntityTypeFabricMixin",
+    "BlockEntityTypeBuilderFabricMixin",
     "ForgeHooksAccessor",
     "SpawnPlacementsInvoker"
   ],

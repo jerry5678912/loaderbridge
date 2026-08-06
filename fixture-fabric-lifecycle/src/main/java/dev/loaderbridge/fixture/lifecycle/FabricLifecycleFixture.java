@@ -59,6 +59,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking;
 import net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
+import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityType;
 import net.fabricmc.fabric.api.object.builder.v1.block.type.BlockSetTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.block.type.WoodTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper;
@@ -820,7 +821,27 @@ public final class FabricLifecycleFixture implements ModInitializer {
                 || bridgedBlockEntityType.isValid(Blocks.OAK_PLANKS.defaultBlockState())) {
             throw new IllegalStateException("LOADERBRIDGE_FABRIC_OBJECT_BUILDER_FAILED");
         }
+        ((FabricBlockEntityType) (Object) bridgedBlockEntityType)
+                .addSupportedBlock(Blocks.OAK_PLANKS);
+        if (!bridgedBlockEntityType.isValid(Blocks.OAK_PLANKS.defaultBlockState())) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_BLOCK_ENTITY_TYPE_FAILED");
+        }
+        BlockEntityType.Builder<net.minecraft.world.level.block.entity.BlockEntity> nativeBuilder =
+                BlockEntityType.Builder.of((position, state) -> null, Blocks.COBBLESTONE);
+        @SuppressWarnings("unchecked")
+        FabricBlockEntityType.Builder<net.minecraft.world.level.block.entity.BlockEntity>
+                fabricNativeBuilder = (FabricBlockEntityType.Builder<
+                        net.minecraft.world.level.block.entity.BlockEntity>) (Object) nativeBuilder;
+        BlockEntityType<net.minecraft.world.level.block.entity.BlockEntity> nativeBuiltType =
+                fabricNativeBuilder.build();
+        Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
+                ResourceLocation.fromNamespaceAndPath(
+                        "loaderbridge", "fixture_native_block_entity"), nativeBuiltType);
+        if (!nativeBuiltType.isValid(Blocks.COBBLESTONE.defaultBlockState())) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_BLOCK_ENTITY_BUILDER_FAILED");
+        }
         System.out.println("LOADERBRIDGE_FABRIC_OBJECT_BUILDER_READY");
+        System.out.println("LOADERBRIDGE_FABRIC_BLOCK_ENTITY_TYPE_READY");
         if (SpawnPlacements.getPlacementType(mobBuilderFixtureType) != SpawnPlacementTypes.ON_GROUND
                 || SpawnPlacements.getHeightmapType(mobBuilderFixtureType)
                         != Heightmap.Types.MOTION_BLOCKING_NO_LEAVES) {

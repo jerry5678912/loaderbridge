@@ -182,7 +182,8 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   IDs and missing client screens retain Fabric's warning-and-ignore behavior.
 - A separately versioned Object Builder API v1 bridge matching
   `fabric-object-builder-api-v1:15.2.1+40875a9319`. It currently implements
-  `FabricBlockEntityTypeBuilder`, `FabricDefaultAttributeRegistry`, and the
+  `FabricBlockEntityTypeBuilder`, the injected `FabricBlockEntityType` and
+  vanilla builder interfaces, `FabricDefaultAttributeRegistry`, and the
   deprecated `FabricEntityTypeBuilder` base/living/mob contracts and the modern
   `FabricEntityType.Builder` interface injected into Minecraft's builder.
   Entity dimensions, tracking, velocity updates, feature requirements,
@@ -193,6 +194,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   rebalanced-pool registrations are translated through Forge's trade build
   events. Fabric common entrypoints run
   sequentially in resolved order inside Forge's registration window.
+  Revision 7 makes every constructed block-entity type's supported-block set
+  safely mutable and supplies Fabric's no-argument vanilla-builder `build()`;
+  both behaviors passed fresh and saved-world dedicated-server gates on Forge
+  52.1.0 and 52.1.16.
 - A separately versioned API Lookup v1 bridge matching
   `fabric-api-lookup-api-v1:1.6.72+d30f6a7919`. It implements unique typed
   lookups; block, item, and entity direct/self/fallback providers; live block

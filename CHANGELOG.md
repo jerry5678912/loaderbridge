@@ -16,6 +16,9 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Expanded Object Builder API v1 with its injected `FabricBlockEntityType` and
+  vanilla builder interfaces. Supported-block mutation and no-datafixer builds
+  passed fresh and saved-world gates on Forge 52.1.0 and 52.1.16.
 - Added the pinned Fabric Crash Report Info v1 behavior. Translated Fabric root
   and nested mod metadata is added to Minecraft's real system report in stable
   ID order. A Fabric-only fixture passed fresh and saved-world gates on Forge
