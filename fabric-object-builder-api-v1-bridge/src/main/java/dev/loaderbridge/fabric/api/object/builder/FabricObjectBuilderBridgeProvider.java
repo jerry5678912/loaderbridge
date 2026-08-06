@@ -15,7 +15,7 @@ public final class FabricObjectBuilderBridgeProvider implements RuntimeBridgeMod
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-object-builder-api-v1-bridge",
             "fabric-object-builder-api-v1:15.2.1",
-            "15.2.1+40875a9319-loaderbridge.8",
+            "15.2.1+40875a9319-loaderbridge.9",
             BridgeCapability.FABRIC_API,
             Set.of(
                     "net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder",
@@ -38,7 +38,10 @@ public final class FabricObjectBuilderBridgeProvider implements RuntimeBridgeMod
                     "net.fabricmc.fabric.api.object.builder.v1.block.type.WoodTypeBuilder",
                     "net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper",
                     "net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper$VillagerOffersAdder",
-                    "net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper$WanderingTraderOffersBuilder"),
+                    "net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper$WanderingTraderOffersBuilder",
+                    "net.fabricmc.fabric.api.object.builder.v1.villager.VillagerProfessionBuilder",
+                    "net.fabricmc.fabric.api.object.builder.v1.villager.VillagerTypeHelper",
+                    "net.fabricmc.fabric.api.object.builder.v1.world.poi.PointOfInterestHelper"),
             Map.of("fabric-object-builder-api-v1", "15.2.1+40875a9319"),
             Set.of());
 

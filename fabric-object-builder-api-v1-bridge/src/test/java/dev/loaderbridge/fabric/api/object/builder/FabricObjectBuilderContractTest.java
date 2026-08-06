@@ -13,6 +13,9 @@ import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.entity.MinecartComparatorLogic;
 import net.fabricmc.fabric.api.object.builder.v1.entity.MinecartComparatorLogicRegistry;
+import net.fabricmc.fabric.api.object.builder.v1.villager.VillagerProfessionBuilder;
+import net.fabricmc.fabric.api.object.builder.v1.villager.VillagerTypeHelper;
+import net.fabricmc.fabric.api.object.builder.v1.world.poi.PointOfInterestHelper;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
@@ -35,7 +38,7 @@ class FabricObjectBuilderContractTest {
 
         assertThat(descriptor.contractVersion()).isEqualTo("fabric-object-builder-api-v1:15.2.1");
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("15.2.1+40875a9319-loaderbridge.8");
+                .isEqualTo("15.2.1+40875a9319-loaderbridge.9");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrder(
                 "net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder",
                 "net.fabricmc.fabric.api.object.builder.v1.block.entity."
@@ -56,7 +59,10 @@ class FabricObjectBuilderContractTest {
                 "net.fabricmc.fabric.api.object.builder.v1.block.type.WoodTypeBuilder",
                 "net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper",
                 "net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper$VillagerOffersAdder",
-                "net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper$WanderingTraderOffersBuilder");
+                "net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper$WanderingTraderOffersBuilder",
+                "net.fabricmc.fabric.api.object.builder.v1.villager.VillagerProfessionBuilder",
+                "net.fabricmc.fabric.api.object.builder.v1.villager.VillagerTypeHelper",
+                "net.fabricmc.fabric.api.object.builder.v1.world.poi.PointOfInterestHelper");
     }
 
     @Test
@@ -65,6 +71,18 @@ class FabricObjectBuilderContractTest {
                 "register", EntityType.class, MinecartComparatorLogic.class)).isNotNull();
         assertThat(MinecartComparatorLogicRegistry.class.getDeclaredMethod(
                 "getCustomComparatorLogic", EntityType.class)).isNotNull();
+    }
+
+    @Test
+    void exposesVillagerAndPointOfInterestContracts() throws ReflectiveOperationException {
+        assertThat(VillagerProfessionBuilder.class.getDeclaredMethod("create").getReturnType())
+                .isEqualTo(VillagerProfessionBuilder.class);
+        assertThat(VillagerTypeHelper.class.getDeclaredMethod(
+                "register", ResourceLocation.class)).isNotNull();
+        assertThat(PointOfInterestHelper.class.getDeclaredMethod("register",
+                ResourceLocation.class, int.class, int.class, Block[].class)).isNotNull();
+        assertThat(PointOfInterestHelper.class.getDeclaredMethod("register",
+                ResourceLocation.class, int.class, int.class, Iterable.class)).isNotNull();
     }
 
     @Test

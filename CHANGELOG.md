@@ -16,6 +16,11 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Expanded Object Builder API v1 with the pinned point-of-interest helper,
+  villager profession builder, and villager type helper. A translated fixture
+  verified registry-backed POI state lookup, profession predicates/items/sites,
+  biome-to-type selection, save, shutdown, and reload on Forge 52.1.0 and
+  52.1.16.
 - Expanded Object Builder API v1 with Fabric's identity-keyed minecart
   comparator registry and detector-rail hook. A translated fixture registered
   custom logic, spawned a real minecart on a powered detector rail, observed

@@ -71,6 +71,9 @@ import net.minecraft.tags.TagKey;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType;
 import net.fabricmc.fabric.api.object.builder.v1.entity.MinecartComparatorLogicRegistry;
+import net.fabricmc.fabric.api.object.builder.v1.villager.VillagerProfessionBuilder;
+import net.fabricmc.fabric.api.object.builder.v1.villager.VillagerTypeHelper;
+import net.fabricmc.fabric.api.object.builder.v1.world.poi.PointOfInterestHelper;
 import net.fabricmc.fabric.api.lookup.v1.block.BlockApiCache;
 import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
 import net.fabricmc.fabric.api.lookup.v1.item.ItemApiLookup;
@@ -133,6 +136,10 @@ import net.minecraft.world.entity.SpawnPlacements;
 import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.entity.ai.village.poi.PoiType;
+import net.minecraft.world.entity.ai.village.poi.PoiTypes;
+import net.minecraft.world.entity.npc.VillagerProfession;
+import net.minecraft.world.entity.npc.VillagerType;
 import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.HoneycombItem;
 import net.minecraft.world.item.ShovelItem;
@@ -182,6 +189,10 @@ public final class FabricLifecycleFixture implements ModInitializer {
     private static final int TEST_CHUNK = 725;
     private static EntityType<ArmorStand> attributeFixtureType;
     private static EntityType<Zombie> mobBuilderFixtureType;
+    private static Block pointOfInterestFixtureBlock;
+    private static PoiType pointOfInterestFixtureType;
+    private static VillagerProfession villagerProfessionFixture;
+    private static VillagerType villagerTypeFixture;
     private static final BlockApiLookup<String, Void> BLOCK_LOOKUP = BlockApiLookup.get(
             ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_block_lookup"),
             String.class, Void.class);
@@ -587,6 +598,26 @@ public final class FabricLifecycleFixture implements ModInitializer {
         Block waxed = Registry.register(BuiltInRegistries.BLOCK,
                 ResourceLocation.fromNamespaceAndPath("loaderbridge", "waxed"),
                 new Block(BlockBehaviour.Properties.of()));
+        pointOfInterestFixtureBlock = flattenInput;
+        ResourceLocation pointOfInterestId = ResourceLocation.fromNamespaceAndPath(
+                "loaderbridge", "fixture_point_of_interest");
+        pointOfInterestFixtureType = PointOfInterestHelper.register(
+                pointOfInterestId, 2, 3, pointOfInterestFixtureBlock);
+        ResourceKey<PoiType> pointOfInterestKey = ResourceKey.create(
+                Registries.POINT_OF_INTEREST_TYPE, pointOfInterestId);
+        villagerProfessionFixture = VillagerProfessionBuilder.create()
+                .id(ResourceLocation.fromNamespaceAndPath(
+                        "loaderbridge", "fixture_profession"))
+                .workstation(pointOfInterestKey)
+                .harvestableItems(Items.DIAMOND)
+                .secondaryJobSites(pointOfInterestFixtureBlock)
+                .build();
+        Registry.register(BuiltInRegistries.VILLAGER_PROFESSION,
+                ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_profession"),
+                villagerProfessionFixture);
+        villagerTypeFixture = VillagerTypeHelper.register(
+                ResourceLocation.fromNamespaceAndPath("loaderbridge", "fixture_type"));
+        VillagerTypeHelper.addVillagerTypeToBiome(Biomes.PLAINS, villagerTypeFixture);
         FuelRegistry.INSTANCE.add(Items.DIAMOND, 1234);
         CompostingChanceRegistry.INSTANCE.add(Items.DIAMOND, 0.42F);
         FlammableBlockRegistry.getDefaultInstance().add(flattenInput, 7, 11);
@@ -1103,6 +1134,24 @@ public final class FabricLifecycleFixture implements ModInitializer {
                         "LOADERBRIDGE_FABRIC_MINECART_COMPARATOR_FAILED: " + comparator);
             }
             System.out.println("LOADERBRIDGE_FABRIC_MINECART_COMPARATOR_READY value=11");
+            var pointOfInterestHolder = BuiltInRegistries.POINT_OF_INTEREST_TYPE
+                    .getHolderOrThrow(ResourceKey.create(Registries.POINT_OF_INTEREST_TYPE,
+                            ResourceLocation.fromNamespaceAndPath(
+                                    "loaderbridge", "fixture_point_of_interest")));
+            var plainsHolder = server.registryAccess().registryOrThrow(Registries.BIOME)
+                    .getHolderOrThrow(Biomes.PLAINS);
+            if (pointOfInterestFixtureType.maxTickets() != 2
+                    || pointOfInterestFixtureType.validRange() != 3
+                    || PoiTypes.forState(pointOfInterestFixtureBlock.defaultBlockState())
+                            .orElseThrow() != pointOfInterestHolder
+                    || !villagerProfessionFixture.heldJobSite().test(pointOfInterestHolder)
+                    || !villagerProfessionFixture.requestedItems().contains(Items.DIAMOND)
+                    || !villagerProfessionFixture.secondaryPoi()
+                            .contains(pointOfInterestFixtureBlock)
+                    || VillagerType.byBiome(plainsHolder) != villagerTypeFixture) {
+                throw new IllegalStateException("LOADERBRIDGE_FABRIC_VILLAGER_POI_FAILED");
+            }
+            System.out.println("LOADERBRIDGE_FABRIC_VILLAGER_POI_READY tickets=2,range=3");
             var plains = server.registryAccess().registryOrThrow(Registries.BIOME)
                     .getHolderOrThrow(Biomes.PLAINS).value();
             boolean customSpawn = plains.getMobSettings().getMobs(MobCategory.MONSTER)

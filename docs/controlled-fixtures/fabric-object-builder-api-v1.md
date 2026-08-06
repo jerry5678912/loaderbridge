@@ -3,18 +3,17 @@
 Pinned contract: `fabric-object-builder-api-v1:15.2.1+40875a9319` from Fabric
 API `0.116.15+1.21.1`.
 
-Revision 8 adds the pinned `MinecartComparatorLogic` and
-`MinecartComparatorLogicRegistry` contracts. LoaderBridge preserves Fabric's
-identity-keyed entity-type registry and injects a detector-rail hook that asks
-registered logic before falling back to vanilla comparator behavior. Revision
-7's injected `FabricBlockEntityType` and vanilla-builder interfaces remain in
-place.
+Revision 9 adds the pinned `PointOfInterestHelper`,
+`VillagerProfessionBuilder`, and `VillagerTypeHelper` contracts. LoaderBridge
+registers POIs through Forge's state-indexed registry path and maps villager
+types to biomes through Forge's public 1.21.1 hook. Earlier block-entity and
+minecart comparator behavior remains in place.
 
-The translated lifecycle fixture also registers minecart logic returning `11`,
-places a powered detector rail in the live Overworld, spawns a real minecart in
-its query box, and requires the rail's analog output to equal `11`. Its earlier
-block-entity paths still mutate an already built type and register a native
-builder result before Forge freezes intrusive holders.
+The translated lifecycle fixture creates a two-ticket, three-block-range POI
+for a custom block, requires Minecraft's real block-state lookup to find it,
+and verifies a custom profession's workstation predicate, requested item, and
+secondary site. It maps Plains to a custom villager type and checks the live
+biome holder resolves that type.
 
 On 2026-08-06, the exact assertions passed in fresh and saved-world processes
 on Forge 52.1.0 and 52.1.16. Each process completed the broader lifecycle
