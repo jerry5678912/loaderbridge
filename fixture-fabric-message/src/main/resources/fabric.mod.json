@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "loaderbridge_message_fixture",
+  "version": "1.0.0",
+  "name": "LoaderBridge Fabric Message Fixture",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["dev.loaderbridge.fixture.message.FabricMessageFixture"]
+  },
+  "depends": {
+    "minecraft": "1.21.1",
+    "fabricloader": ">=0.16.0",
+    "fabric-api-base": ">=0.4.42",
+    "fabric-lifecycle-events-v1": ">=2.6.0",
+    "fabric-message-api-v1": ">=6.0.14"
+  }
+}

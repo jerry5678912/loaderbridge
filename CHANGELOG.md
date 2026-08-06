@@ -16,6 +16,19 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added the pinned Fabric Message API v1 common/server contract: phased
+  decorators and chat, game/system, and command allow/observe callbacks at
+  Minecraft's broadcast boundaries. A Fabric-only fixture passed fresh and
+  saved-world gates on Forge 52.1.0 and 52.1.16. Client send/receive callbacks
+  remain fail-closed for M6.
+- Added Fabric Dimensions v1 fail-soft world-data compatibility, including an
+  automatically selected startup agent for the pre-module-layer DFU boundary.
+  Custom-dimension create, mutation, save, datapack removal, world reload, and
+  clean shutdown passed on Forge 52.1.0 and 52.1.16.
+- Added versioned startup-artifact discovery and `loaderbridge.launch.json`, so
+  launchers can apply selected JVM arguments without hardcoded adapter lists.
+- Moved Fabric API Base into Forge's game layer to prevent class-loader type
+  splits when public Fabric event signatures contain Minecraft classes.
 - Hardened real catalog collection across Modrinth and CurseForge: author-
   disabled CurseForge downloads are skipped and topped up, transient request
   and response failures are typed and retried exactly three times, metadata

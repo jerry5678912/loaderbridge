@@ -27,10 +27,9 @@ tasks.named('jar') {
     manifest {
         attributes(
             'Automatic-Module-Name': 'dev.loaderbridge.fabric.api.base',
-            'FMLModType': 'LIBRARY',
             'LICENSE': 'Apache-2.0',
             'Implementation-Title': 'LoaderBridge Fabric API Base Bridge',
-            'Implementation-Version': '0.4.42+6573ed8c19-loaderbridge.1'
+            'Implementation-Version': '0.4.42+6573ed8c19-loaderbridge.2'
         )
     }
 }

@@ -34,6 +34,7 @@ The engine is split so a future GUI can call the same Java API as the CLI.
 | `fabric-convention-tags-v2-bridge` | Complete pinned Fabric common-tag ABI, TagKey extensions, and standardized `c:` data merged with Forge resources |
 | `fabric-tag-api-v1-bridge` | Fabric tag-file ABI and `fabric:remove` translation into Forge's ordered tag-removal engine |
 | `fabric-dimensions-v1-bridge` | Fabric's success-producing fail-soft custom-dimension map codec and world-data compatibility Mixin |
+| `fabric-message-api-v1-bridge` | Common/server Fabric message decoration, cancellation, and observation callbacks at vanilla broadcast boundaries |
 | `dimensions-datafix-agent` | Isolated, relocated-ASM startup agent that preserves unknown dimension choices before Forge creates secure module layers |
 | `dimensions-datafix-agent-provider` | ServiceLoader provider that installs the agent and declares its required JVM argument only when Dimensions is selected |
 
@@ -46,6 +47,9 @@ claim. Selected modules are copied into prepared output and locked by checksum.
 Non-mod startup artifacts use `RuntimeLaunchArtifactProvider`. Their files and
 JVM arguments are emitted into `loaderbridge.launch.json`, so a launcher can
 activate selected early-runtime support without hardcoding module names.
+Fabric API Base is a game-layer Forge mod because its public event signatures
+include Minecraft types. Keeping it out of the plugin layer prevents JVM loader
+constraint violations when game-layer API modules reference those signatures.
 
 The prepare cache key includes the source SHA-256, adapter version, Minecraft
 version, Forge version, Mojang client/mapping checksums, and intermediary

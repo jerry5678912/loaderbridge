@@ -227,6 +227,11 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   JVM option to `loaderbridge.launch.json`. Controlled worlds created, mutated,
   saved, reopened without their dimension datapack, saved again, and stopped
   cleanly on Forge 52.1.0 and 52.1.16.
+- A server/shared Fabric Message API v1 bridge matching
+  `fabric-message-api-v1:6.0.14+6ced4dd919`. Phased decorators and chat,
+  game/system, and command allow/observe callbacks run at Minecraft's real
+  broadcast boundaries. Fresh and saved-world gates passed on Forge 52.1.0 and
+  52.1.16. Client send/receive callbacks remain an explicit M6 gap.
 - A Biome API v1 bridge matching `fabric-biome-api-v1:13.0.31+d527f9fd19`.
   Fabric biome selectors plus placed-feature, configured-carver, and mob-spawn
   additions are translated into a registry-aware Forge biome modifier.

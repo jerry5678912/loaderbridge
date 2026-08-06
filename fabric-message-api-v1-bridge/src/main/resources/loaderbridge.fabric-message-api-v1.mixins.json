@@ -1,0 +1,8 @@
+{
+  "required": true,
+  "minVersion": "0.8.7",
+  "package": "dev.loaderbridge.fabric.api.message.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": ["MinecraftServerMixin", "PlayerListMixin"],
+  "injectors": {"defaultRequire": 1}
+}

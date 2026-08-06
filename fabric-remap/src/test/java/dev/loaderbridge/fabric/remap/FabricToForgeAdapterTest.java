@@ -388,7 +388,7 @@ class FabricToForgeAdapterTest {
             assertThat(diagnostic.message()).contains("fabric-api-base-bridge");
         });
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
-                .contains("fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar");
+                .contains("fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.2.jar");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
                 .contains("runtime-bridge-module", "fabric-api-base-bridge");
         try (JarFile jar = new JarFile(result.artifacts().stream()
@@ -454,7 +454,7 @@ class FabricToForgeAdapterTest {
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
                 .contains(
                         "fabric-loot-api-v3-bridge-1.0.3_3f89f5a519-loaderbridge.1.jar",
-                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.2.jar",
                         "fabric-resource-loader-v0-bridge-1.3.1_5b5275af19-loaderbridge.2.jar");
     }
 
@@ -489,7 +489,7 @@ class FabricToForgeAdapterTest {
                 .contains(
                         "fabric-recipe-api-v1-bridge-5.0.16_2475392c19-loaderbridge.1.jar",
                         "fabric-networking-api-v1-bridge-4.3.1_d30f6a7919-loaderbridge.5.jar",
-                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar");
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.2.jar");
     }
 
     @Test
@@ -543,7 +543,7 @@ class FabricToForgeAdapterTest {
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
                 .contains(
                         "fabric-events-interaction-v0-bridge-0.7.14_ba9dae0619-loaderbridge.2.jar",
-                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar");
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.2.jar");
     }
 
     @Test
@@ -618,7 +618,7 @@ class FabricToForgeAdapterTest {
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
                 .contains(
                         "fabric-entity-events-v1-bridge-1.8.0_2b27e0a419-loaderbridge.2.jar",
-                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar");
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.2.jar");
     }
 
     @Test
@@ -696,7 +696,7 @@ class FabricToForgeAdapterTest {
                 .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
                 .contains(
-                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.2.jar",
                         "fabric-lifecycle-events-bridge-2.6.0_0865547519-loaderbridge.6.jar");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
                 .contains("fabric-api-base-bridge", "fabric-lifecycle-events-bridge");
@@ -768,7 +768,7 @@ class FabricToForgeAdapterTest {
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
                 .contains(
                         "fabric-api-lookup-api-v1-bridge-1.6.72_d30f6a7919-loaderbridge.2.jar",
-                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.2.jar",
                         "fabric-lifecycle-events-bridge-2.6.0_0865547519-loaderbridge.6.jar");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
                 .contains("fabric-api-lookup-api-v1-bridge");
@@ -801,7 +801,7 @@ class FabricToForgeAdapterTest {
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
                 .contains(
                 "fabric-registry-sync-v0-bridge-5.1.3_60c3209b19-loaderbridge.5.jar",
-                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar");
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.2.jar");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
                 .contains("fabric-registry-sync-v0-bridge");
     }
@@ -933,7 +933,7 @@ class FabricToForgeAdapterTest {
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
                 .contains(
                         "fabric-tag-api-v1-bridge-1.3.0_1eb36c0719-loaderbridge.1.jar",
-                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.2.jar",
                         "fabric-resource-loader-v0-bridge-1.3.1_5b5275af19-loaderbridge.2.jar");
     }
 
@@ -958,11 +958,56 @@ class FabricToForgeAdapterTest {
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
                 .contains(
                         "fabric-dimensions-v1-bridge-4.0.1_65213ef819-loaderbridge.1.jar",
-                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.2.jar",
                         "dimensions-datafix-agent.jar");
         assertThat(Files.readString(request.outputDirectory()
                 .resolve("loaderbridge.launch.json")))
                 .contains("-javaagent:.loaderbridge/agents/dimensions-datafix-agent.jar");
+    }
+
+    @Test
+    void automaticallySelectsCommonServerMessageBridgeFromBinaryReference() throws Exception {
+        Path source = referencedMod("message", null, writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "register",
+                    "(Lnet/fabricmc/fabric/api/message/v1/ServerMessageEvents$GameMessage;)V",
+                    null, null);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(0, 2);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "message");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-FAPI-001", "LB-MODULE-003");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains(
+                        "fabric-message-api-v1-bridge-6.0.14_6ced4dd919-loaderbridge.1.jar",
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.2.jar");
+    }
+
+    @Test
+    void doesNotAdvertiseUnimplementedClientMessageApiAsServerSurface() throws Exception {
+        Path source = referencedMod("client_message", "fabric-message-api-v1", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "register",
+                    "(Lnet/fabricmc/fabric/api/client/message/v1/ClientSendMessageEvents$Chat;)V",
+                    null, null);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(0, 2);
+            method.visitEnd();
+        });
+
+        var plan = new FabricToForgeAdapter().plan(requestFor(source, "client-message"));
+
+        assertThat(plan.canPrepare()).isFalse();
+        assertThat(plan.diagnostics()).anySatisfy(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("LB-FAPI-001");
+            assertThat(diagnostic.message()).contains("ClientSendMessageEvents");
+        });
     }
 
     @Test
@@ -988,7 +1033,7 @@ class FabricToForgeAdapterTest {
                 .contains(
                         "fabric-screen-handler-api-v1-bridge-1.3.91_b559734419-loaderbridge.1.jar",
                         "fabric-networking-api-v1-bridge-4.3.1_d30f6a7919-loaderbridge.5.jar",
-                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar");
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.2.jar");
     }
 
     @Test
@@ -1080,7 +1125,7 @@ class FabricToForgeAdapterTest {
                 .contains(
                         "fabric-transfer-api-v1-bridge-5.4.4_7b3d111d19-loaderbridge.11.jar",
                         "fabric-api-lookup-api-v1-bridge-1.6.72_d30f6a7919-loaderbridge.2.jar",
-                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.2.jar",
                         "fabric-lifecycle-events-bridge-2.6.0_0865547519-loaderbridge.6.jar");
     }
 
@@ -1109,7 +1154,7 @@ class FabricToForgeAdapterTest {
         assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
                 .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
-                .contains("fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
+                .contains("fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.2.jar",
                         "fabric-resource-loader-v0-bridge-1.3.1_5b5275af19-loaderbridge.2.jar");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
                 .contains("fabric-api-base-bridge", "fabric-resource-loader-v0-bridge");
@@ -1138,7 +1183,7 @@ class FabricToForgeAdapterTest {
                 .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
         assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
                 .contains(
-                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.2.jar",
                         "fabric-command-api-v2-bridge-2.2.28_6ced4dd919-loaderbridge.1.jar");
         assertThat(Files.readString(request.outputDirectory().resolve("bridge.lock.json")))
                 .contains("fabric-api-base-bridge", "fabric-command-api-v2-bridge");

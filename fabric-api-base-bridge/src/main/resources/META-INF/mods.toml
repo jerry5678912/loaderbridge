@@ -1,0 +1,13 @@
+modLoader="javafml"
+loaderVersion="[52,)"
+license="Apache-2.0"
+[[mods]]
+modId="loaderbridge_fabric_api_base"
+version="0.4.42.2"
+displayName="LoaderBridge Fabric API Base Bridge"
+[[dependencies.loaderbridge_fabric_api_base]]
+modId="forge"
+mandatory=true
+versionRange="[52.1.0,53)"
+ordering="NONE"
+side="BOTH"

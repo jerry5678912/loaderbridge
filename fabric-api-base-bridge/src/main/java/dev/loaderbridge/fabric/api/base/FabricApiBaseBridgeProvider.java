@@ -15,7 +15,7 @@ public final class FabricApiBaseBridgeProvider implements RuntimeBridgeModulePro
     private static final RuntimeBridgeModule DESCRIPTOR = new RuntimeBridgeModule(
             "fabric-api-base-bridge",
             "fabric-api-base:0.4.42",
-            "0.4.42+6573ed8c19-loaderbridge.1",
+            "0.4.42+6573ed8c19-loaderbridge.2",
             BridgeCapability.FABRIC_API,
             Set.of(
                     "net.fabricmc.fabric.api.event.AutoInvokingEvent",
