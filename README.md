@@ -232,6 +232,12 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   game/system, and command allow/observe callbacks run at Minecraft's real
   broadcast boundaries. Fresh and saved-world gates passed on Forge 52.1.0 and
   52.1.16. Client send/receive callbacks remain an explicit M6 gap.
+- A Fabric Crash Report Info v1 bridge matching
+  `fabric-crash-report-info-v1:0.2.29+0af3f5a719`. It augments Minecraft's
+  actual system report with sorted translated Fabric root and nested mod IDs,
+  names, and versions. Metadata dependency inspection selects it automatically;
+  fresh and saved-world dedicated-server gates passed on Forge 52.1.0 and
+  52.1.16.
 - A Biome API v1 bridge matching `fabric-biome-api-v1:13.0.31+d527f9fd19`.
   Fabric biome selectors plus placed-feature, configured-carver, and mob-spawn
   additions are translated into a registry-aware Forge biome modifier.

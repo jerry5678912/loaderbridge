@@ -81,6 +81,9 @@ dependencies {
     testRuntimeOnly(project(":fabric-message-api-v1-bridge")) {
         isTransitive = false
     }
+    testRuntimeOnly(project(":fabric-crash-report-info-v1-bridge")) {
+        isTransitive = false
+    }
     testRuntimeOnly(project(":dimensions-datafix-agent")) {
         isTransitive = false
     }

@@ -44,6 +44,11 @@ event contract of Fabric API 0.116.15 for Minecraft 1.21.1. The pinned upstream
 Fabric API source and binary used for contract verification are Copyright
 FabricMC and contributors and licensed under the Apache License, Version 2.0.
 
+The Fabric Crash Report Info v1 bridge independently implements the system
+report behavior of Fabric API 0.116.15 for Minecraft 1.21.1. The pinned upstream
+Fabric API source and binary used for contract verification are Copyright
+FabricMC and contributors and licensed under the Apache License, Version 2.0.
+
 Minecraft Forge and ForgeSPI are separate LGPL-2.1-only projects and are used
 as linked build/runtime dependencies. ModLauncher is LGPL-3.0-or-later.
 

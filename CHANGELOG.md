@@ -16,6 +16,10 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Added the pinned Fabric Crash Report Info v1 behavior. Translated Fabric root
+  and nested mod metadata is added to Minecraft's real system report in stable
+  ID order. A Fabric-only fixture passed fresh and saved-world gates on Forge
+  52.1.0 and 52.1.16.
 - Added the pinned Fabric Message API v1 common/server contract: phased
   decorators and chat, game/system, and command allow/observe callbacks at
   Minecraft's broadcast boundaries. A Fabric-only fixture passed fresh and

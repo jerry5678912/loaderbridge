@@ -991,6 +991,28 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsCrashReportInfoBridgeFromMetadataDependency() throws Exception {
+        Path source = referencedMod("crash_report", "fabric-crash-report-info-v1", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "doesNotReferencePublicApi",
+                    "()V", null, null);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(0, 1);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "crash-report");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains("fabric-crash-report-info-v1-bridge-0.2.29_0af3f5a719-loaderbridge.1.jar");
+    }
+
+    @Test
     void doesNotAdvertiseUnimplementedClientMessageApiAsServerSurface() throws Exception {
         Path source = referencedMod("client_message", "fabric-message-api-v1", writer -> {
             var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "register",
