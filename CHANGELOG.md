@@ -16,6 +16,11 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Expanded Object Builder API v1 with Fabric's identity-keyed minecart
+  comparator registry and detector-rail hook. A translated fixture registered
+  custom logic, spawned a real minecart on a powered detector rail, observed
+  output `11`, saved, stopped, and repeated the assertion after world reload on
+  Forge 52.1.0 and 52.1.16.
 - Expanded Object Builder API v1 with its injected `FabricBlockEntityType` and
   vanilla builder interfaces. Supported-block mutation and no-datafixer builds
   passed fresh and saved-world gates on Forge 52.1.0 and 52.1.16.

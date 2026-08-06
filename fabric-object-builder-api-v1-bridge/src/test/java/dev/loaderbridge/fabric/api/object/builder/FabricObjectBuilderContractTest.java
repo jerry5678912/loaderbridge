@@ -11,6 +11,8 @@ import net.fabricmc.fabric.api.object.builder.v1.block.type.WoodTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
+import net.fabricmc.fabric.api.object.builder.v1.entity.MinecartComparatorLogic;
+import net.fabricmc.fabric.api.object.builder.v1.entity.MinecartComparatorLogicRegistry;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
@@ -33,7 +35,7 @@ class FabricObjectBuilderContractTest {
 
         assertThat(descriptor.contractVersion()).isEqualTo("fabric-object-builder-api-v1:15.2.1");
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("15.2.1+40875a9319-loaderbridge.7");
+                .isEqualTo("15.2.1+40875a9319-loaderbridge.8");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrder(
                 "net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder",
                 "net.fabricmc.fabric.api.object.builder.v1.block.entity."
@@ -48,11 +50,21 @@ class FabricObjectBuilderContractTest {
                 "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType$Builder",
                 "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType$Builder$Living",
                 "net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType$Builder$Mob",
+                "net.fabricmc.fabric.api.object.builder.v1.entity.MinecartComparatorLogic",
+                "net.fabricmc.fabric.api.object.builder.v1.entity.MinecartComparatorLogicRegistry",
                 "net.fabricmc.fabric.api.object.builder.v1.block.type.BlockSetTypeBuilder",
                 "net.fabricmc.fabric.api.object.builder.v1.block.type.WoodTypeBuilder",
                 "net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper",
                 "net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper$VillagerOffersAdder",
                 "net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper$WanderingTraderOffersBuilder");
+    }
+
+    @Test
+    void exposesMinecartComparatorRegistryContract() throws ReflectiveOperationException {
+        assertThat(MinecartComparatorLogicRegistry.class.getDeclaredMethod(
+                "register", EntityType.class, MinecartComparatorLogic.class)).isNotNull();
+        assertThat(MinecartComparatorLogicRegistry.class.getDeclaredMethod(
+                "getCustomComparatorLogic", EntityType.class)).isNotNull();
     }
 
     @Test

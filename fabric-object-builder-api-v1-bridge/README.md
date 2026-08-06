@@ -16,12 +16,15 @@ Implemented now:
   spawn restrictions.
 - `FabricEntityType.Builder`, injected into Minecraft's builder with modern
   living/mob configuration callbacks and Forge-backed velocity updates.
+- `MinecartComparatorLogic` and `MinecartComparatorLogicRegistry`, with
+  identity-keyed callbacks evaluated by powered detector rails before vanilla
+  comparator fallback.
 
 Unimplemented public types remain unadvertised so preprocessing reports the stable
 missing-Fabric-API diagnostic instead of installing an incomplete bridge silently.
 
-Revision 7 passed fresh and saved-world dedicated-server runs on Forge 52.1.0
-and 52.1.16. The fixture adds support to an already built type, invokes the
-injected no-argument build method on Minecraft's native builder, registers the
-result before Forge freezes registries, saves all dimensions, and repeats the
-checks after a process restart.
+Revision 8 passed fresh and saved-world dedicated-server runs on Forge 52.1.0
+and 52.1.16. In addition to the block-entity checks, the fixture registers
+custom minecart logic, places a powered detector rail, spawns a real minecart,
+and observes comparator output `11`. It saves all dimensions and repeats the
+same behavioral assertion after a process restart.

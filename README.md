@@ -192,12 +192,12 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   `WoodTypeBuilder` also construct and register native behavior records with
   Fabric-compatible copying and defaults. Villager, wandering-trader, and
   rebalanced-pool registrations are translated through Forge's trade build
-  events. Fabric common entrypoints run
-  sequentially in resolved order inside Forge's registration window.
-  Revision 7 makes every constructed block-entity type's supported-block set
-  safely mutable and supplies Fabric's no-argument vanilla-builder `build()`;
-  both behaviors passed fresh and saved-world dedicated-server gates on Forge
-  52.1.0 and 52.1.16.
+  events. Custom minecart comparator callbacks are stored by entity-type
+  identity and invoked from powered detector rails before vanilla comparator
+  fallback. Fabric common entrypoints run sequentially in resolved order
+  inside Forge's registration window. Revision 8 passed fresh and saved-world
+  dedicated-server gates on Forge 52.1.0 and 52.1.16, including a real
+  detector rail and minecart returning the registered value `11`.
 - A separately versioned API Lookup v1 bridge matching
   `fabric-api-lookup-api-v1:1.6.72+d30f6a7919`. It implements unique typed
   lookups; block, item, and entity direct/self/fallback providers; live block

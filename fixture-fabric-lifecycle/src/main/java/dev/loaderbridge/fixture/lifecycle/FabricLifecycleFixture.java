@@ -70,6 +70,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType;
+import net.fabricmc.fabric.api.object.builder.v1.entity.MinecartComparatorLogicRegistry;
 import net.fabricmc.fabric.api.lookup.v1.block.BlockApiCache;
 import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
 import net.fabricmc.fabric.api.lookup.v1.item.ItemApiLookup;
@@ -117,6 +118,8 @@ import net.fabricmc.fabric.api.registry.StrippableBlockRegistry;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.vehicle.Minecart;
+import net.minecraft.world.level.block.DetectorRailBlock;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.core.MappedRegistry;
@@ -1082,6 +1085,24 @@ public final class FabricLifecycleFixture implements ModInitializer {
                 throw new IllegalStateException("LOADERBRIDGE_FABRIC_DEFAULT_ATTRIBUTES_FAILED");
             }
             System.out.println("LOADERBRIDGE_FABRIC_DEFAULT_ATTRIBUTES_READY");
+            var overworld = server.overworld();
+            BlockPos detectorPosition = overworld.getSharedSpawnPos().above(2);
+            var detectorState = Blocks.DETECTOR_RAIL.defaultBlockState()
+                    .setValue(DetectorRailBlock.POWERED, true);
+            overworld.setBlock(detectorPosition, detectorState, 3);
+            MinecartComparatorLogicRegistry.register(EntityType.MINECART,
+                    (minecart, state, position) -> 11);
+            Minecart minecart = new Minecart(overworld,
+                    detectorPosition.getX() + 0.5D, detectorPosition.getY() + 0.1D,
+                    detectorPosition.getZ() + 0.5D);
+            overworld.addFreshEntity(minecart);
+            int comparator = detectorState.getAnalogOutputSignal(overworld, detectorPosition);
+            minecart.discard();
+            if (comparator != 11) {
+                throw new IllegalStateException(
+                        "LOADERBRIDGE_FABRIC_MINECART_COMPARATOR_FAILED: " + comparator);
+            }
+            System.out.println("LOADERBRIDGE_FABRIC_MINECART_COMPARATOR_READY value=11");
             var plains = server.registryAccess().registryOrThrow(Registries.BIOME)
                     .getHolderOrThrow(Biomes.PLAINS).value();
             boolean customSpawn = plains.getMobSettings().getMobs(MobCategory.MONSTER)
