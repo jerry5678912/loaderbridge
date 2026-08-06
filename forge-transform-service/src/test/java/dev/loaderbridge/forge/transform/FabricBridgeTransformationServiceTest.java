@@ -74,6 +74,23 @@ class FabricBridgeTransformationServiceTest {
                 .hasMessageContaining("LB-AW-016");
     }
 
+    @Test
+    void discoversDimensionsDataFixOnlyFromSignedModuleManifestFlag() throws Exception {
+        Path mods = Files.createDirectories(temporaryDirectory.resolve("dimension-mods"));
+        Manifest manifest = new Manifest();
+        manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+        manifest.getMainAttributes().putValue("LoaderBridge-Dimensions-DataFix", "true");
+        try (JarOutputStream jar = new JarOutputStream(
+                Files.newOutputStream(mods.resolve("dimensions.jar")), manifest)) {
+            jar.flush();
+        }
+
+        assertThat(FabricBridgeTransformationService.hasManifestFlag(
+                mods, "LoaderBridge-Dimensions-DataFix")).isTrue();
+        assertThat(FabricBridgeTransformationService.hasManifestFlag(
+                mods, "LoaderBridge-Other-Feature")).isFalse();
+    }
+
     private static void writeWidenerJar(Path output, String resource, String content)
             throws Exception {
         Manifest manifest = new Manifest();

@@ -938,6 +938,34 @@ class FabricToForgeAdapterTest {
     }
 
     @Test
+    void automaticallySelectsDimensionsBridgeFromMetadataDependency() throws Exception {
+        Path source = referencedMod("dimensions", "fabric-dimensions-v1", writer -> {
+            var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "doesNotReferencePublicApi",
+                    "()V", null, null);
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(0, 1);
+            method.visitEnd();
+        });
+        BridgeRequest request = requestFor(source, "dimensions");
+        FabricToForgeAdapter adapter = new FabricToForgeAdapter();
+
+        var plan = adapter.plan(request);
+        var result = adapter.prepare(request, plan);
+
+        assertThat(plan.canPrepare()).isTrue();
+        assertThat(plan.diagnostics()).extracting(diagnostic -> diagnostic.code())
+                .doesNotContain("LB-DEPS-001", "LB-FAPI-001", "LB-MODULE-003");
+        assertThat(result.artifacts()).extracting(path -> path.getFileName().toString())
+                .contains(
+                        "fabric-dimensions-v1-bridge-4.0.1_65213ef819-loaderbridge.1.jar",
+                        "fabric-api-base-bridge-0.4.42_6573ed8c19-loaderbridge.1.jar",
+                        "dimensions-datafix-agent.jar");
+        assertThat(Files.readString(request.outputDirectory()
+                .resolve("loaderbridge.launch.json")))
+                .contains("-javaagent:.loaderbridge/agents/dimensions-datafix-agent.jar");
+    }
+
+    @Test
     void automaticallySelectsScreenHandlerBridgeAndNetworkingDependency() throws Exception {
         Path source = referencedMod("screen_handler", "fabric-screen-handler-api-v1", writer -> {
             var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "references",

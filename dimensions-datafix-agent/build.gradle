@@ -1,0 +1,35 @@
+plugins { id 'com.github.johnrengelman.shadow' version '8.1.1' }
+
+dependencies {
+    implementation 'org.ow2.asm:asm:9.7.1'
+    implementation 'org.ow2.asm:asm-tree:9.7.1'
+}
+
+repositories {
+    mavenCentral()
+}
+
+tasks.withType(JavaCompile).configureEach { options.release = 17 }
+
+tasks.named('jar') { enabled = false }
+
+tasks.named('shadowJar') {
+    archiveClassifier = ''
+    relocate 'org.objectweb.asm', 'dev.loaderbridge.agent.dimensions.internal.asm'
+    manifest {
+        attributes('Premain-Class': 'dev.loaderbridge.agent.dimensions.DimensionsDataFixAgent',
+                'Agent-Class': 'dev.loaderbridge.agent.dimensions.DimensionsDataFixAgent',
+                'Can-Retransform-Classes': 'false',
+                'Can-Redefine-Classes': 'false',
+                'Automatic-Module-Name': 'dev.loaderbridge.agent.dimensions',
+                'LICENSE': 'Apache-2.0')
+    }
+}
+
+tasks.named('assemble') { dependsOn tasks.named('shadowJar') }
+tasks.named('test') { dependsOn tasks.named('shadowJar') }
+
+configurations.apiElements.outgoing.artifacts.clear()
+configurations.apiElements.outgoing.artifact(tasks.named('shadowJar'))
+configurations.runtimeElements.outgoing.artifacts.clear()
+configurations.runtimeElements.outgoing.artifact(tasks.named('shadowJar'))

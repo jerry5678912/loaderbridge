@@ -72,6 +72,15 @@ dependencies {
     runtimeOnly(project(":fabric-tag-api-v1-bridge")) {
         isTransitive = false
     }
+    runtimeOnly(project(":fabric-dimensions-v1-bridge")) {
+        isTransitive = false
+    }
+    runtimeOnly(project(":dimensions-datafix-agent")) {
+        isTransitive = false
+    }
+    runtimeOnly(project(":dimensions-datafix-agent-provider")) {
+        isTransitive = false
+    }
     runtimeOnly(project(":fabric-biome-api-v1-bridge")) {
         isTransitive = false
     }

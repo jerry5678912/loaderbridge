@@ -36,6 +36,10 @@ public final class FabricBridgeTransformationService implements ITransformationS
             AccessWidener accessWidener = loadAccessWideners(gameDirectory.resolve("mods"));
             List<ITransformer> configured = new ArrayList<>();
             configured.add(new LaunchArgumentsTransformer());
+            if (hasManifestFlag(gameDirectory.resolve("mods"),
+                    "LoaderBridge-Dimensions-DataFix")) {
+                configured.add(new DimensionsDataFixTransformer());
+            }
             if (!accessWidener.getTargets().isEmpty()) {
                 configured.add(new AccessWidenerTransformer(accessWidener));
             }
@@ -103,6 +107,30 @@ public final class FabricBridgeTransformationService implements ITransformationS
             }
         }
         return merged;
+    }
+
+    static boolean hasManifestFlag(Path modsDirectory, String attribute) throws IOException {
+        if (!Files.isDirectory(modsDirectory)) return false;
+        List<Path> jars;
+        try (var files = Files.list(modsDirectory)) {
+            jars = files.filter(path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS))
+                    .filter(path -> path.getFileName().toString().endsWith(".jar"))
+                    .sorted(Comparator.comparing(path -> path.getFileName().toString()))
+                    .limit(MAXIMUM_MOD_JARS + 1L)
+                    .toList();
+        }
+        if (jars.size() > MAXIMUM_MOD_JARS) {
+            throw new IOException("LB-AW-012: mod JAR count exceeds safety limit");
+        }
+        for (Path jarPath : jars) {
+            try (JarFile jar = new JarFile(jarPath.toFile(), false)) {
+                if (jar.getManifest() != null && Boolean.parseBoolean(
+                        jar.getManifest().getMainAttributes().getValue(attribute))) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static void validateResource(String resource) throws IOException {

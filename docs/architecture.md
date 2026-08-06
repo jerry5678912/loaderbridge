@@ -33,6 +33,9 @@ The engine is split so a future GUI can call the same Java API as the CLI.
 | `fabric-screen-handler-api-v1-bridge` | Typed Fabric extended-menu opening data and client screen construction over Forge payloads and menus |
 | `fabric-convention-tags-v2-bridge` | Complete pinned Fabric common-tag ABI, TagKey extensions, and standardized `c:` data merged with Forge resources |
 | `fabric-tag-api-v1-bridge` | Fabric tag-file ABI and `fabric:remove` translation into Forge's ordered tag-removal engine |
+| `fabric-dimensions-v1-bridge` | Fabric's success-producing fail-soft custom-dimension map codec and world-data compatibility Mixin |
+| `dimensions-datafix-agent` | Isolated, relocated-ASM startup agent that preserves unknown dimension choices before Forge creates secure module layers |
+| `dimensions-datafix-agent-provider` | ServiceLoader provider that installs the agent and declares its required JVM argument only when Dimensions is selected |
 
 Adapter discovery is exclusively through Java `ServiceLoader`. A future loader
 direction can be added as another provider without editing the CLI.
@@ -40,6 +43,9 @@ Runtime API bridges use a separate `RuntimeBridgeModuleProvider` service. Each
 module advertises exact binary classes and Fabric mod versions; overlapping
 unimplemented references remain gated instead of turning on a broad Fabric API
 claim. Selected modules are copied into prepared output and locked by checksum.
+Non-mod startup artifacts use `RuntimeLaunchArtifactProvider`. Their files and
+JVM arguments are emitted into `loaderbridge.launch.json`, so a launcher can
+activate selected early-runtime support without hardcoding module names.
 
 The prepare cache key includes the source SHA-256, adapter version, Minecraft
 version, Forge version, Mojang client/mapping checksums, and intermediary

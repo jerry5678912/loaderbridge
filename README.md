@@ -220,6 +220,13 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   remain errors rather than being silently accepted. A dedicated-server
   fixture retained stone, removed dirt, saved all dimensions, restarted, and
   repeated the assertion on Forge 52.1.16.
+- A Fabric Dimensions v1 bridge matching
+  `fabric-dimensions-v1:4.0.1+65213ef819`. It preserves Fabric's fail-soft
+  world-data behavior when a custom dimension is removed. Preparation selects
+  its isolated startup agent from inspected capabilities and writes the exact
+  JVM option to `loaderbridge.launch.json`. Controlled worlds created, mutated,
+  saved, reopened without their dimension datapack, saved again, and stopped
+  cleanly on Forge 52.1.0 and 52.1.16.
 - A Biome API v1 bridge matching `fabric-biome-api-v1:13.0.31+d527f9fd19`.
   Fabric biome selectors plus placed-feature, configured-carver, and mob-spawn
   additions are translated into a registry-aware Forge biome modifier.
@@ -831,6 +838,11 @@ dependency resolution and recursively omits incompatible nested mods. The side
 is locked in `bridge.lock.json`. Reusing an output directory removes stale JARs
 listed by its prior LoaderBridge lock, while never deleting unlisted files or
 paths outside that directory.
+Preparation also writes `loaderbridge.launch.json`. Launchers must apply every
+listed JVM argument before starting Forge. This is mandatory when the selected
+bridges need code before ModLauncher creates its module layers; for example,
+Fabric Dimensions emits
+`-javaagent:.loaderbridge/agents/dimensions-datafix-agent.jar`.
 `test` runs bounded lifecycle/save/reload behavior and writes a structured
 `scenario-report.json` plus per-launch Forge transcripts and discovered logs.
 

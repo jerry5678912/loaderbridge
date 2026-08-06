@@ -15,6 +15,7 @@ import dev.loaderbridge.api.LoaderId;
 import dev.loaderbridge.api.ModInspection;
 import dev.loaderbridge.api.PreparationResult;
 import dev.loaderbridge.api.RuntimeBridgeModuleProvider;
+import dev.loaderbridge.api.RuntimeLaunchArtifactProvider;
 import dev.loaderbridge.fabric.metadata.FabricCandidateSelector;
 import dev.loaderbridge.fabric.metadata.FabricDependencyResolver;
 import dev.loaderbridge.fabric.metadata.FabricEntrypoint;
@@ -56,6 +57,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
     private final IntermediaryMappingsProvider intermediaryMappings;
     private final RuntimeLibraryProvider mixinExtrasRuntime;
     private final List<RuntimeBridgeModuleProvider> bridgeModules;
+    private final List<RuntimeLaunchArtifactProvider> launchArtifacts;
 
     public FabricToForgeAdapter() {
         this(new MinecraftArtifactResolver(), new BundledIntermediaryMappings(),
@@ -83,6 +85,7 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
         this.bridgeModules = validateBridgeModules(bridgeModules.stream()
                 .sorted(java.util.Comparator.comparing(provider -> provider.descriptor().id()))
                 .toList());
+        this.launchArtifacts = discoverLaunchArtifacts();
     }
 
     @Override
@@ -295,6 +298,28 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
             prepared.add(new PreparedArtifact(descriptor.id(), module.toString(), moduleHash,
                     output.toString(), sha256(output), moduleHash, "runtime-bridge-module"));
         }
+        List<LaunchEntry> launchEntries = new ArrayList<>();
+        for (RuntimeLaunchArtifactProvider provider : launchArtifacts) {
+            var descriptor = provider.descriptor();
+            if (!selectedBridgeModules.containsKey(descriptor.requiredModuleId())) continue;
+            Path relative = safeRelativeLaunchOutput(descriptor.relativeOutput());
+            Path output = request.outputDirectory().resolve(relative).normalize();
+            Files.createDirectories(output.getParent());
+            Path source = provider.artifact();
+            if (!Files.isRegularFile(source, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+                throw new IOException("LB-LAUNCH-002: missing launch artifact: " + source);
+            }
+            Files.copy(source, output, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            outputs.add(output);
+            String sourceHash = sha256(source);
+            prepared.add(new PreparedArtifact(descriptor.id(), source.toString(), sourceHash,
+                    output.toString(), sha256(output), sourceHash, "startup-agent"));
+            launchEntries.add(new LaunchEntry(descriptor.id(), descriptor.version(),
+                    relative.toString(), descriptor.jvmArguments().stream()
+                            .map(argument -> argument.replace("${artifact}", relative.toString()))
+                            .toList()));
+        }
+        writeLaunchManifest(request.outputDirectory(), launchEntries);
         removeStaleManagedArtifacts(request.outputDirectory(), outputs);
         Path report = writeReport(request, plan, prepared);
         writeLock(request, prepared, resolvedMinecraft, resolvedIntermediaryMappings,
@@ -463,6 +488,35 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
     private static List<RuntimeBridgeModuleProvider> discoverBridgeModules() {
         return ServiceLoader.load(RuntimeBridgeModuleProvider.class).stream()
                 .map(ServiceLoader.Provider::get).toList();
+    }
+
+    private static List<RuntimeLaunchArtifactProvider> discoverLaunchArtifacts() {
+        return ServiceLoader.load(RuntimeLaunchArtifactProvider.class).stream()
+                .map(ServiceLoader.Provider::get)
+                .sorted(java.util.Comparator.comparing(provider -> provider.descriptor().id()))
+                .toList();
+    }
+
+    private static Path safeRelativeLaunchOutput(String value) throws IOException {
+        Path relative;
+        try {
+            relative = Path.of(value).normalize();
+        } catch (RuntimeException exception) {
+            throw new IOException("LB-LAUNCH-003: invalid launch artifact output", exception);
+        }
+        if (relative.isAbsolute() || relative.getNameCount() < 3
+                || !relative.getName(0).toString().equals(".loaderbridge")
+                || relative.startsWith("..") || !relative.toString().endsWith(".jar")) {
+            throw new IOException("LB-LAUNCH-003: unsafe launch artifact output: " + value);
+        }
+        return relative;
+    }
+
+    private static void writeLaunchManifest(Path outputDirectory, List<LaunchEntry> entries)
+            throws IOException {
+        Path manifest = outputDirectory.resolve("loaderbridge.launch.json");
+        Files.writeString(manifest, JSON.toJson(new LaunchManifest("1", entries)),
+                StandardCharsets.UTF_8);
     }
 
     private static List<RuntimeBridgeModuleProvider> validateBridgeModules(
@@ -864,7 +918,10 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
                 }
                 Path candidate = Path.of(element.getAsJsonObject().get("output").getAsString())
                         .toAbsolutePath().normalize();
-                if (managedDirectory.equals(candidate.getParent())
+                boolean managedRootJar = managedDirectory.equals(candidate.getParent());
+                boolean managedRuntimeJar = candidate.startsWith(
+                        managedDirectory.resolve(".loaderbridge"));
+                if ((managedRootJar || managedRuntimeJar)
                         && candidate.getFileName().toString().endsWith(".jar")) {
                     previouslyManaged.add(candidate);
                 }
@@ -882,6 +939,11 @@ public final class FabricToForgeAdapter implements BridgeAdapter {
 
     private record PreparedArtifact(String modId, String source, String sourceSha256, String output,
             String outputSha256, String cacheKey, String sourceNamespace) {}
+
+    private record LaunchEntry(String id, String version, String artifact,
+            List<String> jvmArguments) {}
+
+    private record LaunchManifest(String formatVersion, List<LaunchEntry> artifacts) {}
 
     private record PreparationInput(
             Path path,

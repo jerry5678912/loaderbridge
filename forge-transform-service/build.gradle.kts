@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     compileOnly("net.minecraftforge:modlauncher:10.2.4")
+    compileOnly("org.ow2.asm:asm-tree:9.7.1")
     implementation("net.fabricmc:access-widener:2.1.0")
     testImplementation("net.minecraftforge:modlauncher:10.2.4") {
         isTransitive = false
