@@ -4,6 +4,7 @@
   "package": "dev.loaderbridge.fabric.api.object.builder.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "BlockBehaviourPropertiesAccessor",
     "EntityTypeBuilderNullIdMixin",
     "EntityTypeBuilderFabricMixin",
     "BlockEntityTypeFabricMixin",

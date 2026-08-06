@@ -60,6 +60,7 @@ import net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityType;
+import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.fabricmc.fabric.api.object.builder.v1.block.type.BlockSetTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.block.type.WoodTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper;
@@ -158,6 +159,9 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.level.material.PushReaction;
+import net.minecraft.world.level.EmptyBlockGetter;
+import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
@@ -598,6 +602,45 @@ public final class FabricLifecycleFixture implements ModInitializer {
         Block waxed = Registry.register(BuiltInRegistries.BLOCK,
                 ResourceLocation.fromNamespaceAndPath("loaderbridge", "waxed"),
                 new Block(BlockBehaviour.Properties.of()));
+        ResourceKey<LootTable> copiedDrops = ResourceKey.create(Registries.LOOT_TABLE,
+                ResourceLocation.fromNamespaceAndPath(
+                        "loaderbridge", "blocks/fabric_settings_copy"));
+        Block fabricSettingsSource = Registry.register(BuiltInRegistries.BLOCK,
+                ResourceLocation.fromNamespaceAndPath(
+                        "loaderbridge", "fabric_settings_source"),
+                new Block(FabricBlockSettings.create()
+                        .strength(4.0F, 12.0F)
+                        .slipperiness(0.7F)
+                        .velocityMultiplier(0.8F)
+                        .jumpVelocityMultiplier(0.9F)
+                        .luminance(7)
+                        .materialColor(net.minecraft.world.level.material.MapColor.COLOR_PURPLE)
+                        .noCollision()
+                        .nonOpaque()
+                        .burnable()
+                        .notSolid()
+                        .pistonBehavior(PushReaction.DESTROY)
+                        .drops(copiedDrops)));
+        Block fabricSettingsCopy = Registry.register(BuiltInRegistries.BLOCK,
+                ResourceLocation.fromNamespaceAndPath(
+                        "loaderbridge", "fabric_settings_copy"),
+                new Block(FabricBlockSettings.copyOf(fabricSettingsSource)));
+        BlockState copiedState = fabricSettingsCopy.defaultBlockState();
+        if (fabricSettingsCopy.defaultDestroyTime() != 4.0F
+                || fabricSettingsCopy.getExplosionResistance() != 12.0F
+                || fabricSettingsCopy.getFriction() != 0.7F
+                || fabricSettingsCopy.getSpeedFactor() != 0.8F
+                || fabricSettingsCopy.getJumpFactor() != 0.9F
+                || copiedState.getLightEmission() != 7
+                || !copiedState.ignitedByLava()
+                || copiedState.getPistonPushReaction() != PushReaction.DESTROY
+                || !copiedState.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO).isEmpty()
+                || fabricSettingsCopy.defaultMapColor()
+                        != net.minecraft.world.level.material.MapColor.COLOR_PURPLE
+                || fabricSettingsCopy.getLootTable() != copiedDrops) {
+            throw new IllegalStateException("LOADERBRIDGE_FABRIC_BLOCK_SETTINGS_FAILED");
+        }
+        System.out.println("LOADERBRIDGE_FABRIC_BLOCK_SETTINGS_READY copied=true,light=7");
         pointOfInterestFixtureBlock = flattenInput;
         ResourceLocation pointOfInterestId = ResourceLocation.fromNamespaceAndPath(
                 "loaderbridge", "fixture_point_of_interest");

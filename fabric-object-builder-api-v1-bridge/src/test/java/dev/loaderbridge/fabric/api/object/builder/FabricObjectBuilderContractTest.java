@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.mojang.datafixers.types.Type;
 import java.lang.reflect.Modifier;
+import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityType;
 import net.fabricmc.fabric.api.object.builder.v1.block.type.BlockSetTypeBuilder;
@@ -38,8 +39,9 @@ class FabricObjectBuilderContractTest {
 
         assertThat(descriptor.contractVersion()).isEqualTo("fabric-object-builder-api-v1:15.2.1");
         assertThat(descriptor.implementationVersion())
-                .isEqualTo("15.2.1+40875a9319-loaderbridge.9");
+                .isEqualTo("15.2.1+40875a9319-loaderbridge.10");
         assertThat(descriptor.providedClasses()).containsExactlyInAnyOrder(
+                "net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings",
                 "net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder",
                 "net.fabricmc.fabric.api.object.builder.v1.block.entity."
                         + "FabricBlockEntityTypeBuilder$Factory",
@@ -63,6 +65,21 @@ class FabricObjectBuilderContractTest {
                 "net.fabricmc.fabric.api.object.builder.v1.villager.VillagerProfessionBuilder",
                 "net.fabricmc.fabric.api.object.builder.v1.villager.VillagerTypeHelper",
                 "net.fabricmc.fabric.api.object.builder.v1.world.poi.PointOfInterestHelper");
+    }
+
+    @Test
+    void exposesDeprecatedFabricBlockSettingsContract() throws ReflectiveOperationException {
+        assertThat(FabricBlockSettings.class.getSuperclass())
+                .isEqualTo(net.minecraft.world.level.block.state.BlockBehaviour.Properties.class);
+        assertThat(FabricBlockSettings.class.getDeclaredMethod("create").getReturnType())
+                .isEqualTo(FabricBlockSettings.class);
+        assertThat(FabricBlockSettings.class.getDeclaredMethod("copyOf",
+                net.minecraft.world.level.block.state.BlockBehaviour.Properties.class)
+                .getReturnType()).isEqualTo(FabricBlockSettings.class);
+        assertThat(FabricBlockSettings.class.getDeclaredMethod(
+                "luminance", int.class).getReturnType()).isEqualTo(FabricBlockSettings.class);
+        assertThat(FabricBlockSettings.class.getDeclaredMethod(
+                "collidable", boolean.class).getReturnType()).isEqualTo(FabricBlockSettings.class);
     }
 
     @Test

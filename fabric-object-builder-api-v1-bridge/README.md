@@ -1,6 +1,6 @@
 # Fabric Object Builder API v1 bridge
 
-This module implements selected binary contracts from
+This module implements the public binary contracts from
 `fabric-object-builder-api-v1` 15.2.1+40875a9319 for Minecraft 1.21.1.
 
 Implemented now:
@@ -21,12 +21,15 @@ Implemented now:
   comparator fallback.
 - `PointOfInterestHelper`, `VillagerProfessionBuilder`, and
   `VillagerTypeHelper`, backed by Forge's POI state index and biome-type hook.
+- The deprecated `FabricBlockSettings` factory, Fabric/Yarn builder aliases,
+  covariant returns, and deep-copy semantics. A narrow access transform permits
+  the required subclass constructor, while Mixin accessors copy every pinned
+  vanilla and Forge property without loading mod classes during preprocessing.
 
-Unimplemented public types remain unadvertised so preprocessing reports the stable
-missing-Fabric-API diagnostic instead of installing an incomplete bridge silently.
-
-Revision 9 passed saved-world and restart dedicated-server runs on Forge 52.1.0
-and 52.1.16. The fixture verifies POI ticket/range data and block-state lookup,
-profession workstation/item/secondary-site behavior, and biome-to-villager
-type selection. It saves all dimensions and repeats every assertion after a
-process restart.
+Revision 10 completes the pinned module's public API surface. It passed
+saved-world and restart dedicated-server runs on Forge 52.1.0 and 52.1.16. The
+fixture verifies POI and profession behavior, villager-type selection, minecart
+comparator logic, and a registered block copied through `FabricBlockSettings`,
+including hardness, resistance, movement factors, light, fire, collision,
+map color, piston reaction, and loot-table state. It saves all dimensions and
+repeats every assertion after a process restart.

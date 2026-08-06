@@ -196,7 +196,10 @@ does not claim that arbitrary Fabric mods run on Forge yet.
   index; the deprecated profession and villager-type helpers preserve
   workstation, item, secondary-site, and biome mappings. Custom minecart
   comparator callbacks are stored by entity-type identity and invoked from
-  powered detector rails before vanilla fallback. Revision 9 passed
+  powered detector rails before vanilla fallback. The deprecated
+  `FabricBlockSettings` contract supplies Fabric/Yarn aliases, covariant
+  builder returns, and a full property-state copy rather than a shallow
+  approximation. Revision 10 completes the pinned module's public API and passed
   saved-world and restart dedicated-server gates on Forge 52.1.0 and 52.1.16.
 - A separately versioned API Lookup v1 bridge matching
   `fabric-api-lookup-api-v1:1.6.72+d30f6a7919`. It implements unique typed

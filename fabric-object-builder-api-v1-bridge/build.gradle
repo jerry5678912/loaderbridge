@@ -1,6 +1,10 @@
 plugins { id 'net.minecraftforge.gradle' version '6.0.54' }
 
-minecraft { mappings channel: 'official', version: '1.21.1'; reobf = false }
+minecraft {
+    mappings channel: 'official', version: '1.21.1'
+    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+    reobf = false
+}
 
 repositories {
     exclusiveContent {
@@ -14,11 +18,16 @@ dependencies {
     implementation project(':bridge-api')
 }
 
+tasks.withType(JavaCompile).configureEach {
+    notCompatibleWithConfigurationCache(
+            'ForgeGradle access-transformer dependency generation starts external tools')
+}
+
 tasks.named('jar') {
     manifest {
         attributes('Automatic-Module-Name': 'dev.loaderbridge.fabric.api.object.builder',
                 'LICENSE': 'Apache-2.0',
-                'Implementation-Version': '15.2.1+40875a9319-loaderbridge.9',
+                'Implementation-Version': '15.2.1+40875a9319-loaderbridge.10',
                 'MixinConfigs': 'loaderbridge.fabric-object-builder.mixins.json')
     }
 }

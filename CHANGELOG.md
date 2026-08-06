@@ -16,6 +16,13 @@ All notable user-facing changes will be recorded here.
 
 ### Added
 
+- Completed the pinned Object Builder API v1 public surface with the deprecated
+  `FabricBlockSettings` compatibility class. Its factory, covariant builder
+  methods, legacy aliases, and deep-copy behavior now preserve the complete
+  Minecraft/Forge property state through an early access transform and Mixin
+  accessors. A translated fixture registered source and copied blocks, verified
+  physical, lighting, collision, map-color, piston, fire, and loot behavior,
+  and passed save/reload gates on Forge 52.1.0 and 52.1.16.
 - Expanded Object Builder API v1 with the pinned point-of-interest helper,
   villager profession builder, and villager type helper. A translated fixture
   verified registry-backed POI state lookup, profession predicates/items/sites,
